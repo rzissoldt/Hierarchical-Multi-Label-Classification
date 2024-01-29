@@ -1,4 +1,4 @@
-# Hierarchical Multi-Label Text Classification
+# Hierarchical Multi-Label Classification
 
 [![Python Version](https://img.shields.io/badge/language-python3.6-blue.svg)](https://www.python.org/downloads/) [![Build Status](https://travis-ci.org/RandolphVI/Hierarchical-Multi-Label-Text-Classification.svg?branch=master)](https://travis-ci.org/RandolphVI/Hierarchical-Multi-Label-Text-Classification)[![Codacy Badge](https://api.codacy.com/project/badge/Grade/80fe0da5f16146219a5d0a66f8c8ed70)](https://www.codacy.com/manual/chinawolfman/Hierarchical-Multi-Label-Text-Classification?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=RandolphVI/Hierarchical-Multi-Label-Text-Classification&amp;utm_campaign=Badge_Grade)[![License](https://img.shields.io/github/license/RandolphVI/Hierarchical-Multi-Label-Text-Classification.svg)](https://www.apache.org/licenses/LICENSE-2.0) 
 
