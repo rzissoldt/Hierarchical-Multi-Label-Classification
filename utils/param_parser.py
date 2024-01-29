@@ -53,3 +53,47 @@ def parameter_parser():
     parser.add_argument("--gpu-options-allow-growth", type=bool, default=True, help="Allow gpu options growth.")
 
     return parser.parse_args()
+
+def image_parameter_parser():
+    """
+    A method to parse up command line parameters.
+    The default hyperparameters give good results without cross-validation.
+    """
+    parser = argparse.ArgumentParser(description="Run HARNN.")
+
+    # Data Parameters
+    parser.add_argument("--train-file", nargs="?", default="../data/Train_sample.json", help="Training data.")
+    parser.add_argument("--validation-file", nargs="?", default="../data/Validation_sample.json", help="Validation data.")
+    parser.add_argument("--test-file", nargs="?", default="../data/Test_sample.json", help="Testing data.")
+    parser.add_argument("--hierarchy-file", nargs="?", default="../data/image_harnn/bauwerke", help="Hierarchy data.")
+    parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
+    
+    parser.add_argument("--input-size", type=tuple, default=(224,224,3), help="Dimensionality of the Input.")
+    parser.add_argument("--attention-dim", type=int, default=200, help="Dimensionality of Attention neurons.")
+    parser.add_argument("--attention-penalization", type=bool, default=True, help="Use attention penalization or not.")
+    parser.add_argument("--fc-dim", type=int, default=512, help="Dimensionality for FC neurons.")
+    parser.add_argument("--dropout-rate", type=float, default=0.5, help="Dropout keep probability.")
+    parser.add_argument("--alpha", type=float, default=0.5, help="Weight of global part in scores cal.")
+    
+    parser.add_argument("--topK", type=int, default=5, help="Number of top K prediction classes.")
+    parser.add_argument("--threshold", type=float, default=0.5, help="Threshold for prediction classes.")
+
+    # Training Parameters
+    parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs.")
+    parser.add_argument("--batch-size", type=int, default=32, help="Batch Size.")
+    parser.add_argument("--learning-rate", type=float, default=0.001, help="Learning rate.")
+    parser.add_argument("--decay-rate", type=float, default=0.95, help="Rate of decay for learning rate.")
+    parser.add_argument("--decay-steps", type=int, default=500, help="How many steps before decay learning rate.")
+    parser.add_argument("--evaluate-steps", type=int, default=10, help="Evaluate model on val set after how many steps.")
+    parser.add_argument("--norm-ratio", type=float, default=1.25,
+                        help="The ratio of the sum of gradients norms of trainable variable.")
+    parser.add_argument("--l2-lambda", type=float, default=0.0, help="L2 regularization lambda.")
+    parser.add_argument("--checkpoint-steps", type=int, default=10, help="Save model after how many steps.")
+    parser.add_argument("--num-checkpoints", type=int, default=5, help="Number of checkpoints to store.")
+
+    # Misc Parameters
+    parser.add_argument("--allow-soft-placement", type=bool, default=True, help="Allow device soft device placement.")
+    parser.add_argument("--log-device-placement", type=bool, default=False, help="Log placement of ops on devices.")
+    parser.add_argument("--gpu-options-allow-growth", type=bool, default=True, help="Allow gpu options growth.")
+
+    return parser.parse_args()

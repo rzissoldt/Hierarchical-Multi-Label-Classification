@@ -3,7 +3,7 @@ import glob
 import json
 import numpy as np
 import tensorflow as tf
-
+import tensorflow.compat.v1 as tf1
 
 class BestCheckpointSaver(object):
     """Maintains a directory containing only the best n checkpoints.
@@ -32,7 +32,7 @@ class BestCheckpointSaver(object):
         self._save_dir = save_dir
         self._save_path = os.path.join(save_dir, 'model')
         self._maximize = maximize
-        self._saver = saver if saver else tf.train.Saver(
+        self._saver = saver if saver else tf1.train.Saver(
             max_to_keep=None,
             save_relative_paths=True
         )

@@ -26,7 +26,7 @@ class TextHARNN(object):
 
         def _attention(input_x, num_classes, name=""):
             """
-            Attention Layer.
+            Attention Layer. Also known as TCA Module.
 
             Args:
                 input_x: [batch_size, sequence_length, lstm_hidden_size * 2]
@@ -60,7 +60,7 @@ class TextHARNN(object):
 
         def _fc_layer(input_x, name=""):
             """
-            Fully Connected Layer.
+            Fully Connected Layer. Getting used to calculate the local Predictions, used for Class Prediction Module
 
             Args:
                 input_x: [batch_size, *]
@@ -79,7 +79,7 @@ class TextHARNN(object):
 
         def _local_layer(input_x, input_att_weight, num_classes, name=""):
             """
-            Local Layer.
+            Local Layer. Used for Class Depency Module
 
             Args:
                 input_x: [batch_size, fc_hidden_size]

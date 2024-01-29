@@ -8,13 +8,13 @@ import gensim
 import logging
 import json
 import numpy as np
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from pylab import *
 from texttable import Texttable
 from gensim.models import KeyedVectors
 from tflearn.data_utils import pad_sequences
-
-
+from utils.xtree_utils import load_xtree_json, generate_dicts_per_level
+import tensorflow as tf
 def _option(pattern):
     """
     Get the option according to the pattern.
@@ -66,6 +66,7 @@ def logger_fn(name, input_file, level=logging.INFO):
     sh.setLevel(logging.INFO)
     logger.addHandler(sh)
     return logger
+
 
 
 def tab_printer(args, logger):
@@ -282,7 +283,31 @@ def create_metadata_file(word2vec_file, output_file):
                 fout.write('<Empty Line>' + '\n')
             else:
                 fout.write(word[0] + '\n')
+                
+def load_and_preprocess_image(image_path,target_size):
+    # Read the image file
+    image = tf.io.read_file(image_path)
+    # Decode the image contents to a tensor
+    image = tf.image.decode_jpeg(image, channels=3)
+    # Resize the image to the target size (224x224)
+    image = tf.image.resize(image, size=tf.constant([target_size[0],target_size[1]]))
+    # Convert the image dtype to float32
+    image = tf.cast(image, tf.float32)
+    # Rescale the pixel values to the range [0, 1]
+    image /= 255.0
+    # Normalize the image using mean and standard deviation
+    mean = [0.5, 0.5, 0.5]
+    std = [0.5, 0.5, 0.5]
+    image = (image - mean) / std
+    return image
 
+
+def augment_image(image):
+    # Apply data augmentation techniques
+    image = tf.image.random_flip_left_right(image)
+    image = tf.image.random_brightness(image, max_delta=0.2)
+    image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+    return image
 
 def load_word2vec_matrix(word2vec_file):
     """
@@ -315,6 +340,94 @@ def load_word2vec_matrix(word2vec_file):
             embedding_matrix[value] = wv[key]
     return word2idx, embedding_matrix
 
+
+def load_image_data_and_labels(input_file, hierarchy_dicts):
+    """
+    Load the wnk data from files, with images, generate one-hot labels via hierarchy.
+
+    Args:
+        input_file (_type_): the image-dict file with images from wikimedia and labels from wnk hierarchy.
+        hierarchy (_type_): the wnk hierarchy
+    """
+    if not input_file.endswith('.json'):
+        raise IOError("[Error] The research record is not a json file. "
+                      "Please preprocess the research record into the json file.")
+        
+    
+    def _find_labels_in_hierarchy_dicts(labels,hierarchy_dicts):
+        for label in labels:
+            label_dict = {}
+            labels_index = []
+            level = 0
+            for dict in hierarchy_dicts:
+                labels_index = []
+                label_dict['layer-{0}'.format(level)] = []
+                for key in dict.keys():
+                    if key.endswith(label):
+                        labels_index.append(dict[key])
+                label_dict['layer-{0}'.format(level)].extend(labels_index)
+                level+=1
+        
+        return label_dict    
+    
+    def _calc_total_class_labels(label_dict,hierarchy_dicts):
+        level = 0
+        total_class_labels = []
+        for key,value in label_dict.items():
+            for label in label_dict[key]:
+                if level == 0:
+                    labels.append(label)
+                else:
+                    total_class_label = label
+                    for i in range(level):
+                        total_class_label+=len(hierarchy_dicts[i].keys())
+                    total_class_labels.append(total_class_label)
+            level+=1
+        return total_class_labels
+    
+    def _calc_total_classes(hierarchy_dicts):
+        total_class_num = 0
+        for dict in hierarchy_dicts:
+            total_class_num+=len(dict.keys())
+        return total_class_num
+    
+    def _create_onehot_labels(labels_index, num_labels):
+        label = [0] * num_labels
+        for item in labels_index:
+            label[int(item)] = 1
+        return label
+    
+    Data = dict()
+    with open(input_file) as fin:
+        
+        image_dict = json.load(fin)
+        
+        Data['file_names'] = []
+        Data['onehot_labels'] = []
+        Data['labels'] = []
+
+        for file_name in image_dict.keys():
+            labels = image_dict[file_name]        
+            label_dict = _find_labels_in_hierarchy_dicts(labels,hierarchy_dicts)
+            total_class_labels = _calc_total_class_labels(label_dict,hierarchy_dicts)
+            total_class_num = _calc_total_classes(hierarchy_dicts)
+            if len(total_class_labels) == 0:
+                continue
+            
+            
+            Data['file_names'].append(file_name)
+            Data['onehot_labels'].append(_create_onehot_labels(total_class_labels, total_class_num))
+            Data['labels'].append(total_class_labels)
+            level = 0
+            for key,labels in label_dict.items():
+                if key not in Data.keys():
+                    Data[key] = []
+                Data[key].append(_create_onehot_labels(labels,len(hierarchy_dicts[level])))
+                    
+                level+=1
+
+    return Data
+        
 
 def load_data_and_labels(args, input_file, word2idx: dict):
     """
@@ -384,6 +497,8 @@ def load_data_and_labels(args, input_file, word2idx: dict):
     return Data
 
 
+
+
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
     含有 yield 说明不是一个普通函数，是一个 Generator.
@@ -412,3 +527,4 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             start_index = batch_num * batch_size
             end_index = min((batch_num + 1) * batch_size, data_size)
             yield shuffled_data[start_index:end_index]
+

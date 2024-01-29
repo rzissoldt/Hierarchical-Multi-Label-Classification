@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-__author__ = 'Randolph'
+__author__ = 'Ruben'
 
 import os
 import sys
@@ -8,81 +8,93 @@ import logging
 
 sys.path.append('../')
 logging.getLogger('tensorflow').disabled = True
-
+from utils import xtree_utils as xtree
+import tensorflow.compat.v1 as tf1
 import numpy as np
 import tensorflow as tf
-from text_harnn import TextHARNN
+from image_harnn import ImageHARNN
 from utils import checkmate as cm
 from utils import data_helpers as dh
 from utils import param_parser as parser
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
 
-args = parser.parameter_parser()
+args = parser.image_parameter_parser()
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 OPTION = dh._option(pattern=0)
 logger = dh.logger_fn("tflog", "logs/{0}-{1}.log".format('Train','test'))## if OPTION == 'T' else 'Restore', time.asctime()))
 
 
+
 def create_input_data(data: dict):
-    return zip(data['pad_seqs'], data['section'], data['subsection'],
-               data['group'], data['subgroup'], data['onehot_labels'])
+    # Extract dynamic keys with the prefix 'layer'
+    layer_keys = [key for key in data.keys() if key.startswith('layer')]
+
+    # Extract corresponding lists from the dictionary based on layer keys
+    layers_data = [data[key] for key in layer_keys]
+
+    # Zip all lists together
+    return zip(data['file_names'],data['onehot_labels'], *layers_data)
 
 
-def train_harnn():
-    """Training HARNN model."""
+def train_image_harnn():
+    """Training Image HARNN model."""
     # Print parameters used for the model
     dh.tab_printer(args, logger)
-
-    # Load word2vec model
-    word2idx, embedding_matrix = dh.load_word2vec_matrix(args.word2vec_file)
 
     # Load sentences, labels, and training parameters
     logger.info("Loading data...")
     logger.info("Data processing...")
-    train_data = dh.load_data_and_labels(args, args.train_file, word2idx)
-    val_data = dh.load_data_and_labels(args, args.validation_file, word2idx)
+    
+    hierarchy = xtree.load_xtree_json(args.hierarchy_file)
+    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
+    train_data = dh.load_image_data_and_labels(args.train_file,hierarchy_dicts)
+    val_data = dh.load_image_data_and_labels(args.validation_file, hierarchy_dicts)
 
-    # Build a graph and harnn object
+    image_dir = args.image_dir
+    input_size = args.input_size
+    def _get_num_classes_from_hierarchy(hierarchy_dicts):
+        return [len(hierarchy_dict.keys()) for hierarchy_dict in hierarchy_dicts]
+    
+    num_classes_list = _get_num_classes_from_hierarchy(hierarchy_dicts)
+    total_classes = sum(num_classes_list) 
+    # Build a graph and image_harnn object
     with tf.Graph().as_default():
-        session_conf = tf.ConfigProto(
+        session_conf = tf1.ConfigProto(
             allow_soft_placement=args.allow_soft_placement,
             log_device_placement=args.log_device_placement)
         session_conf.gpu_options.allow_growth = args.gpu_options_allow_growth
-        sess = tf.Session(config=session_conf)
+        sess = tf1.Session(config=session_conf)
         with sess.as_default():
-            harnn = TextHARNN(
-                sequence_length=args.pad_seq_len,
-                vocab_size=len(word2idx),
-                embedding_type=args.embedding_type,
-                embedding_size=args.embedding_dim,
-                lstm_hidden_size=args.lstm_dim,
+            image_harnn = ImageHARNN(
                 attention_unit_size=args.attention_dim,
                 fc_hidden_size=args.fc_dim,
-                num_classes_list=args.num_classes_list,
-                total_classes=args.total_classes,
+                num_classes_list=num_classes_list,
+                total_classes=total_classes,
                 l2_reg_lambda=args.l2_lambda,
-                pretrained_embedding=embedding_matrix)
+                input_size=input_size
+            )
 
             # Define training procedure
-            with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-                learning_rate = tf.train.exponential_decay(learning_rate=args.learning_rate,
-                                                           global_step=harnn.global_step,
+            with tf1.control_dependencies(tf1.get_collection(tf1.GraphKeys.UPDATE_OPS)):
+                learning_rate = tf1.train.exponential_decay(learning_rate=args.learning_rate,
+                                                           global_step=image_harnn.global_step,
                                                            decay_steps=args.decay_steps,
                                                            decay_rate=args.decay_rate,
                                                            staircase=True)
-                optimizer = tf.train.AdamOptimizer(learning_rate)
-                grads, vars = zip(*optimizer.compute_gradients(harnn.loss))
-                grads, _ = tf.clip_by_global_norm(grads, clip_norm=args.norm_ratio)
-                train_op = optimizer.apply_gradients(zip(grads, vars), global_step=harnn.global_step, name="train_op")
+                optimizer = tf1.train.AdamOptimizer(learning_rate)
+                grads, vars = zip(*optimizer.compute_gradients(image_harnn.loss))
+                grads, _ = tf1.clip_by_global_norm(grads, clip_norm=args.norm_ratio)
+                train_op = optimizer.apply_gradients(zip(grads, vars), global_step=image_harnn.global_step, name="train_op")
 
             # Keep track of gradient values and sparsity (optional)
             grad_summaries = []
             for g, v in zip(grads, vars):
                 if g is not None:
-                    grad_hist_summary = tf.summary.histogram("{0}/grad/hist".format(v.name), g)
-                    sparsity_summary = tf.summary.scalar("{0}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
+                    grad_hist_summary = tf1.summary.histogram("{0}/grad/hist".format(v.name), g)
+                    sparsity_summary = tf1.summary.scalar("{0}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
                     grad_summaries.append(grad_hist_summary)
                     grad_summaries.append(sparsity_summary)
-            grad_summaries_merged = tf.summary.merge(grad_summaries)
+            grad_summaries_merged = tf1.summary.merge(grad_summaries)
 
             # Output directory for models and summaries
             out_dir = dh.get_out_dir(OPTION, logger)
@@ -90,62 +102,64 @@ def train_harnn():
             best_checkpoint_dir = os.path.abspath(os.path.join(out_dir, "bestcheckpoints"))
 
             # Summaries for loss
-            loss_summary = tf.summary.scalar("loss", harnn.loss)
+            loss_summary = tf1.summary.scalar("loss", image_harnn.loss)
 
             # Train summaries
-            train_summary_op = tf.summary.merge([loss_summary, grad_summaries_merged])
+            train_summary_op = tf1.summary.merge([loss_summary, grad_summaries_merged])
             train_summary_dir = os.path.join(out_dir, "summaries", "train")
-            train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+            train_summary_writer = tf1.summary.FileWriter(train_summary_dir, sess.graph)
 
             # Validation summaries
-            validation_summary_op = tf.summary.merge([loss_summary])
+            validation_summary_op = tf1.summary.merge([loss_summary])
             validation_summary_dir = os.path.join(out_dir, "summaries", "validation")
-            validation_summary_writer = tf.summary.FileWriter(validation_summary_dir, sess.graph)
+            validation_summary_writer = tf1.summary.FileWriter(validation_summary_dir, sess.graph)
 
-            saver = tf.train.Saver(tf.global_variables(), max_to_keep=args.num_checkpoints)
+            saver = tf1.train.Saver(tf1.global_variables(), max_to_keep=args.num_checkpoints)
             best_saver = cm.BestCheckpointSaver(save_dir=best_checkpoint_dir, num_to_keep=3, maximize=True)
 
             if OPTION == 'R':
-                # Load harnn model
+                # Load image_harnn model
                 logger.info("Loading model...")
                 checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
                 logger.info(checkpoint_file)
 
                 # Load the saved meta graph and restore variables
-                saver = tf.train.import_meta_graph("{0}.meta".format(checkpoint_file))
+                saver = tf1.train.import_meta_graph("{0}.meta".format(checkpoint_file))
                 saver.restore(sess, checkpoint_file)
             if OPTION == 'T':
                 if not os.path.exists(checkpoint_dir):
                     os.makedirs(checkpoint_dir)
-                sess.run(tf.global_variables_initializer())
-                sess.run(tf.local_variables_initializer())
+                sess.run(tf1.global_variables_initializer())
+                sess.run(tf1.local_variables_initializer())
 
                 # Save the embedding visualization
-                saver.save(sess, os.path.join(out_dir, "embedding", "embedding.ckpt"))
+                #saver.save(sess, os.path.join(out_dir, "embedding", "embedding.ckpt"))
 
-            current_step = sess.run(harnn.global_step)
+            current_step = sess.run(image_harnn.global_step)
 
-            def train_step(batch_data):
+            def train_step(batch_data,input_size,image_dir):
                 """A single training step."""
-                x, sec, subsec, group, subgroup, y_onehot = zip(*batch_data)
-
+                file_names, y_onehots, *unzipped_data = zip(*batch_data)
+                file_paths = [os.path.join(image_dir,file_name) for file_name in file_names]
+                yss = unzipped_data
+                images = tuple([sess.run(dh.augment_image(dh.load_and_preprocess_image(file_path,input_size))) for file_path in file_paths])
                 feed_dict = {
-                    harnn.input_x: x,
-                    harnn.input_y_first: sec,
-                    harnn.input_y_second: subsec,
-                    harnn.input_y_third: group,
-                    harnn.input_y_fourth: subgroup,
-                    harnn.input_y: y_onehot,
-                    harnn.dropout_keep_prob: args.dropout_rate,
-                    harnn.alpha: args.alpha,
-                    harnn.is_training: True
+                    image_harnn.input_x: images,
+                    image_harnn.input_y: y_onehots,
+                    image_harnn.dropout_keep_prob: args.dropout_rate,
+                    image_harnn.alpha: args.alpha,
+                    image_harnn.is_training: True
                 }
+                for i in range(len(yss)):
+                    key = 'input_y_{0}'.format(i)
+                    feed_dict[getattr(image_harnn, key)] = yss[i]
+
                 _, step, summaries, loss = sess.run(
-                    [train_op, harnn.global_step, train_summary_op, harnn.loss], feed_dict)
+                    [train_op, image_harnn.global_step, train_summary_op, image_harnn.loss], feed_dict)
                 logger.info("step {0}: loss {1:g}".format(step, loss))
                 train_summary_writer.add_summary(summaries, step)
 
-            def validation_step(val_loader, writer=None):
+            def validation_step(val_loader,input_size,image_dir, writer=None):
                 """Evaluates model on a validation set."""
                 batches_validation = dh.batch_iter(list(create_input_data(val_loader)), args.batch_size, 1)
 
@@ -161,23 +175,25 @@ def train_harnn():
                 predicted_onehot_labels_tk = [[] for _ in range(args.topK)]
 
                 for batch_validation in batches_validation:
-                    x, sec, subsec, group, subgroup, y_onehot = zip(*batch_validation)
+                    file_names, y_onehots, *unzipped_data = zip(*batch_validation)
+                    file_paths = [os.path.join(image_dir,file_name) for file_name in file_names]
+                    yss = unzipped_data
+                    images = [dh.load_and_preprocess_image(file_path,input_size) for file_path in file_paths]
+                    y_onehots_tensor = tf.convert_to_tensor(y_onehots)
+                    yss_tensor = tf.convert_to_tensor(yss)
                     feed_dict = {
-                        harnn.input_x: x,
-                        harnn.input_y_first: sec,
-                        harnn.input_y_second: subsec,
-                        harnn.input_y_third: group,
-                        harnn.input_y_fourth: subgroup,
-                        harnn.input_y: y_onehot,
-                        harnn.dropout_keep_prob: 1.0,
-                        harnn.alpha: args.alpha,
-                        harnn.is_training: False
+                        image_harnn.input_x: images,
+                        image_harnn.input_ys: yss_tensor,
+                        image_harnn.input_y: y_onehots_tensor,
+                        image_harnn.dropout_keep_prob: 1.0,
+                        image_harnn.alpha: args.alpha,
+                        image_harnn.is_training: False
                     }
                     step, summaries, scores, cur_loss = sess.run(
-                        [harnn.global_step, validation_summary_op, harnn.scores, harnn.loss], feed_dict)
+                        [image_harnn.global_step, validation_summary_op, image_harnn.scores, image_harnn.loss], feed_dict)
 
                     # Prepare for calculating metrics
-                    for i in y_onehot:
+                    for i in y_onehots:
                         true_onehot_labels.append(i)
                     for j in scores:
                         predicted_onehot_scores.append(j)
@@ -232,19 +248,20 @@ def train_harnn():
                        eval_pre_tk, eval_rec_tk, eval_F1_tk
 
             # Generate batches
-            batches_train = dh.batch_iter(list(create_input_data(train_data)), args.batch_size, args.epochs)
-            num_batches_per_epoch = int((len(train_data['pad_seqs']) - 1) / args.batch_size) + 1
+            batches_train = dh.batch_iter(data=list(create_input_data(train_data)), batch_size=args.batch_size, num_epochs=args.epochs)
+            
+            num_batches_per_epoch = int((len(train_data['file_names']) - 1) / args.batch_size) + 1
 
             # Training loop. For each batch...
             for batch_train in batches_train:
-                train_step(batch_train)
-                current_step = tf.train.global_step(sess, harnn.global_step)
+                train_step(batch_train,input_size,image_dir)
+                current_step = tf1.train.global_step(sess, image_harnn.global_step)
 
                 if current_step % args.evaluate_steps == 0:
                     logger.info("\nEvaluation:")
                     eval_loss, eval_auc, eval_prc, \
                     eval_pre_ts, eval_rec_ts, eval_F1_ts, eval_pre_tk, eval_rec_tk, eval_F1_tk = \
-                        validation_step(val_data, writer=validation_summary_writer)
+                        validation_step(val_data,input_size,image_dir, writer=validation_summary_writer)
                     logger.info("All Validation set: Loss {0:g} | AUC {1:g} | AUPRC {2:g}"
                                 .format(eval_loss, eval_auc, eval_prc))
                     # Predict by threshold
@@ -265,3 +282,7 @@ def train_harnn():
                     logger.info("Epoch {0} has finished!".format(current_epoch))
 
     logger.info("All Done.")
+
+
+if __name__ == '__main__':
+    train_image_harnn()

@@ -110,7 +110,7 @@ target/
 !/data/train_sample.json
 !/data/validation_sample.json
 !/data/test_sample.json
-
+!/data/image_harnn
 # Project File
 /HMC-LMLP
 /HMCN
