@@ -27,9 +27,11 @@ def _option(pattern):
         The OPTION.
     """
     if pattern == 0:
-        OPTION = input("[Input] Train or Restore? (T/R): ")
+        #OPTION = input("[Input] Train or Restore? (T/R): ")
+        OPTION = 'T'
         while not (OPTION.upper() in ['T', 'R']):
             OPTION = input("[Warning] The format of your input is illegal, please re-input: ")
+            
     if pattern == 1:
         OPTION = input("Load Best or Latest Model? (B/L): ")
         while not (OPTION.isalpha() and OPTION.upper() in ['B', 'L']):

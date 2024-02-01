@@ -59,7 +59,7 @@ def image_parameter_parser():
     A method to parse up command line parameters.
     The default hyperparameters give good results without cross-validation.
     """
-    parser = argparse.ArgumentParser(description="Run HARNN.")
+    parser = argparse.ArgumentParser(description="Run Image HARNN.")
 
     # Data Parameters
     parser.add_argument("--train-file", nargs="?", default="../data/Train_sample.json", help="Training data.")
@@ -74,7 +74,7 @@ def image_parameter_parser():
     parser.add_argument("--fc-dim", type=int, default=512, help="Dimensionality for FC neurons.")
     parser.add_argument("--dropout-rate", type=float, default=0.5, help="Dropout keep probability.")
     parser.add_argument("--alpha", type=float, default=0.5, help="Weight of global part in scores cal.")
-    parser.add_argument("--freeze-backbone",type=bool, default=True, help="Freezes Backbone Feature Extractor if needed.")
+    
     
     parser.add_argument("--topK", type=int, default=5, help="Number of top K prediction classes.")
     parser.add_argument("--threshold", type=float, default=0.5, help="Threshold for prediction classes.")
@@ -92,7 +92,7 @@ def image_parameter_parser():
     parser.add_argument("--l2-lambda", type=float, default=0.0, help="L2 regularization lambda.")
     parser.add_argument("--checkpoint-steps", type=int, default=10, help="Save model after how many steps.")
     parser.add_argument("--num-checkpoints", type=int, default=5, help="Number of checkpoints to store.")
-
+    parser.add_argument("--freeze-backbone",type=bool, default=True, help="Freezes Backbone Feature Extractor if needed.")
     # Misc Parameters
     parser.add_argument("--allow-soft-placement", type=bool, default=True, help="Allow device soft device placement.")
     parser.add_argument("--log-device-placement", type=bool, default=False, help="Log placement of ops on devices.")
