@@ -362,9 +362,21 @@ def load_image_data_and_labels(input_file, hierarchy_dicts):
             for dict in hierarchy_dicts:
                 labels_index = []
                 label_dict['layer-{0}'.format(level)] = []
+                level +=1
+            level = 0
+            for dict in hierarchy_dicts:
+                labels_index = []
                 for key in dict.keys():
                     if key.endswith(label):
                         labels_index.append(dict[key])
+                        temp_labels = key.split('_')
+                        for i in range(len(temp_labels)-2,0,-1):
+                            temp_key = '_'.join(temp_labels[:i+1])
+                            temp_dict = hierarchy_dicts[i-1]
+                            temp_label = temp_dict[temp_key]
+                            label_dict['layer-{0}'.format(i-1)].append(temp_label)
+                            
+                        
                 label_dict['layer-{0}'.format(level)].extend(labels_index)
                 level+=1
         

@@ -79,6 +79,7 @@ def image_parameter_parser():
     parser.add_argument("--threshold", type=float, default=0.5, help="Threshold for prediction classes.")
 
     # Training Parameters
+    parser.add_argument("--gpu", type=bool, default=True, help="GPU-Support active or not")
     parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs.")
     parser.add_argument("--batch-size", type=int, default=32, help="Batch Size.")
     parser.add_argument("--learning-rate", type=float, default=0.001, help="Learning rate.")

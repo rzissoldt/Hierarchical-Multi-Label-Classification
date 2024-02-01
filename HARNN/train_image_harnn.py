@@ -19,7 +19,9 @@ from utils import param_parser as parser
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
 
 args = parser.image_parameter_parser()
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+# Checks if GPU Support ist active
+if not args.gpu:
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 OPTION = dh._option(pattern=0)
 logger = dh.logger_fn("tflog", "logs/{0}-{1}.log".format('Train','test'))## if OPTION == 'T' else 'Restore', time.asctime()))
 

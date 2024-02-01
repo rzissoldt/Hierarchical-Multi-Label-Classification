@@ -2,7 +2,7 @@
 __author__ = 'Ruben'
 import tensorflow.compat.v1 as tf1
 import tensorflow as tf
-from official.vision.modeling.backbones.resnet import ResNet
+from models.official.vision.modeling.backbones.resnet import ResNet
 tf1.disable_v2_behavior()
 class ImageHARNN(object):
     """A HARNN for image classification."""
