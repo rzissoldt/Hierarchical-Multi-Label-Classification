@@ -149,6 +149,7 @@ def train_image_harnn():
                     image_harnn.input_x: images,
                     image_harnn.input_y: y_onehots,
                     image_harnn.dropout_keep_prob: args.dropout_rate,
+                    image_harnn.freeze_backbone: args.freeze_backbone,
                     image_harnn.alpha: args.alpha,
                     image_harnn.is_training: True
                 }
@@ -180,17 +181,18 @@ def train_image_harnn():
                     file_names, y_onehots, *unzipped_data = zip(*batch_validation)
                     file_paths = [os.path.join(image_dir,file_name) for file_name in file_names]
                     yss = unzipped_data
-                    images = [dh.load_and_preprocess_image(file_path,input_size) for file_path in file_paths]
-                    y_onehots_tensor = tf.convert_to_tensor(y_onehots)
-                    yss_tensor = tf.convert_to_tensor(yss)
+                    images = tuple([sess.run(dh.load_and_preprocess_image(file_path,input_size)) for file_path in file_paths])
                     feed_dict = {
                         image_harnn.input_x: images,
-                        image_harnn.input_ys: yss_tensor,
-                        image_harnn.input_y: y_onehots_tensor,
-                        image_harnn.dropout_keep_prob: 1.0,
+                        image_harnn.input_y: y_onehots,
+                        image_harnn.dropout_keep_prob: args.dropout_rate,
+                        image_harnn.freeze_backbone: args.freeze_backbone,
                         image_harnn.alpha: args.alpha,
                         image_harnn.is_training: False
                     }
+                    for i in range(len(yss)):
+                        key = 'input_y_{0}'.format(i)
+                        feed_dict[getattr(image_harnn, key)] = yss[i]
                     step, summaries, scores, cur_loss = sess.run(
                         [image_harnn.global_step, validation_summary_op, image_harnn.scores, image_harnn.loss], feed_dict)
 

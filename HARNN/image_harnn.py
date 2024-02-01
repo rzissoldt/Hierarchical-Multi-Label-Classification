@@ -13,17 +13,25 @@ class ImageHARNN(object):
 
         # Placeholders for input, output, dropout_prob and training_tag
         self.resnet = ResNet(model_id=50,input_specs=tf.keras.layers.InputSpec(shape=[None,*input_size]))
+        
+        
         self.input_x = tf1.placeholder(tf1.float32, [None, *input_size], name="input_x")
         #self.input_ys = [tf1.placeholder(tf1.float32,[None,num_classes_list[i]],name="input_y_{0}".format(str(i))) for i in range(len(num_classes_list))]
         for i, num_classes in enumerate(num_classes_list):
             setattr(self, f"input_y_{i}", tf1.placeholder(tf1.float32, [None, num_classes], name=f"input_y_{i}"))
         self.input_y = tf1.placeholder(tf1.float32, [None, total_classes], name="input_y")
         self.dropout_keep_prob = tf1.placeholder(tf1.float32, name="dropout_keep_prob")
+        self.freeze_backbone = tf1.placeholder(tf1.bool, name="freeze_backbone")
+        
         self.alpha = tf1.placeholder(tf1.float32, name="alpha")
         self.is_training = tf1.placeholder(tf1.bool, name="is_training")
 
         self.global_step = tf1.Variable(0, trainable=False, name="Global_Step")
 
+        def _freeze_backbone():
+            for layer in self.resnet.layers:
+                layer.trainable = False
+            return tf.Variable(0)
         def _attention(input_x, num_classes, name=""):
             """
             Attention Layer. Also known as TCA Module.
@@ -154,7 +162,8 @@ class ImageHARNN(object):
         """
         TODO: IMAGE FEATURE EXTRACTOR 
         """
-        
+        # Freeze Backbone if needed
+        tf.cond(self.freeze_backbone, true_fn=_freeze_backbone, false_fn=lambda: tf.Variable(0))
         self.feature_extractor_out = self.resnet(self.input_x)['5']
         spatial_dim1, spatial_dim2, num_channels = self.feature_extractor_out.get_shape().as_list()[1:]
         self.feature_extractor_out = tf.transpose(tf.reshape(self.feature_extractor_out,[-1,spatial_dim1*spatial_dim2,num_channels]),perm=[0,2,1])
