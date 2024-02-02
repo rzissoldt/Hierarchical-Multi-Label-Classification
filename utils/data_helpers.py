@@ -8,13 +8,18 @@ import gensim
 import logging
 import json
 import numpy as np
-from collections import OrderedDict, deque
+from collections import OrderedDict
 from pylab import *
 from texttable import Texttable
 from gensim.models import KeyedVectors
 from tflearn.data_utils import pad_sequences
-from utils.xtree_utils import load_xtree_json, generate_dicts_per_level
+
 import tensorflow as tf
+from skimage import io, transform, color
+
+from solt.core import DataContainer
+
+
 def _option(pattern):
     """
     Get the option according to the pattern.
@@ -285,31 +290,88 @@ def create_metadata_file(word2vec_file, output_file):
                 fout.write('<Empty Line>' + '\n')
             else:
                 fout.write(word[0] + '\n')
-                
-def load_and_preprocess_image(image_path,target_size):
-    # Read the image file
-    image = tf.io.read_file(image_path)
-    # Decode the image contents to a tensor
-    image = tf.image.decode_jpeg(image, channels=3)
-    # Resize the image to the target size (224x224)
-    image = tf.image.resize(image, size=tf.constant([target_size[0],target_size[1]]))
-    # Convert the image dtype to float32
-    image = tf.cast(image, tf.float32)
-    # Rescale the pixel values to the range [0, 1]
-    image /= 255.0
+
+def load_images(image_paths):
+    image_collection = io.ImageCollection(image_paths)
+    return list(image_collection)
+
+def convert_images(image_paths, target_size):
+    images = load_images(image_paths)
+    converted_images = []
+    for image in images:
+        # Load individual image
+
+        # Convert images to RGB if they are grayscale
+        if len(image.shape) == 2:
+            image = color.gray2rgb(image)
+
+        # Resize image to target size
+        converted_images.append(image)
+    return converted_images
+
+def convert_resize_images(image_paths, target_size):
+    images = load_images(image_paths)
+    resized_images = []
+    for image in images:
+        # Load individual image
+
+        # Convert images to RGB if they are grayscale
+        if len(image.shape) == 2:
+            image = color.gray2rgb(image)
+
+        # Resize image to target size
+        # Resize image to target size
+        image_resized = transform.resize(image, target_size)
+        rescaled_image = (image_resized * 255).astype(np.uint8)
+        resized_images.append(rescaled_image)
+    return resized_images
+def convert_resize_normalize_images(image_paths, target_size):
+    images = load_images(image_paths=image_paths)
+    normalized_images = []
+    for image in images:
+        # Load individual image
+
+        # Convert images to RGB if they are grayscale
+        if len(image.shape) == 2:
+            image = color.gray2rgb(image)
+
+
+        # Resize image to target size
+        image_resized = transform.resize(image, target_size)
+
+        # Normalize the image using mean and standard deviation
+        mean = [0.5, 0.5, 0.5]
+        std = [0.5, 0.5, 0.5]
+        image_normalized = (image_resized - mean) / std
+        normalized_images.append(image_normalized)
+    return normalized_images
+        
+
+
+def augment_images(images,stream):
+    fmt = 'I'*len(images)
+    data_container = DataContainer(images,fmt)
+    augmented_data_container = stream(data_container,return_torch=False)
+    images = np.array(list(augmented_data_container.data))
+    # Normalize the image pixel values to [0, 1]
+    images_normalized = images.astype(np.float32) / 255.0
+
     # Normalize the image using mean and standard deviation
     mean = [0.5, 0.5, 0.5]
     std = [0.5, 0.5, 0.5]
-    image = (image - mean) / std
-    return image
+    images_normalized = (images_normalized - mean) / std
+    return images_normalized
+
+def load_preprocess_augment_images(image_paths,input_size, stream):
+    images = augment_images(tuple(convert_resize_images(image_paths,input_size)),stream)
+    return images
+
+def load_preprocess_images(image_paths,input_size):
+    images = convert_resize_normalize_images(image_paths,input_size)
+    return images
 
 
-def augment_image(image):
-    # Apply data augmentation techniques
-    image = tf.image.random_flip_left_right(image)
-    image = tf.image.random_brightness(image, max_delta=0.2)
-    image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
-    return image
+
 
 def load_word2vec_matrix(word2vec_file):
     """

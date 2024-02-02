@@ -5,7 +5,7 @@ import os
 import sys
 import time
 import logging
-
+import solt as slt
 sys.path.append('../')
 logging.getLogger('tensorflow').disabled = True
 from utils import xtree_utils as xtree
@@ -17,7 +17,20 @@ from utils import checkmate as cm
 from utils import data_helpers as dh
 from utils import param_parser as parser
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
+from solt.transforms import (
+    Flip,
+    Rotate,
+    Scale,
+    Shear,
+    CvtColor,
+    HSV,
+    Blur,
+    CutOut,
+    Resize
+)
+from solt.core import Stream, SelectiveStream
 
+# Define the augmentation pipeline
 args = parser.image_parameter_parser()
 # Checks if GPU Support ist active
 if not args.gpu:
@@ -119,6 +132,24 @@ def train_image_harnn():
             saver = tf1.train.Saver(tf1.global_variables(), max_to_keep=args.num_checkpoints)
             best_saver = cm.BestCheckpointSaver(save_dir=best_checkpoint_dir, num_to_keep=3, maximize=True)
 
+            #Augmentation Stream
+            augmentation_train_pipeline = Stream([
+                Rotate(angle_range=(-90, 90), p=1, padding='r'),
+                Flip(axis=1, p=0.5),
+                Flip(axis=0, p=0.5),
+                Shear(range_x=0.3, range_y=0.8, p=0.5, padding='r'),
+                Scale(range_x=(0.8, 1.3), padding='r', range_y=(0.8, 1.3), same=False, p=0.5),
+                HSV((0, 10), (0, 10), (0, 10)),
+                Blur(k_size=7, blur_type='m'),
+                SelectiveStream([
+                    CutOut(40, p=1),
+                CutOut(50, p=1),
+                CutOut(10, p=1),
+                Stream(),
+                Stream(),
+                ], n=3),
+                Resize(input_size[:2])
+            ], ignore_fast_mode=True)
             if OPTION == 'R':
                 # Load image_harnn model
                 logger.info("Loading model...")
@@ -144,7 +175,7 @@ def train_image_harnn():
                 file_names, y_onehots, *unzipped_data = zip(*batch_data)
                 file_paths = [os.path.join(image_dir,file_name) for file_name in file_names]
                 yss = unzipped_data
-                images = tuple([sess.run(dh.augment_image(dh.load_and_preprocess_image(file_path,input_size))) for file_path in file_paths])
+                images = tuple(dh.load_preprocess_augment_images(file_paths,input_size,augmentation_train_pipeline))
                 feed_dict = {
                     image_harnn.input_x: images,
                     image_harnn.input_y: y_onehots,
@@ -178,14 +209,10 @@ def train_image_harnn():
                 predicted_onehot_labels_tk = [[] for _ in range(args.topK)]
 
                 for batch_validation in batches_validation:
-                    print('batch_validation for loop start')
                     file_names, y_onehots, *unzipped_data = zip(*batch_validation)
                     file_paths = [os.path.join(image_dir,file_name) for file_name in file_names]
-                    print('file_paths',file_paths)
                     yss = unzipped_data
-                    print('load images')
-                    images = tuple([sess.run(dh.load_and_preprocess_image(file_path,input_size)) for file_path in file_paths])
-                    print('feed images into dict')
+                    images = dh.load_preprocess_images(image_paths=file_paths,input_size=input_size)
                     feed_dict = {
                         image_harnn.input_x: images,
                         image_harnn.input_y: y_onehots,
@@ -199,25 +226,21 @@ def train_image_harnn():
                         feed_dict[getattr(image_harnn, key)] = yss[i]
                     step, summaries, scores, cur_loss = sess.run(
                         [image_harnn.global_step, validation_summary_op, image_harnn.scores, image_harnn.loss], feed_dict)
-                    print('Prepare for calculating metrics')
                     # Prepare for calculating metrics
                     for i in y_onehots:
                         true_onehot_labels.append(i)
                     for j in scores:
                         predicted_onehot_scores.append(j)
-                    print('Predict by threshold')
                     # Predict by threshold
                     batch_predicted_onehot_labels_ts = \
                         dh.get_onehot_label_threshold(scores=scores, threshold=args.threshold)
                     for k in batch_predicted_onehot_labels_ts:
                         predicted_onehot_labels_ts.append(k)
-                    print('Predict by topK')
                     # Predict by topK
                     for top_num in range(args.topK):
                         batch_predicted_onehot_labels_tk = dh.get_onehot_label_topk(scores=scores, top_num=top_num+1)
                         for i in batch_predicted_onehot_labels_tk:
                             predicted_onehot_labels_tk[top_num].append(i)
-                    print('Eval loss, Eval Counter')
                     eval_loss = eval_loss + cur_loss
                     eval_counter = eval_counter + 1
                     
@@ -225,7 +248,6 @@ def train_image_harnn():
                         writer.add_summary(summaries, step)
 
                 eval_loss = float(eval_loss / eval_counter)
-                print('Calculate Precision & Recall & F1')
                 # Calculate Precision & Recall & F1
                 eval_pre_ts = precision_score(y_true=np.array(true_onehot_labels),
                                               y_pred=np.array(predicted_onehot_labels_ts), average='micro')
@@ -233,7 +255,6 @@ def train_image_harnn():
                                            y_pred=np.array(predicted_onehot_labels_ts), average='micro')
                 eval_F1_ts = f1_score(y_true=np.array(true_onehot_labels),
                                       y_pred=np.array(predicted_onehot_labels_ts), average='micro')
-                print('args.topK for loop')
                 for top_num in range(args.topK):
                     eval_pre_tk[top_num] = precision_score(y_true=np.array(true_onehot_labels),
                                                            y_pred=np.array(predicted_onehot_labels_tk[top_num]),
@@ -244,11 +265,9 @@ def train_image_harnn():
                     eval_F1_tk[top_num] = f1_score(y_true=np.array(true_onehot_labels),
                                                    y_pred=np.array(predicted_onehot_labels_tk[top_num]),
                                                    average='micro')
-                print('AUC')
                 # Calculate the average AUC
                 eval_auc = roc_auc_score(y_true=np.array(true_onehot_labels),
                                          y_score=np.array(predicted_onehot_scores), average='micro')
-                print('PR')
                 # Calculate the average PR
                 eval_prc = average_precision_score(y_true=np.array(true_onehot_labels),
                                                    y_score=np.array(predicted_onehot_scores), average='micro')

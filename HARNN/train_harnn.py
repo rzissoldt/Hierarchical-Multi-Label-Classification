@@ -239,7 +239,7 @@ def train_harnn():
             for batch_train in batches_train:
                 train_step(batch_train)
                 current_step = tf.train.global_step(sess, harnn.global_step)
-
+                
                 if current_step % args.evaluate_steps == 0:
                     logger.info("\nEvaluation:")
                     eval_loss, eval_auc, eval_prc, \
