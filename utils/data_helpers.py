@@ -321,9 +321,10 @@ def convert_resize_images(image_paths, target_size):
 
         # Resize image to target size
         # Resize image to target size
-        image_resized = transform.resize(image, target_size)
-        rescaled_image = (image_resized * 255).astype(np.uint8)
-        resized_images.append(rescaled_image)
+        if image.shape != target_size:
+            image = transform.resize(image, target_size)
+            image = (image * 255).astype(np.uint8)
+        resized_images.append(image)
     return resized_images
 def convert_resize_normalize_images(image_paths, target_size):
     images = load_images(image_paths=image_paths)
@@ -337,12 +338,14 @@ def convert_resize_normalize_images(image_paths, target_size):
 
 
         # Resize image to target size
-        image_resized = transform.resize(image, target_size)
+        if image.shape != target_size:
+            image = transform.resize(image, target_size)
+            image = (image * 255).astype(np.uint8)
 
         # Normalize the image using mean and standard deviation
         mean = [0.5, 0.5, 0.5]
         std = [0.5, 0.5, 0.5]
-        image_normalized = (image_resized - mean) / std
+        image_normalized = (image - mean) / std
         normalized_images.append(image_normalized)
     return normalized_images
         
