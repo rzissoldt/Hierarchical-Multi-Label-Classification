@@ -279,7 +279,7 @@ def train_image_harnn():
             batches_train = dh.batch_iter(data=list(create_input_data(train_data)), batch_size=args.batch_size, num_epochs=args.epochs)
             
             num_batches_per_epoch = int((len(train_data['file_names']) - 1) / args.batch_size) + 1
-
+            print(num_batches_per_epoch)
             # Training loop. For each batch...
             for batch_train in batches_train:
                 train_step(batch_train,input_size,image_dir)
