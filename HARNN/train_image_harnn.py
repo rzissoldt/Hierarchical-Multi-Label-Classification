@@ -216,7 +216,7 @@ def train_image_harnn():
 
                     eval_loss = eval_loss + cur_loss
                     eval_counter = eval_counter + 1
-
+                    print(eval_counter)
                     if writer:
                         writer.add_summary(summaries, step)
 
