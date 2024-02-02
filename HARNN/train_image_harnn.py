@@ -221,7 +221,7 @@ def train_image_harnn():
                         writer.add_summary(summaries, step)
 
                 eval_loss = float(eval_loss / eval_counter)
-
+                print('Calculate Precision & Recall & F1')
                 # Calculate Precision & Recall & F1
                 eval_pre_ts = precision_score(y_true=np.array(true_onehot_labels),
                                               y_pred=np.array(predicted_onehot_labels_ts), average='micro')
@@ -229,7 +229,7 @@ def train_image_harnn():
                                            y_pred=np.array(predicted_onehot_labels_ts), average='micro')
                 eval_F1_ts = f1_score(y_true=np.array(true_onehot_labels),
                                       y_pred=np.array(predicted_onehot_labels_ts), average='micro')
-
+                print('args.topK for loop')
                 for top_num in range(args.topK):
                     eval_pre_tk[top_num] = precision_score(y_true=np.array(true_onehot_labels),
                                                            y_pred=np.array(predicted_onehot_labels_tk[top_num]),
@@ -240,10 +240,11 @@ def train_image_harnn():
                     eval_F1_tk[top_num] = f1_score(y_true=np.array(true_onehot_labels),
                                                    y_pred=np.array(predicted_onehot_labels_tk[top_num]),
                                                    average='micro')
-
+                print('AUC')
                 # Calculate the average AUC
                 eval_auc = roc_auc_score(y_true=np.array(true_onehot_labels),
                                          y_score=np.array(predicted_onehot_scores), average='micro')
+                print('PR')
                 # Calculate the average PR
                 eval_prc = average_precision_score(y_true=np.array(true_onehot_labels),
                                                    y_score=np.array(predicted_onehot_scores), average='micro')
