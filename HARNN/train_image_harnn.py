@@ -178,10 +178,14 @@ def train_image_harnn():
                 predicted_onehot_labels_tk = [[] for _ in range(args.topK)]
 
                 for batch_validation in batches_validation:
+                    print('batch_validation for loop start')
                     file_names, y_onehots, *unzipped_data = zip(*batch_validation)
                     file_paths = [os.path.join(image_dir,file_name) for file_name in file_names]
+                    print('file_paths',file_paths)
                     yss = unzipped_data
+                    print('load images')
                     images = tuple([sess.run(dh.load_and_preprocess_image(file_path,input_size)) for file_path in file_paths])
+                    print('feed images into dict')
                     feed_dict = {
                         image_harnn.input_x: images,
                         image_harnn.input_y: y_onehots,
