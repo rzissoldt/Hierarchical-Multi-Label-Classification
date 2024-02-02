@@ -195,28 +195,28 @@ def train_image_harnn():
                         feed_dict[getattr(image_harnn, key)] = yss[i]
                     step, summaries, scores, cur_loss = sess.run(
                         [image_harnn.global_step, validation_summary_op, image_harnn.scores, image_harnn.loss], feed_dict)
-
+                    print('Prepare for calculating metrics')
                     # Prepare for calculating metrics
                     for i in y_onehots:
                         true_onehot_labels.append(i)
                     for j in scores:
                         predicted_onehot_scores.append(j)
-
+                    print('Predict by threshold')
                     # Predict by threshold
                     batch_predicted_onehot_labels_ts = \
                         dh.get_onehot_label_threshold(scores=scores, threshold=args.threshold)
                     for k in batch_predicted_onehot_labels_ts:
                         predicted_onehot_labels_ts.append(k)
-
+                    print('Predict by topK')
                     # Predict by topK
                     for top_num in range(args.topK):
                         batch_predicted_onehot_labels_tk = dh.get_onehot_label_topk(scores=scores, top_num=top_num+1)
                         for i in batch_predicted_onehot_labels_tk:
                             predicted_onehot_labels_tk[top_num].append(i)
-
+                    print('Eval loss, Eval Counter')
                     eval_loss = eval_loss + cur_loss
                     eval_counter = eval_counter + 1
-                    print(eval_counter)
+                    
                     if writer:
                         writer.add_summary(summaries, step)
 
