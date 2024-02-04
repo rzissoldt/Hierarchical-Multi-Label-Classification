@@ -101,6 +101,29 @@ def train_hmcnet():
 
             return torch.mean(torch.tensor(hierarchy_losses)).to(device)
         
+        
+        def _hierarchy_constraint_loss_speed(global_logits):
+            """Calculate the Hierarchy Constraint loss."""
+            global_scores = torch.sigmoid(global_logits)
+            hierarchy_losses = []
+
+            for global_score in global_scores:
+                # Create a mask for explicit_hierarchy_matrix where 1 indicates valid pairs
+                mask = explicit_hierarchy_matrix == 1
+
+                # Compute score differences for all valid pairs using broadcasting
+                score_diff = global_score.unsqueeze(0) - global_score.unsqueeze(1)
+
+                # Compute the loss for valid pairs
+                loss = beta * torch.max(torch.tensor(0.0), score_diff[mask]) ** 2
+
+                # Sum the losses for all valid pairs
+                temp_loss = torch.sum(loss)
+
+                hierarchy_losses.append(temp_loss)
+
+            return torch.mean(torch.tensor(hierarchy_losses)).to(device)
+        
         def _l2_loss(model,l2_reg_lambda):
             """Calculation of the L2-Regularization loss."""
             l2_loss = torch.tensor(0.,dtype=torch.float32).to(device)
@@ -113,8 +136,11 @@ def train_hmcnet():
         local_loss = _local_loss(local_scores_list=local_scores_list,local_target_list=local_target)
         print('Calc L2 Loss')
         l2_loss = _l2_loss(model=model,l2_reg_lambda=args.l2_lambda)
-        print('Calc HIerarchy Loss')
+        print('Calc Hierarchy Loss')
         hierarchy_loss = _hierarchy_constraint_loss(global_logits=global_logits)
+        print('Calc Hierarchy Loss Slow ',hierarchy_loss)
+        hierarchy_loss2 = _hierarchy_constraint_loss_speed(global_logits=global_logits)
+        print('Calc Hierarchy Loss Slow ',hierarchy_loss2)
         print('Calc Total Loss')
         loss = torch.sum(torch.stack([global_loss,local_loss,l2_loss,hierarchy_loss]))
         return loss
