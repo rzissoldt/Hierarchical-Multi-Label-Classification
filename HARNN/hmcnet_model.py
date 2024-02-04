@@ -154,6 +154,7 @@ class HmcNet(nn.Module):
         if freeze_backbone:
             for param in self.backbone.parameters():
                 param.requires_grad = False
+            self.backbone.eval()
         for i in range(len(num_classes_list)):
             if i == len(num_classes_list)-1:
                 #If its the last HAM Module, the last omega_h of CDM ist not needed.
