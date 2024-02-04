@@ -33,7 +33,19 @@ warnings.filterwarnings("ignore", category=UserWarning)
 def train_hmcnet():
     # Define the augmentation pipeline
     args = parser.hmcnet_parameter_parser()
-            
+    
+    # Check if CUDA is available
+    if torch.cuda.is_available():
+        print("CUDA is available!")
+
+        # Check if PyTorch is using CUDA
+        if torch.cuda.current_device() != -1:
+            print("PyTorch is using CUDA!")
+        else:
+            print("PyTorch is not using CUDA.")
+    else:
+        print("CUDA is not available!")
+    
     # Checks if GPU Support ist active
     device = torch.device("cuda") if args.gpu else torch.device("cpu")
    
