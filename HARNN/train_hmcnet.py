@@ -106,15 +106,10 @@ def train_hmcnet():
             for param in model.parameters():
                 l2_loss += torch.norm(param,p=2)**2
             return torch.tensor(l2_loss*l2_reg_lambda,dtype=torch.float32)
-        print('Calc Global Loss')
         global_loss = _global_loss(global_logits=global_logits,global_target=global_target)
-        print('Calc Local Loss')
         local_loss = _local_loss(local_scores_list=local_scores_list,local_target_list=local_target)
-        print('Calc L2 Loss')
         l2_loss = _l2_loss(model=model,l2_reg_lambda=args.l2_lambda)
-        print('Calc Hierarchy Loss')
         hierarchy_loss = _hierarchy_constraint_loss(global_logits=global_logits)
-        print('Calc Total Loss')
         loss = torch.sum(torch.stack([global_loss,local_loss,l2_loss,hierarchy_loss]))
         return loss
           
@@ -143,14 +138,11 @@ def train_hmcnet():
     def train_one_epoch(epoch_index,tb_writer):
         current_loss = 0.
         last_loss = 0.
-        print('Start Epoch')
+        
         for i, data in enumerate(training_loader):
-            print('Start Batch')
             # Every data instance is an input + label pair
             inputs, labels = data
-            print('Start Forward Propagation')
             inputs = inputs.to(device)
-            print('End Forward Propagation')
             y_total_onehot = labels[0]
             y_local_onehots = labels[1:]
             # Zero your gradients for every batch!
@@ -160,22 +152,19 @@ def train_hmcnet():
             _, local_scores_list, global_logits = model(inputs)
 
             # Compute the loss and its gradients
-            print('Start Calc Loss')
             loss = hmcnet_loss(local_scores_list=local_scores_list,global_logits=global_logits,local_target=y_local_onehots,global_target=y_total_onehot)
-            print('Start Backpropagtion Loss')
             loss.backward()
 
             # Adjust learning weights
             optimizer.step()
-            print('End Backpropagtion Loss')
             # Gather data and report
             current_loss += loss.item()
-            if i % 100 == 99 or i % num_of_train_batches == 0:
-                last_loss = current_loss / (i+1) # loss per batch
-                print('  batch {} loss: {}'.format(i + 1, last_loss))
-                tb_x = epoch_index * len(training_loader) + i + 1
-                tb_writer.add_scalar('Loss/train', last_loss, tb_x)
-                current_loss = 0.
+            
+            progress_info = f"Epoch [{epoch_index}], Batch [{i+1}/{num_of_train_batches}], Loss: {current_loss}"
+            print(progress_info, end='\r')
+            tb_x = epoch_index * len(training_loader) + i + 1
+            tb_writer.add_scalar('Loss/train', current_loss, tb_x)
+            current_loss = 0.
 
         return last_loss
         
