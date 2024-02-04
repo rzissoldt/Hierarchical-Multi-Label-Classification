@@ -78,6 +78,18 @@ def train_hmcnet():
                 mean_loss = torch.mean(loss)
                 losses.append(mean_loss)
             return torch.sum(torch.tensor(losses,dtype=torch.float32).to(device))
+        
+        def _local_loss2(local_scores_list, local_target_list):
+            """Calculate the Local loss."""
+            losses = []
+            local_scores = torch.tensor([tensor.tolist() for tensor in local_scores_list], dtype=torch.float32).to(device)
+            local_targets = torch.tensor([tensor.tolist() for tensor in local_target_list], dtype=torch.float32).to(device)
+    
+            for i in range(len(local_scores_list)):
+                loss = F.binary_cross_entropy(local_scores[i], local_targets[i])
+                losses.append(loss)
+
+            return torch.sum(torch.tensor(losses, dtype=torch.float32).to(device))
         def _global_loss(global_logits,global_target):
             """Calculation of the Global loss."""
             global_scores = torch.sigmoid(global_logits)
@@ -85,24 +97,10 @@ def train_hmcnet():
             loss = F.binary_cross_entropy(global_scores,global_target)
             mean_loss = torch.mean(loss).to(device)
             return mean_loss
+        
+        
+        
         def _hierarchy_constraint_loss(global_logits):
-            """Calculate the Hierarchy Constraint loss."""
-            global_scores = torch.sigmoid(global_logits)
-            hierarchy_losses = []
-
-            for global_score in global_scores:
-                temp_loss = 0.0
-                for i in range(len(explicit_hierarchy_matrix)):
-                    for j in range(i + 1, len(explicit_hierarchy_matrix)):
-                        if explicit_hierarchy_matrix[i][j] == 1:
-                            loss = beta * torch.max(torch.tensor(0.0), global_score[j] - global_score[i]) ** 2
-                            temp_loss += loss
-                hierarchy_losses.append(temp_loss)
-
-            return torch.mean(torch.tensor(hierarchy_losses)).to(device)
-        
-        
-        def _hierarchy_constraint_loss_speed(global_logits):
             """Calculate the Hierarchy Constraint loss."""
             global_scores = torch.sigmoid(global_logits)
             hierarchy_losses = []
@@ -134,13 +132,12 @@ def train_hmcnet():
         global_loss = _global_loss(global_logits=global_logits,global_target=global_target)
         print('Calc Local Loss')
         local_loss = _local_loss(local_scores_list=local_scores_list,local_target_list=local_target)
+        local_loss2 = _local_loss2(local_scores_list=local_scores_list,local_target_list=local_target)
+        print(local_loss,local_loss2)
         print('Calc L2 Loss')
         l2_loss = _l2_loss(model=model,l2_reg_lambda=args.l2_lambda)
         print('Calc Hierarchy Loss')
         hierarchy_loss = _hierarchy_constraint_loss(global_logits=global_logits)
-        print('Calc Hierarchy Loss Slow ',hierarchy_loss)
-        hierarchy_loss2 = _hierarchy_constraint_loss_speed(global_logits=global_logits)
-        print('Calc Hierarchy Loss Slow ',hierarchy_loss2)
         print('Calc Total Loss')
         loss = torch.sum(torch.stack([global_loss,local_loss,l2_loss,hierarchy_loss]))
         return loss
