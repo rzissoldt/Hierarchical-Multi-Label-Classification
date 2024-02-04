@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 __author__ = 'Randolph'
 
-import os
+import os, sys
 import time
 import heapq
 import gensim
@@ -9,16 +9,14 @@ import logging
 import json
 import numpy as np
 from collections import OrderedDict
-from pylab import *
+
 from texttable import Texttable
 from gensim.models import KeyedVectors
-from tflearn.data_utils import pad_sequences
-
-import tensorflow as tf
 from skimage import io, transform, color
 
 from solt.core import DataContainer
-
+sys.path.append('../')
+from utils import xtree_utils as xtree 
 
 def _option(pattern):
     """
@@ -340,11 +338,12 @@ def convert_resize_normalize_images(image_paths, target_size):
         # Resize image to target size
         if image.shape != target_size:
             image = transform.resize(image, target_size)
-            image = (image * 255).astype(np.uint8)
-
+            #image = (image * 255).astype(np.uint8)
+        else:
+            image = image /255.0
         # Normalize the image using mean and standard deviation
-        mean = [0.5, 0.5, 0.5]
-        std = [0.5, 0.5, 0.5]
+        mean = [0.485, 0.456, 0.406]
+        std = [0.229, 0.224, 0.225]
         image_normalized = (image - mean) / std
         normalized_images.append(image_normalized)
     return normalized_images
@@ -372,6 +371,7 @@ def load_preprocess_augment_images(image_paths,input_size, stream):
 def load_preprocess_images(image_paths,input_size):
     images = convert_resize_normalize_images(image_paths,input_size)
     return images
+
 
 
 
@@ -407,6 +407,35 @@ def load_word2vec_matrix(word2vec_file):
             embedding_matrix[value] = wv[key]
     return word2idx, embedding_matrix
 
+def get_num_classes_from_hierarchy(hierarchy_dicts):
+        return [len(hierarchy_dict.keys()) for hierarchy_dict in hierarchy_dicts]
+
+def generate_hierarchy_matrix_from_tree(hierarchy_tree):
+    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy_tree)
+    total_hierarchy_dict =  {}
+    counter = 0 
+    for hierarchy_dict in hierarchy_dicts:
+        for key in hierarchy_dict.keys():
+            total_hierarchy_dict[key] = counter
+            counter+=1   
+
+    hierarchy_matrix = np.zeros((len(total_hierarchy_dict),len(total_hierarchy_dict)))
+    for key_parent,value_parent in total_hierarchy_dict.items():
+        for key_child,value_child in total_hierarchy_dict.items():
+            if key_parent == key_child:
+                hierarchy_matrix[total_hierarchy_dict[key_parent],total_hierarchy_dict[key_parent]] = 1
+            elif key_child.startswith(key_parent):
+                hierarchy_matrix[total_hierarchy_dict[key_parent],total_hierarchy_dict[key_child]] = 1
+    
+    return hierarchy_matrix        
+
+    
+        
+        
+    
+    
+    
+    
 
 def load_image_data_and_labels(input_file, hierarchy_dicts):
     """
@@ -455,7 +484,7 @@ def load_image_data_and_labels(input_file, hierarchy_dicts):
         for key,value in label_dict.items():
             for label in label_dict[key]:
                 if level == 0:
-                    labels.append(label)
+                    total_class_labels.append(label)
                 else:
                     total_class_label = label
                     for i in range(level):
@@ -572,6 +601,7 @@ def load_data_and_labels(args, input_file, word2idx: dict):
             Data['subgroup'].append(_create_onehot_labels(subgroup, args.num_classes_list[3]))
             Data['onehot_labels'].append(_create_onehot_labels(labels, args.total_classes))
             Data['labels'].append(labels)
+        from tflearn.data_utils import pad_sequences
         Data['pad_seqs'] = pad_sequences(Data['content_index'], maxlen=args.pad_seq_len, value=0.)
     return Data
 
@@ -592,7 +622,8 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
     Returns:
         A batch iterator for data set.
     """
-    data = np.array(data)
+
+    data = np.array(data,dtype=object)
     data_size = len(data)
     num_batches_per_epoch = int((data_size - 1) / batch_size) + 1
     for epoch in range(num_epochs):

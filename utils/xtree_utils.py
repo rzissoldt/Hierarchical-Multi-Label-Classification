@@ -3,6 +3,7 @@ from collections import namedtuple, deque
 from types import SimpleNamespace
 import os, re
 import time
+
 class xTree:
     def __init__(self, id, pref_label_de=None,pref_label_en=None, node_type=None, wikidata_mapping=None):
         self.id = id
@@ -419,6 +420,3 @@ def filter_tree_with_threshold(root_file_path,threshold):
 def filter_tree_with_thresholds(root_file_path,thresholds):
     for threshold in thresholds:
         filter_tree_with_threshold(root_file_path=root_file_path,threshold=threshold)
-
-input_size = [224,224,1]
-print(*input_size)

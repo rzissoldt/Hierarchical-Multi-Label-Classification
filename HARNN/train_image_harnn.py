@@ -310,6 +310,5 @@ def train_image_harnn():
 
     logger.info("All Done.")
 
-
 if __name__ == '__main__':
     train_image_harnn()
