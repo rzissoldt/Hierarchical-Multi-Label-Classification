@@ -11,7 +11,6 @@ from torch.utils.data import Dataset
 
 class HmcNetDataset(Dataset):
     def __init__(self, annotation_file, hierarchy_file, image_dir, transform=None, target_transform=None):
-        print('Load Dataset.')
         with open(annotation_file,'r') as infile:
             self.image_dict = json.load(infile)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(xtree.load_xtree_json(hierarchy_file))
