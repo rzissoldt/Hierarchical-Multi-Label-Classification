@@ -129,12 +129,12 @@ def train_hmcnet():
     validation_dataset = HmcNetDataset(args.validation_file, args.hierarchy_file, image_dir,transform=transform)
     
     # Create Dataloader for Training and Validation Dataset
-    training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers_dataloader)
-    validation_loader = DataLoader(validation_dataset,batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers_dataloader)
+    training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers_dataloader,pin_memory=True)
+    validation_loader = DataLoader(validation_dataset,batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers_dataloader,pin_memory=True)
             
     num_of_train_batches = len(training_loader)
     num_of_val_batches = len(validation_loader)
-    print(num_of_train_batches,num_of_val_batches)
+
     def train_one_epoch(epoch_index,tb_writer):
         current_loss = 0.
         last_loss = 0.
