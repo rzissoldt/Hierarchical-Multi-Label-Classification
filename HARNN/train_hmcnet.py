@@ -151,7 +151,7 @@ def train_hmcnet():
             # Gather data and report
             current_loss += loss.item()
             if i % 100 == 99 or i % num_of_train_batches == 0:
-                last_loss = current_loss / i # loss per batch
+                last_loss = current_loss / (i+1) # loss per batch
                 print('  batch {} loss: {}'.format(i + 1, last_loss))
                 tb_x = epoch_index * len(training_loader) + i + 1
                 tb_writer.add_scalar('Loss/train', last_loss, tb_x)
