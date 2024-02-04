@@ -25,7 +25,10 @@ from utils import param_parser as parser
 from hmcnet_model import HmcNet
 
 
+import warnings
 
+# Ignore specific warning types
+warnings.filterwarnings("ignore", category=UserWarning)
 
 def train_hmcnet():
     # Define the augmentation pipeline
