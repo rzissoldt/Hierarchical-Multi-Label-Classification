@@ -6,7 +6,7 @@ import os
 import sys
 import time
 import logging
-import torch 
+import torch, copy
 import math
 import torch.nn.functional as F
 import torch.optim as optim
@@ -148,7 +148,7 @@ def train_hmcnet():
         
         for i, data in enumerate(training_loader):
             # Every data instance is an input + label pair
-            inputs, labels = data
+            inputs, labels = copy.deepcopy(data)
             inputs = inputs.to(device)
             y_total_onehot = labels[0]
             y_local_onehots = labels[1:]
@@ -204,7 +204,7 @@ def train_hmcnet():
         # Disable gradient computation and reduce memory consumption.
         with torch.no_grad():
             for i, vdata in enumerate(validation_loader):
-                vinputs, vlabels = vdata
+                vinputs, vlabels = copy.deepcopy(vdata)
                 vinputs = vinputs.to(device)
                 y_total_onehot = vlabels[0]
                 y_local_onehots = vlabels[1:]

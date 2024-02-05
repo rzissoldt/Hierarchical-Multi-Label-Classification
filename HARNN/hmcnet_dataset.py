@@ -10,7 +10,7 @@ from skimage import color
 from torch.utils.data import Dataset
 import cv2
 import torch.multiprocessing
-torch.multiprocessing.set_sharing_strategy('file_descriptor')
+#torch.multiprocessing.set_sharing_strategy('file_system')
 
 class HmcNetDataset(Dataset):
     def __init__(self, annotation_file, hierarchy_file, image_dir, transform=None, target_transform=None):
