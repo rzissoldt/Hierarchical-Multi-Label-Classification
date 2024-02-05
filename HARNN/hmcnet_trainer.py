@@ -107,7 +107,7 @@ class HmcNetTrainer():
                 for k in batch_predicted_onehot_labels_ts:
                     predicted_pcp_onehot_labels_ts.append(k)
                 # Predict by topK
-                for top_num in range(self.topK):
+                for top_num in range(self.args.topK):
                     batch_predicted_onehot_labels_tk = dh.get_onehot_label_topk(scores=scores, top_num=top_num+1)
                     for i in batch_predicted_onehot_labels_tk:
                         predicted_onehot_labels_tk[top_num].append(i)
