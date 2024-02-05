@@ -103,7 +103,7 @@ def hmcnet_parameter_parser():
     parser.add_argument("--evaluate-steps", type=int, default=10, help="Evaluate model on val set after how many steps.")
     parser.add_argument("--norm-ratio", type=float, default=1.25,
                         help="The ratio of the sum of gradients norms of trainable variable.")
-    parser.add_argument("--l2-lambda", type=float, default=0.0, help="L2 regularization lambda.")
+    parser.add_argument("--l2-lambda", type=float, default=1e-5, help="L2 regularization lambda.")
     parser.add_argument("--checkpoint-steps", type=int, default=10, help="Save model after how many steps.")
     parser.add_argument("--num-checkpoints", type=int, default=5, help="Number of checkpoints to store.")
     parser.add_argument("--freeze-backbone",type=bool_argument, default=True, help="Freezes Backbone Feature Extractor if needed.")

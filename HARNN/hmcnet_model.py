@@ -6,13 +6,33 @@ import torch.nn.functional as F
 import torchvision.models as models
 import numpy as np
 from PIL import Image
+
+
+
+def truncated_normal(size, mean=0, std=1):
+    lower_bound = mean - 2 * std
+    upper_bound = mean + 2 * std
+    samples = torch.empty(size)
+    idx = 0
+
+    while idx < samples.numel():
+        candidate = torch.normal(mean, std, size)
+        mask = torch.logical_and(candidate >= lower_bound, candidate <= upper_bound)
+        valid_indices = torch.nonzero(mask)
+        num_valid = min(samples.numel() - idx, valid_indices.size(0))
+        if num_valid > 0:
+            samples.view(-1)[idx:idx+num_valid] = candidate[mask][:num_valid]
+            idx += num_valid
+
+    return samples
+
 class TCCA(nn.Module):
     """TCCA Module"""
     def __init__(self,feature_dim,num_classes,attention_unit_size,device=None):
         super(TCCA, self).__init__()
         num_channels, spatial_dim = feature_dim
-        self.W_s1 = nn.Parameter(torch.randn(attention_unit_size,spatial_dim)).to(device)
-        self.W_s2 = nn.Parameter(torch.randn(num_classes, attention_unit_size)).to(device)
+        self.W_s1 = nn.Parameter(truncated_normal(size=(attention_unit_size,spatial_dim),std=0.1)).to(device)
+        self.W_s2 = nn.Parameter(truncated_normal(size=(num_classes, attention_unit_size),std=0.1)).to(device)
         self.device = device
     
     def forward(self,x,omega_h):
@@ -34,14 +54,16 @@ class CPM(nn.Module):
     """Class Predicting Module"""
     def __init__(self,spatial_dim,num_classes,fc_hidden_size,device=None):
         super(CPM, self).__init__()
-        self.W_t = nn.Parameter(torch.randn(fc_hidden_size, 2*spatial_dim)).to(device)
+        self.W_t = nn.Parameter(truncated_normal(size=(fc_hidden_size, 2*spatial_dim),std=0.1)).to(device)
         self.b_t = nn.Parameter(torch.ones(fc_hidden_size)*0.1).to(device)
-        self.W_l = nn.Parameter(torch.randn(num_classes, fc_hidden_size)).to(device)
+        self.W_l = nn.Parameter(truncated_normal(size=(num_classes, fc_hidden_size),std=0.1)).to(device)
         self.b_l = nn.Parameter(torch.ones(num_classes)*0.1).to(device)
+        self.batchnorm = nn.BatchNorm1d(num_features=fc_hidden_size).to(device)
         self.device = device
     def forward(self,x):
         fc = F.linear(x,self.W_t,self.b_t)
-        local_fc_out = F.relu(fc)
+        batchnormed_fc = self.batchnorm(fc)
+        local_fc_out = F.relu(batchnormed_fc)
         local_logits = F.linear(local_fc_out,self.W_l,self.b_l)
         local_scores = F.sigmoid(local_logits)
         return local_scores, local_fc_out
@@ -51,7 +73,7 @@ class CDM(nn.Module):
     def __init__(self,num_classes,next_num_classes,attention_unit_size,device=None):
         super(CDM, self).__init__()
         if next_num_classes is not None:
-            self.G_h_implicit = nn.Parameter(torch.randn(num_classes, next_num_classes)).to(device)
+            self.G_h_implicit = nn.Parameter(truncated_normal(size=(num_classes, next_num_classes),std=0.1)).to(device)
         self.next_num_classes = next_num_classes
         self.attention_unit_size = attention_unit_size
         self.device=device
@@ -84,17 +106,19 @@ class HybridPredictingModule(nn.Module):
     def __init__(self,num_layers,fc_hidden_size,total_classes,dropout_keep_prob,alpha,device=None):
         super(HybridPredictingModule,self).__init__()
         self.highway = HighwayLayer(input_size=fc_hidden_size,device=device).to(device)
-        self.W_highway = nn.Parameter(torch.randn(fc_hidden_size, fc_hidden_size*num_layers)).to(device)
+        self.W_highway = nn.Parameter(truncated_normal(size=(fc_hidden_size, fc_hidden_size*num_layers),std=0.1)).to(device)
         self.b_highway = nn.Parameter(torch.ones(fc_hidden_size)*0.1).to(device)
-        self.W_global_pred = nn.Parameter(torch.randn(total_classes,fc_hidden_size)).to(device)
+        self.W_global_pred = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=0.1)).to(device)
         self.b_global_pred = nn.Parameter(torch.ones(total_classes)*0.1).to(device)
         self.highway_drop = nn.Dropout(dropout_keep_prob).to(device)
+        self.batchnorm = nn.BatchNorm1d(num_features=fc_hidden_size).to(device)
         self.alpha = alpha
         self.device = device
     def forward(self,local_logits_list,local_scores_list):
         ham_out = torch.cat(local_logits_list,dim=1)
         fc = F.linear(ham_out,self.W_highway,self.b_highway)
-        fc_out = F.relu(fc)
+        batchnormed_fc=self.batchnorm(fc)
+        fc_out = F.relu(batchnormed_fc)
         highway = self.highway(fc_out)
         highway_drop_out = self.highway_drop(highway)
         #num_units = highway_drop_out.size(1)
@@ -103,6 +127,19 @@ class HybridPredictingModule(nn.Module):
         local_scores_list = torch.cat(local_scores_list,dim=1)
         scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores_list)
         return scores, global_logits
+    #def forward(self,local_logits_list,local_scores_list):
+    #    ham_out = torch.stack(local_logits_list,dim=1)
+    #    ham_out_avg = torch.mean(ham_out,dim=1)
+    #    fc = F.linear(ham_out_avg,self.W_highway,self.b_highway)
+    #    fc_out = F.relu(fc)
+    #    #highway = self.highway(fc_out)
+    #    highway_drop_out = self.highway_drop(fc_out)
+    #    #num_units = highway_drop_out.size(1)
+    #    global_logits = F.linear(highway_drop_out,self.W_global_pred,self.b_global_pred)
+    #    global_scores = F.sigmoid(global_logits)
+    #    local_scores_list = torch.cat(local_scores_list,dim=1)
+    #    scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores_list)
+    #    return scores, global_logits
 class HighwayLayer(nn.Module):
     def __init__(self, input_size, num_layers=1, bias=-2.0,device=None):
         super(HighwayLayer, self).__init__()
@@ -183,7 +220,5 @@ class HmcNet(nn.Module):
         scores, global_logits = self.hybrid_predicting_module(local_logits_list,local_scores_list)
         return scores, local_scores_list, global_logits
         #feature_extractor_out = torch.transpose(torch.reshape(resnet_outs,))
-
-
 
 
