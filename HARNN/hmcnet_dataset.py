@@ -43,16 +43,17 @@ class HmcNetDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path = self.image_label_tuple_list[idx][0]
-        pil_image = Image.open(img_path)
+        image = Image.open(img_path)
 
         # Convert to RGB if it isn't already
-        if pil_image.mode != 'RGB':
-            image = pil_image.convert('RGB')
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        pil_image = image
         if self.transform:
-            image = self.transform(image)
+            pil_image = self.transform(pil_image)
         labels = self.image_label_tuple_list[idx][1:]
-        pil_image.close()
-        return image, labels
+        image.close()
+        return pil_image, labels
     
     def _find_labels_in_hierarchy_dicts(self,labels):
         for label in labels:
