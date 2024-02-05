@@ -51,6 +51,7 @@ class HmcNetDataset(Dataset):
         if self.transform:
             image = self.transform(image)
         labels = self.image_label_tuple_list[idx][1:]
+        image.close()
         return image, labels
     
     def _find_labels_in_hierarchy_dicts(self,labels):
