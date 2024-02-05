@@ -9,7 +9,7 @@ import logging
 import json
 import numpy as np
 from collections import OrderedDict
-
+import math
 from texttable import Texttable
 from gensim.models import KeyedVectors
 from skimage import io, transform, color
@@ -184,6 +184,55 @@ def get_onehot_label_threshold(scores, threshold=0.5):
         predicted_onehot_labels.append(onehot_labels_list)
     return predicted_onehot_labels
 
+def get_pcp_onehot_label_threshold(scores,explicit_hierarchy,num_classes_list, pcp_threshold=-1.0):
+    """
+    Get the predicted one-hot labels based on PCP.
+
+    Args:
+        scores: The all classes predicted scores provided by network.
+        explicit_hierarchy: The explicit hierarchy matrix.
+        pcp_threshold: The PCP-threshold (default: -1.0).
+    Returns:
+        predicted_onehot_labels: The predicted labels (one-hot).
+    """
+    scores = np.ndarray.tolist(scores)
+    predicted_onehot_labels = []
+    for score in scores:
+        path_pruned_classes = prune_based_coherent_prediction(score=score,explicit_hierarchy=explicit_hierarchy,pcp_threshold=pcp_threshold,num_classes_list=num_classes_list)
+        onehot_labels_list = [0] * len(score)
+    
+        for class_idx in path_pruned_classes:
+            onehot_labels_list[class_idx] = 1
+        predicted_onehot_labels.append(onehot_labels_list)
+    
+    return predicted_onehot_labels 
+
+def get_pcp_onehot_label_topk(scores,explicit_hierarchy,num_classes_list,pcp_threshold=-1.0, top_num=1):
+    """
+    Get the predicted one-hot labels based on PCP and topK.
+
+    Args:
+        scores: The all classes predicted scores provided by network.
+        explicit_hierarchy: The explicit hierarchy matrix.
+        pcp_threshold: The PCP-threshold (default: -1.0).
+        top_num: The max topK number (default: 5).
+    Returns:
+        predicted_onehot_labels: The predicted labels (one-hot).
+    """
+    predicted_onehot_labels = []
+    scores = np.ndarray.tolist(scores)
+    
+    for score in scores:
+        path_pruned_classes = prune_based_coherent_prediction(score=score,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,pcp_threshold=pcp_threshold)
+        onehot_labels_list = [0] * len(score)
+        pruned_score = [0] * len(score)
+        for class_idx in path_pruned_classes:
+            pruned_score[class_idx] = score[class_idx]
+        max_num_index_list = list(map(pruned_score.index, heapq.nlargest(top_num, pruned_score)))
+        for i in max_num_index_list:
+            onehot_labels_list[i] = 1
+        predicted_onehot_labels.append(onehot_labels_list)
+    return predicted_onehot_labels      
 
 def get_onehot_label_topk(scores, top_num=1):
     """
@@ -263,6 +312,83 @@ def get_label_topk(scores, top_num=1):
         predicted_scores.append(score_list)
     return predicted_labels, predicted_scores
 
+def prune_based_coherent_prediction(score, explicit_hierarchy, num_classes_list,pcp_threshold=-1.0):
+    """ Evaluates the PCP Strategy. It gets a score list and explicit hierarchy and count of hierarchy nodes per layer
+        as input and returns the path pruned class index list. """
+    def _weighted_path_selecting(paths, score, pcp_threshold, hierarchy_depth):
+        def _weigh(hierarchy_level):
+            return 1 - (hierarchy_level/(hierarchy_depth+1))
+    
+        selected_paths = []
+        for path in paths:
+            path_score = sum([_weigh(hierachy_level) * math.log(score[path[hierachy_level]]) for hierachy_level in range(len(path))])
+            if path_score > pcp_threshold:
+                selected_paths.append(path)
+        return selected_paths
+        
+    def _dynamic_threshold_pruning(score, explicit_hierarchy,num_classes_list):
+        def _get_children(nodes,explicit_hierarchy):
+            children = []
+            for index in nodes:
+                indices = list(np.where(explicit_hierarchy[index,:] == 1)[0])
+                children.extend(indices)
+            return children
+
+        def _dynamic_filter(scores,mask=None):
+            paths = []
+            max_value = max(scores)
+            threshold = max_value*0.8
+            for i in range(len(scores)):
+                if mask is None:
+                    if scores[i] > threshold:
+                        paths.append(i)
+                else:
+                    if i in mask:
+                        if scores[i] > threshold:
+                            paths.append(i)
+            return paths
+
+        def _get_paths(candidate_nodes):
+            def _find_paths(node, path):
+                paths = []
+                hierarchy_range_lower = sum(num_classes_list[:len(path)])
+                hierarchy_range_upper = hierarchy_range_lower+num_classes_list[len(path)]
+                hierarchy_prev = sum(num_classes_list[:len(path)-1])
+                if not (node >= hierarchy_prev and node < hierarchy_range_lower):
+                    return None
+                children = [i for i, value in enumerate(explicit_hierarchy[node]) if node != i and value == 1 and i in candidate_nodes and (i >= hierarchy_range_lower and i < hierarchy_range_upper)]
+                if not children:  # If no children, return the current path
+                    return [path]
+                for child in children:
+                    paths.extend(_find_paths(child, path + [child]))
+                return paths
+
+            all_paths = []
+            for node in candidate_nodes:
+                paths_from_node = _find_paths(node, [node])
+                if paths_from_node is None:
+                    continue
+                all_paths.extend(paths_from_node)
+            return all_paths
+    
+        all_nodes = []
+        for h in range(len(num_classes_list)):
+            if h == 0:
+                selected = _dynamic_filter(score[:num_classes_list[h]])
+                all_nodes.extend(selected)
+            else:
+                children = _get_children(selected,explicit_hierarchy)
+                temp_selected = _dynamic_filter(score,children)
+                all_nodes.extend(temp_selected)
+        all_nodes = list(set(all_nodes))
+        all_paths = _get_paths(all_nodes)
+    
+        return all_paths
+    
+    paths = _dynamic_threshold_pruning(score=score,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list)
+    selected_paths = _weighted_path_selecting(paths=paths,score=score,hierarchy_depth=len(num_classes_list),pcp_threshold=pcp_threshold)
+    class_idx_list = list(set([node for path in selected_paths for node in path]))
+    return class_idx_list
 
 def create_metadata_file(word2vec_file, output_file):
     """

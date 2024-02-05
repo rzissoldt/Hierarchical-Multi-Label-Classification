@@ -92,7 +92,7 @@ def hmcnet_parameter_parser():
     
     parser.add_argument("--topK", type=int, default=5, help="Number of top K prediction classes.")
     parser.add_argument("--threshold", type=float, default=0.5, help="Threshold for prediction classes.")
-
+    parser.add_argument("--pcp-threshold", type=float, default=-1.0, help="PCP-Threshold for path-pruned-coherent-prediction classes.")
     # Training Parameters
     parser.add_argument("--gpu", type=bool_argument, default=True, help="GPU-Support active or not")
     parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs.")

@@ -13,7 +13,7 @@ import torch.optim as optim
 # PyTorch TensorBoard support
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
-
+from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
 from torchvision import transforms
 
 from torch.utils.data import DataLoader
@@ -60,11 +60,14 @@ def train_hmcnet():
     total_classes = sum(num_classes_list)
 
     beta = args.beta
-    # Define Model and Optimzer and save them.    
+    # Define Model 
     model = HmcNet(feature_dim=args.feature_dim_backbone,attention_unit_size=args.attention_dim,fc_hidden_size=args.fc_dim,num_classes_list=num_classes_list,total_classes=total_classes,freeze_backbone=args.freeze_backbone,device=device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
+    
+    # Define Optimzer and Scheduler    
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.decay_rate)
     model.eval().to(device)
     
     # Define Loss for HmcNet.
@@ -157,21 +160,28 @@ def train_hmcnet():
             # Compute the loss and its gradients
             loss = hmcnet_loss(local_scores_list=local_scores_list,global_logits=global_logits,local_target=y_local_onehots,global_target=y_total_onehot)
             loss.backward()
-
+            
+            # Clip gradients by global norm
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.norm_ratio)
+            
             # Adjust learning weights
             optimizer.step()
             # Gather data and report
             current_loss += loss.item()
-            
-            progress_info = f"Epoch [{epoch_index}], Batch [{i+1}/{num_of_train_batches}], Loss: {current_loss}"
+            last_loss = current_loss/(i+1)
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], Loss: {last_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * len(training_loader) + i + 1
-            tb_writer.add_scalar('Loss/train', current_loss, tb_x)
+            tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
             current_loss = 0.
+            
+            # Update Scheduler
+            if i % args.decay_steps == args.decay_steps-1:
+                scheduler.step()
 
         return last_loss
     
-    def validation_after_epoch():
+    def validation_after_epoch(epoch_number,tb_writer):
         running_vloss = 0.0
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
@@ -182,12 +192,14 @@ def train_hmcnet():
         eval_pre_tk = [0.0] * args.topK
         eval_rec_tk = [0.0] * args.topK
         eval_F1_tk = [0.0] * args.topK
-
+        eval_pre_pcp_tk = [0.0] * args.topK
+        eval_rec_pcp_tk = [0.0] * args.topK
+        eval_F1_pcp_tk = [0.0] * args.topK
         true_onehot_labels = []
         predicted_onehot_scores = []
-        predicted_onehot_labels_ts = []
+        predicted_pcp_onehot_labels_ts = []
         predicted_onehot_labels_tk = [[] for _ in range(args.topK)]
-        
+        predicted_pcp_onehot_labels_tk = [[] for _ in range(args.topK)]
         # Disable gradient computation and reduce memory consumption.
         with torch.no_grad():
             for i, vdata in enumerate(validation_loader):
@@ -201,149 +213,128 @@ def train_hmcnet():
                 # Compute the loss and its gradients
                 vloss = hmcnet_loss(local_scores_list=local_scores_list,global_logits=global_logits,local_target=y_local_onehots,global_target=y_total_onehot)
                 
-                running_vloss += vloss
+                scores = scores.cpu().numpy()
+                running_vloss += vloss.item()
+                # Convert each tensor to a list of lists
+                y_total_onehot_list = [total_onehot.tolist() for total_onehot in list(torch.stack(y_total_onehot).t())]
                 # Prepare for calculating metrics
-                for i in y_total_onehot:
+                for i in y_total_onehot_list:
                     true_onehot_labels.append(i)
                 for j in scores:
                     predicted_onehot_scores.append(j)
-                # Predict by threshold
+                # Predict by pcp-threshold
                 batch_predicted_onehot_labels_ts = \
-                    dh.get_onehot_label_threshold(scores=scores, threshold=args.threshold)
+                    dh.get_pcp_onehot_label_threshold(scores=scores,explicit_hierarchy=explicit_hierarchy_matrix,num_classes_list=num_classes_list, pcp_threshold=args.pcp_threshold)
                 for k in batch_predicted_onehot_labels_ts:
-                    predicted_onehot_labels_ts.append(k)
+                    predicted_pcp_onehot_labels_ts.append(k)
                 # Predict by topK
                 for top_num in range(args.topK):
                     batch_predicted_onehot_labels_tk = dh.get_onehot_label_topk(scores=scores, top_num=top_num+1)
                     for i in batch_predicted_onehot_labels_tk:
                         predicted_onehot_labels_tk[top_num].append(i)
-        avg_vloss = running_vloss / (i + 1)
-        print('LOSS train {} valid {}'.format(avg_loss, avg_vloss))
-
-        # Log the running loss averaged per batch
-        # for both training and validation
-        writer.add_scalars('Training vs. Validation Loss',
-                        { 'Training' : avg_loss, 'Validation' : avg_vloss },
-                        epoch_number + 1)
-        writer.flush()
-
-        # Track best performance, and save the model's state
-        if avg_vloss < best_vloss:
-            best_vloss = avg_vloss
-            model_path = 'runs/model_{}_{}'.format(timestamp, epoch_number)
-            torch.save(model.state_dict(), model_path)
+                # Predict by pcp-topK
+                for top_num in range(args.topK):
+                    batch_predicted_pcp_onehot_labels_tk = dh.get_pcp_onehot_label_topk(scores=scores,explicit_hierarchy=explicit_hierarchy_matrix,pcp_threshold=args.pcp_threshold,num_classes_list=num_classes_list, top_num=top_num+1)
+                    for i in batch_predicted_pcp_onehot_labels_tk:
+                        predicted_pcp_onehot_labels_tk[top_num].append(i)
+                
+                eval_loss = running_vloss/(eval_counter+1)
+                progress_info = f"Validation: Epoch [{epoch_number+1}], Batch [{eval_counter+1}/{num_of_val_batches}], Loss: {eval_loss}"
+                print(progress_info, end='\r')
+                eval_counter+=1
+            # Calculate Precision & Recall & F1
+            eval_pre_pcp_ts = precision_score(y_true=np.array(true_onehot_labels),
+                                          y_pred=np.array(predicted_pcp_onehot_labels_ts), average='micro')
+            eval_rec_pcp_ts = recall_score(y_true=np.array(true_onehot_labels),
+                                       y_pred=np.array(predicted_pcp_onehot_labels_ts), average='micro')
+            eval_F1_pcp_ts = f1_score(y_true=np.array(true_onehot_labels),
+                                  y_pred=np.array(predicted_pcp_onehot_labels_ts), average='micro')
+            for top_num in range(args.topK):
+                eval_pre_tk[top_num] = precision_score(y_true=np.array(true_onehot_labels),
+                                                       y_pred=np.array(predicted_onehot_labels_tk[top_num]),
+                                                       average='micro')
+                eval_rec_tk[top_num] = recall_score(y_true=np.array(true_onehot_labels),
+                                                    y_pred=np.array(predicted_onehot_labels_tk[top_num]),
+                                                    average='micro')
+                eval_F1_tk[top_num] = f1_score(y_true=np.array(true_onehot_labels),
+                                               y_pred=np.array(predicted_onehot_labels_tk[top_num]),
+                                               average='micro')
+            for top_num in range(args.topK):
+                eval_pre_pcp_tk[top_num] = precision_score(y_true=np.array(true_onehot_labels),
+                                                       y_pred=np.array(predicted_pcp_onehot_labels_tk[top_num]),
+                                                       average='micro')
+                eval_rec_pcp_tk[top_num] = recall_score(y_true=np.array(true_onehot_labels),
+                                                    y_pred=np.array(predicted_pcp_onehot_labels_tk[top_num]),
+                                                    average='micro')
+                eval_F1_pcp_tk[top_num] = f1_score(y_true=np.array(true_onehot_labels),
+                                               y_pred=np.array(predicted_pcp_onehot_labels_tk[top_num]),
+                                               average='micro')
+            # Calculate the average AUC
+            eval_auc = roc_auc_score(y_true=np.array(true_onehot_labels),
+                                     y_score=np.array(predicted_onehot_scores), average='micro')
+            # Calculate the average PR
+            eval_prc = average_precision_score(y_true=np.array(true_onehot_labels),
+                                               y_score=np.array(predicted_onehot_scores), average='micro')
+            tb_writer.add_scalar('Validation/Loss',eval_loss,epoch_number)
+            tb_writer.add_scalar('Validation/AverageAUC',eval_auc,epoch_number)
+            tb_writer.add_scalar('Validation/AveragePrecision',eval_prc,epoch_number)
+            # Add each scalar individually
+            for i, precision in enumerate(eval_pre_tk):
+                tb_writer.add_scalar(f'Validation/PrecisionTopK/{i}', precision, global_step=epoch_number)
+            for i, recall in enumerate(eval_rec_tk):
+                tb_writer.add_scalar(f'Validation/RecallTopK/{i}', recall, global_step=epoch_number)
+            for i, f1 in enumerate(eval_F1_tk):
+                tb_writer.add_scalar(f'Validation/F1TopK/{i}', f1, global_step=epoch_number)
+            
+            tb_writer.add_scalar('Validation/PCPPrecision',eval_pre_pcp_ts,epoch_number)
+            tb_writer.add_scalar('Validation/PCPRecall',eval_rec_pcp_ts,epoch_number)
+            tb_writer.add_scalar('Validation/PCPF1',eval_F1_pcp_ts,epoch_number)
+            for i, precision in enumerate(eval_pre_pcp_tk):
+                tb_writer.add_scalar(f'Validation/PCPPrecisionTopK/{i}', precision, global_step=epoch_number)
+            for i, recall in enumerate(eval_rec_pcp_tk):
+                tb_writer.add_scalar(f'Validation/PCPRecallTopK/{i}', recall, global_step=epoch_number)
+            for i, f1 in enumerate(eval_F1_pcp_tk):
+                tb_writer.add_scalar(f'Validation/PCPF1TopK/{i}', f1, global_step=epoch_number)
+        
+            print("All Validation set: Loss {0:g} | AUC {1:g} | AUPRC {2:g}".format(eval_loss, eval_auc, eval_prc))
+            # Predict by pcp
+            print("Predict by PCP thresholding: PCP-Precision {0:g}, PCP-Recall {1:g}, PCP-F1 {2:g}".format(eval_pre_pcp_ts, eval_rec_pcp_ts, eval_F1_pcp_ts))
+            # Predict by topK
+            print("Predict by topK:")
+            for top_num in range(args.topK):
+                print("Top{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}".format(top_num+1, eval_pre_tk[top_num], eval_rec_tk[top_num], eval_F1_tk[top_num])) 
+            # Predict by PCP-topK
+            print("Predict by PCP-topK:")
+            for top_num in range(args.topK):
+                print("Top{0}: PCP-Precision {1:g}, PCP-Recall {2:g}, PCP-F1 {3:g}".format(top_num+1, eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num], eval_F1_pcp_tk[top_num]))  
+            return eval_loss
+            
     
     # Initialize Tensorboard Summary Writer
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    writer = SummaryWriter('runs/fashion_trainer_{}'.format(timestamp))
+    path_to_model = 'runs/hmc_net{}'.format(timestamp)
+    writer = SummaryWriter('runs/hmc_net{}'.format(timestamp))
     epoch_number = 0
     
     EPOCHS = args.epochs
     
     best_vloss = 1_000_000.
     for epoch in range(EPOCHS):
-        print('EPOCH {}:'.format(epoch_number + 1))
-
         # Make sure gradient tracking is on, and do a pass over the data
         model.train(True)
-        avg_loss = train_one_epoch(epoch_number, writer)
-        validation_after_epoch()
+        avg_loss = train_one_epoch(epoch, writer)
+        avg_vloss = validation_after_epoch(epoch,writer)
+        print('LOSS train {} valid {}'.format(avg_loss, avg_vloss))
+        writer.flush()
 
-        
-
-        epoch_number += 1
-
-
-
-def weighted_path_selecting(paths, scores, threshold, hierarchy_depth):
-    def _weigh(hierarchy_level):
-        return 1 - (hierarchy_level/(hierarchy_depth+1))
-    
-    selected_paths = []
-    for path in paths:
-        path_score = sum([_weigh(hierachy_level) * math.log(scores[path[hierachy_level]]) for hierachy_level in range(len(path))])
-        if path_score > threshold:
-            selected_paths.append(path)
-    return selected_paths
-            
-        
-
-def dynamic_threshold_pruning(scores, explicit_hierarchy,num_classes_list):
-    def _get_children(nodes,explicit_hierarchy):
-        children = []
-        for index in nodes:
-            indices = list(np.where(explicit_hierarchy[index,:] == 1)[0])
-            children.extend(indices)
-        return children
-    
-    def _dynamic_filter(scores,mask=None):
-        paths = []
-        max_value = max(scores)
-        threshold = max_value*0.8
-        for i in range(len(scores)):
-            if mask is None:
-                if scores[i] > threshold:
-                    paths.append(i)
-            else:
-                if i in mask:
-                    if scores[i] > threshold:
-                        paths.append(i)
-        return paths
-    
-    def _get_paths(candidate_nodes):
-        def _find_paths(node, path):
-            paths = []
-            hierarchy_range_lower = sum(num_classes_list[:len(path)])
-            hierarchy_range_upper = hierarchy_range_lower+num_classes_list[len(path)]
-            hierarchy_prev = sum(num_classes_list[:len(path)-1])
-            if not (node >= hierarchy_prev and node < hierarchy_range_lower):
-                return None
-            children = [i for i, value in enumerate(explicit_hierarchy[node]) if node != i and value == 1 and i in candidate_nodes and (i >= hierarchy_range_lower and i < hierarchy_range_upper)]
-            if not children:  # If no children, return the current path
-                return [path]
-            for child in children:
-                paths.extend(_find_paths(child, path + [child]))
-            return paths
-
-        all_paths = []
-        for node in candidate_nodes:
-            paths_from_node = _find_paths(node, [node])
-            if paths_from_node is None:
-                continue
-            all_paths.extend(paths_from_node)
-        return all_paths
-    
-    all_nodes = []
-    for h in range(len(num_classes_list)):
-        if h == 0:
-            selected = _dynamic_filter(scores[:num_classes_list[h]])
-            all_nodes.extend(selected)
-        else:
-            children = _get_children(selected,explicit_hierarchy)
-            temp_selected = _dynamic_filter(scores,children)
-            all_nodes.extend(temp_selected)
-    all_nodes = list(set(all_nodes))
-    all_paths = _get_paths(all_nodes)
-    
-    return all_paths
-            
-         
-            
-
-
-
-    
+        # Track best performance, and save the model's state
+        if avg_vloss < best_vloss:
+            best_vloss = avg_vloss
+            model_path = os.path.join(path_to_model,'models','hmcnet_{}'.format(epoch_number))
+            os.makedirs(os.path.dirname(model_path), exist_ok=True)
+            torch.save(model.state_dict(), model_path)
 
 if __name__ == '__main__':
-    hierarchy_file = "../data/image_harnn/bauwerke/Bauwerk_tree_final_with_image_count_threshold_1000.json"
-    
-    hierarchy = xtree.load_xtree_json(hierarchy_file)
-    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
-    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
-    explicit_hierarchy_matrix = dh.generate_hierarchy_matrix_from_tree(hierarchy)
-    scores = list(np.random.random(size=explicit_hierarchy_matrix.shape[0]))
-    paths = dynamic_threshold_pruning(scores=scores,explicit_hierarchy=explicit_hierarchy_matrix,num_classes_list=num_classes_list)
-    selected_paths = weighted_path_selecting(paths=paths,scores=scores,threshold=-1,hierarchy_depth=len(num_classes_list))
-    print(selected_paths)
+    train_hmcnet()
     
     
