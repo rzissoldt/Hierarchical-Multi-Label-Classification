@@ -87,7 +87,7 @@ def train_hmcnet():
     validation_dataset = HmcNetDataset(args.validation_file, args.hierarchy_file, image_dir,transform=transform)
     
     # Define Trainer for HmcNet
-    trainer = HmcNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
+    trainer = HmcNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,explicit_hierarchy=explicit_hierarchy,args=args,device=device,num_classes_list=num_classes_list)
     
     sharing_strategy = "file_system"
     def set_worker_sharing_strategy(worker_id: int):
