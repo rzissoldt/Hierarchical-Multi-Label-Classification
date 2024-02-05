@@ -129,15 +129,19 @@ def train_hmcnet():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], # Normalize image using ImageNet mean and standard deviation
                          std=[0.229, 0.224, 0.225])
     ])
-
+    
     # Create Training and Validation Dataset
     training_dataset = HmcNetDataset(args.train_file, args.hierarchy_file, image_dir,transform=transform)
     validation_dataset = HmcNetDataset(args.validation_file, args.hierarchy_file, image_dir,transform=transform)
-    
+    sharing_strategy = "file_system"
+    torch.multiprocessing.set_sharing_strategy(sharing_strategy)
+
+    def set_worker_sharing_strategy(worker_id: int):
+        torch.multiprocessing.set_sharing_strategy(sharing_strategy)
     # Create Dataloader for Training and Validation Dataset
     kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': args.pin_memory} if args.gpu else {}
-    training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,**kwargs)
-    validation_loader = DataLoader(validation_dataset,batch_size=args.batch_size,shuffle=True,**kwargs)
+    training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
+    validation_loader = DataLoader(validation_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
             
     num_of_train_batches = len(training_loader)
     num_of_val_batches = len(validation_loader)
