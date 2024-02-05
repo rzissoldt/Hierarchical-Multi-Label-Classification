@@ -47,14 +47,20 @@ class HmcNetDataset(Dataset):
 
         image_cv2 = cv2.imread(img_path)
 
-        image_cv2 = cv2.cvtColor(image_cv2, cv2.COLOR_BGR2RGB)
+        if len(image_cv2.shape) == 2:
+            image_cv2 = cv2.cvtColor(image_cv2, cv2.COLOR_GRAY2RGB)
+        else:
+            image_cv2 = cv2.cvtColor(image_cv2, cv2.COLOR_BGR2RGB)
 
         image_pil = Image.fromarray(image_cv2)
+
         if self.transform:
             image_tensor = self.transform(image_pil)
+
         labels = self.image_label_tuple_list[idx][1:]
-        
+
         return image_tensor, labels
+
     
     def _find_labels_in_hierarchy_dicts(self,labels):
         for label in labels:
