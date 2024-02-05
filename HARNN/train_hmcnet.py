@@ -135,7 +135,7 @@ def train_hmcnet():
     validation_dataset = HmcNetDataset(args.validation_file, args.hierarchy_file, image_dir,transform=transform)
     
     # Create Dataloader for Training and Validation Dataset
-    kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': True} if device=='cuda' else {}
+    kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': args.pin_memory} if device=='cuda' else {}
     training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,**kwargs)
     validation_loader = DataLoader(validation_dataset,batch_size=args.batch_size,shuffle=True,**kwargs)
             

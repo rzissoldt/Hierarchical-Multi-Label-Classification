@@ -79,6 +79,7 @@ def hmcnet_parameter_parser():
     parser.add_argument("--hierarchy-file", nargs="?", default="../data/image_harnn/bauwerke", help="Hierarchy data.")
     parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
     parser.add_argument("--num-workers-dataloader", type=int, default=4, help="Number of workers used for Dataloading.")
+    parser.add_argument("--pin-memory", type=bool_argument, default=True, help="Pin Memory in Dataloading activated or not.")
     
     parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
     parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,49), help="Dimensionality of the Feature Output of backbone.")
