@@ -88,7 +88,8 @@ class HmcNetTrainer():
                 scores, local_scores_list, global_logits = self.model(vinputs)
 
                 # Compute the loss and its gradients
-                vloss = self.criterion(local_scores_list=local_scores_list,global_logits=global_logits,local_target=y_local_onehots,global_target=y_total_onehot)
+                predictions, targets = (local_scores_list,global_logits),(y_local_onehots,y_total_onehot)
+                vloss = self.criterion(predictions=predictions,targets=targets)
                 
                 scores = scores.cpu().numpy()
                 running_vloss += vloss.item()
