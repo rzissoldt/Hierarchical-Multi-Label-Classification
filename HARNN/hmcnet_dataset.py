@@ -48,9 +48,12 @@ class HmcNetDataset(Dataset):
         # Convert to RGB if it isn't already
         if image.mode != 'RGB':
             image = image.convert('RGB')
-        pil_image = image
+        
+        pil_image = image  # Initialize pil_image with the original image
+    
         if self.transform:
-            pil_image = self.transform(pil_image)
+            pil_image = self.transform(image)
+            
         labels = self.image_label_tuple_list[idx][1:]
         image.close()
         return pil_image, labels
