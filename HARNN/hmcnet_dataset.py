@@ -9,7 +9,9 @@ import json
 from skimage import color
 from torch.utils.data import Dataset
 import cv2
-#import threading
+import torch.multiprocessing
+torch.multiprocessing.set_sharing_strategy('file_system')
+
 class HmcNetDataset(Dataset):
     def __init__(self, annotation_file, hierarchy_file, image_dir, transform=None, target_transform=None):
         #self.lock = threading.Lock()
@@ -44,22 +46,20 @@ class HmcNetDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path = self.image_label_tuple_list[idx][0]
+        image = Image.open(img_path)
 
-        image_cv2 = cv2.imread(img_path)
+        # Convert to RGB if it isn't already
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
 
-        if len(image_cv2.shape) == 2:
-            image_cv2 = cv2.cvtColor(image_cv2, cv2.COLOR_GRAY2RGB)
-        else:
-            image_cv2 = cv2.cvtColor(image_cv2, cv2.COLOR_BGR2RGB)
-
-        image_pil = Image.fromarray(image_cv2)
+        pil_image = image  # Initialize pil_image with the original image
 
         if self.transform:
-            image_tensor = self.transform(image_pil)
+            pil_image = self.transform(image)
 
         labels = self.image_label_tuple_list[idx][1:]
-
-        return image_tensor, labels
+        image.close()
+        return pil_image, labels
 
     
     def _find_labels_in_hierarchy_dicts(self,labels):
