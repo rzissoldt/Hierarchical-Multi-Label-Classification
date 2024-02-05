@@ -94,8 +94,8 @@ def train_hmcnet():
         torch.multiprocessing.set_sharing_strategy(sharing_strategy)
     # Create Dataloader for Training and Validation Dataset
     kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': args.pin_memory} if args.gpu else {}
-    training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True)#,worker_init_fn=set_worker_sharing_strategy,**kwargs)
-    validation_loader = DataLoader(validation_dataset,batch_size=args.batch_size,shuffle=True)#,worker_init_fn=set_worker_sharing_strategy,**kwargs)  
+    training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
+    validation_loader = DataLoader(validation_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)  
     
     # Initialize Tensorboard Summary Writer
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
