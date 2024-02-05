@@ -149,7 +149,7 @@ def train_hmcnet():
     def train_one_epoch(epoch_index,tb_writer):
         current_loss = 0.
         last_loss = 0.
-        
+        model.train()
         for i, data in enumerate(training_loader):
             # Every data instance is an input + label pair
             inputs, labels = copy.deepcopy(data)
@@ -243,10 +243,10 @@ def train_hmcnet():
                     for i in batch_predicted_pcp_onehot_labels_tk:
                         predicted_pcp_onehot_labels_tk[top_num].append(i)
                 
-            eval_loss = running_vloss/(eval_counter+1)
-            progress_info = f"Validation: Epoch [{epoch_number+1}], Batch [{eval_counter+1}/{num_of_val_batches}], Loss: {eval_loss}"
-            print(progress_info, end='\r')
-            eval_counter+=1
+                eval_loss = running_vloss/(eval_counter+1)
+                progress_info = f"Validation: Epoch [{epoch_number+1}], Batch [{eval_counter+1}/{num_of_val_batches}], Loss: {eval_loss}"
+                print(progress_info, end='\r')
+                eval_counter+=1
             # Calculate Precision & Recall & F1
             eval_pre_pcp_ts = precision_score(y_true=np.array(true_onehot_labels),
                                           y_pred=np.array(predicted_pcp_onehot_labels_ts), average='micro')
