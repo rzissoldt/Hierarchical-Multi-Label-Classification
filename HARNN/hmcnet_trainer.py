@@ -6,7 +6,7 @@ sys.path.append('../')
 from utils import data_helpers as dh
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
 class HmcNetTrainer():
-    def __init__(self,model,criterion,optimizer,scheduler,explicit_hierarchy,args,device=None):
+    def __init__(self,model,criterion,optimizer,scheduler,explicit_hierarchy,num_classes_list,args,device=None):
         self.model = model
         self.criterion = criterion
         self.scheduler = scheduler
@@ -14,6 +14,7 @@ class HmcNetTrainer():
         self.device = device
         self.explicit_hierarchy= explicit_hierarchy
         self.args = args
+        self.num_classes_list = num_classes_list
     def train(self,training_loader,epoch_index,tb_writer):
         current_loss = 0.
         last_loss = 0.
@@ -102,7 +103,7 @@ class HmcNetTrainer():
                     predicted_onehot_scores.append(j)
                 # Predict by pcp-threshold
                 batch_predicted_onehot_labels_ts = \
-                    dh.get_pcp_onehot_label_threshold(scores=scores,explicit_hierarchy=self.explicit_hierarchy,num_classes_list=self.args.num_classes_list, pcp_threshold=self.args.pcp_threshold)
+                    dh.get_pcp_onehot_label_threshold(scores=scores,explicit_hierarchy=self.explicit_hierarchy,num_classes_list=self.num_classes_list, pcp_threshold=self.args.pcp_threshold)
                 for k in batch_predicted_onehot_labels_ts:
                     predicted_pcp_onehot_labels_ts.append(k)
                 # Predict by topK
@@ -112,7 +113,7 @@ class HmcNetTrainer():
                         predicted_onehot_labels_tk[top_num].append(i)
                 # Predict by pcp-topK
                 for top_num in range(self.args.topK):
-                    batch_predicted_pcp_onehot_labels_tk = dh.get_pcp_onehot_label_topk(scores=scores,explicit_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.args.num_classes_list, top_num=top_num+1)
+                    batch_predicted_pcp_onehot_labels_tk = dh.get_pcp_onehot_label_topk(scores=scores,explicit_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list, top_num=top_num+1)
                     for i in batch_predicted_pcp_onehot_labels_tk:
                         predicted_pcp_onehot_labels_tk[top_num].append(i)
                 
