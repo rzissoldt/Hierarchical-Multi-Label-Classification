@@ -8,10 +8,10 @@ import numpy as np
 import json
 from skimage import color
 from torch.utils.data import Dataset
-import threading
+#import threading
 class HmcNetDataset(Dataset):
     def __init__(self, annotation_file, hierarchy_file, image_dir, transform=None, target_transform=None):
-        self.lock = threading.Lock()
+        #self.lock = threading.Lock()
         with open(annotation_file,'r') as infile:
             self.image_dict = json.load(infile)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(xtree.load_xtree_json(hierarchy_file))
@@ -43,15 +43,15 @@ class HmcNetDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path = self.image_label_tuple_list[idx][0]
-        image = Image.open(img_path)
+        pil_image = Image.open(img_path)
 
         # Convert to RGB if it isn't already
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
+        if pil_image.mode != 'RGB':
+            image = pil_image.convert('RGB')
         if self.transform:
             image = self.transform(image)
         labels = self.image_label_tuple_list[idx][1:]
-        image.close()
+        pil_image.close()
         return image, labels
     
     def _find_labels_in_hierarchy_dicts(self,labels):
