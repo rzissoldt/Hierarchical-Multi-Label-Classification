@@ -127,19 +127,7 @@ class HybridPredictingModule(nn.Module):
         local_scores_list = torch.cat(local_scores_list,dim=1)
         scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores_list)
         return scores, global_logits
-    #def forward(self,local_logits_list,local_scores_list):
-    #    ham_out = torch.stack(local_logits_list,dim=1)
-    #    ham_out_avg = torch.mean(ham_out,dim=1)
-    #    fc = F.linear(ham_out_avg,self.W_highway,self.b_highway)
-    #    fc_out = F.relu(fc)
-    #    #highway = self.highway(fc_out)
-    #    highway_drop_out = self.highway_drop(fc_out)
-    #    #num_units = highway_drop_out.size(1)
-    #    global_logits = F.linear(highway_drop_out,self.W_global_pred,self.b_global_pred)
-    #    global_scores = F.sigmoid(global_logits)
-    #    local_scores_list = torch.cat(local_scores_list,dim=1)
-    #    scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores_list)
-    #    return scores, global_logits
+    
 class HighwayLayer(nn.Module):
     def __init__(self, input_size, num_layers=1, bias=-2.0,device=None):
         super(HighwayLayer, self).__init__()
@@ -219,6 +207,63 @@ class HmcNet(nn.Module):
         
         scores, global_logits = self.hybrid_predicting_module(local_logits_list,local_scores_list)
         return scores, local_scores_list, global_logits
-        #feature_extractor_out = torch.transpose(torch.reshape(resnet_outs,))
+    
+# Define Loss for HmcNet.
+class HmcNetLoss(nn.Module):
+    def __init__(self,beta,l2_lambda,model,explicit_hierarchy,device=None):
+        super(HmcNetLoss, self).__init__()
+        self.beta = beta
+        self.l2_lambda = l2_lambda
+        self.model = model
+        self.explicit_hierarchy = explicit_hierarchy
+        self.device = device
+    def forward(self,predictions,targets):
+        """Calculation of the HmcNet loss."""
 
+        def _local_loss(local_scores_list,local_target_list):
+            """Calculation of the Local loss."""
+            losses = []
+            for i in range(len(local_scores_list)):
+                local_scores = torch.tensor([tensor.tolist() for tensor in local_scores_list[i]],dtype=torch.float32).to(self.device)
+                local_targets = torch.transpose(torch.tensor([tensor.tolist() for tensor in local_target_list[i]],dtype=torch.float32),0,1).to(self.device)
+                loss = F.binary_cross_entropy(local_scores, local_targets)
+                mean_loss = torch.mean(loss)
+                losses.append(mean_loss)
+            return torch.sum(torch.tensor(losses,dtype=torch.float32).to(self.device))
+
+        def _global_loss(global_logits,global_target):
+            """Calculation of the Global loss."""
+            global_scores = torch.sigmoid(global_logits)
+            global_target = torch.transpose(torch.tensor([tensor.tolist() for tensor in global_target],dtype=torch.float32),0,1).to(self.device)
+            loss = F.binary_cross_entropy(global_scores,global_target)
+            mean_loss = torch.mean(loss).to(self.device)
+            return mean_loss
+
+        def _hierarchy_constraint_loss(global_logits):
+            """Calculate the Hierarchy Constraint loss."""
+            global_scores = torch.sigmoid(global_logits)
+            hierarchy_losses = []
+            for global_score in global_scores:
+                mask = self.explicit_hierarchy == 1
+                score_diff = global_score.unsqueeze(0) - global_score.unsqueeze(1)                
+                loss = self.beta * torch.max(torch.tensor(0.0), score_diff[mask]) ** 2
+                temp_loss = torch.sum(loss)
+                hierarchy_losses.append(temp_loss)
+            return torch.mean(torch.tensor(hierarchy_losses)).to(self.device)
+
+        def _l2_loss(model,l2_reg_lambda):
+            """Calculation of the L2-Regularization loss."""
+            l2_loss = torch.tensor(0.,dtype=torch.float32).to(self.device)
+            for param in model.parameters():
+                l2_loss += torch.norm(param,p=2)**2
+            return torch.tensor(l2_loss*l2_reg_lambda,dtype=torch.float32)
+        local_scores_list,global_logits  = predictions[0], predictions[1]
+        local_target, global_target = targets[0], targets[1]
+        global_loss = _global_loss(global_logits=global_logits,global_target=global_target)
+        local_loss = _local_loss(local_scores_list=local_scores_list,local_target_list=local_target)
+        l2_loss = _l2_loss(model=self.model,l2_reg_lambda=self.l2_lambda)
+        hierarchy_loss = _hierarchy_constraint_loss(global_logits=global_logits)
+        loss = torch.sum(torch.stack([global_loss,local_loss,l2_loss,hierarchy_loss]))
+        return loss
+        
 
