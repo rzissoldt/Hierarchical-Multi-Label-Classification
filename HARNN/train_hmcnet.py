@@ -8,7 +8,7 @@ import time
 import logging
 import torch, copy
 import math
-import torch.nn.functional as F
+
 import torch.optim as optim
 # PyTorch TensorBoard support
 from torch.utils.tensorboard import SummaryWriter
@@ -17,14 +17,15 @@ from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_sco
 from torchvision import transforms
 
 from torch.utils.data import DataLoader
-from hmcnet_dataset import HmcNetDataset
-from hmcnet_trainer import HmcNetTrainer
+
 # Add the parent directory to the Python path
 sys.path.append('../')
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
 from utils import param_parser as parser
-from hmcnet_model import HmcNet, HmcNetLoss
+from HARNN.model.hmcnet_model import HmcNet, HmcNetLoss
+from HARNN.dataset.hmcnet_dataset import HmcNetDataset
+from HARNN.trainer.hmcnet_trainer import HmcNetTrainer
 
 
 import warnings
@@ -74,17 +75,28 @@ def train_hmcnet():
     criterion = HmcNetLoss(l2_lambda=args.l2_lambda,beta=args.beta,model=model,explicit_hierarchy=explicit_hierarchy,device=device)
               
     # Define the transformation pipeline for image preprocessing.
-    transform = transforms.Compose([
-        transforms.Resize((256, 256)),                  # Resize image to 256x256
-        transforms.CenterCrop(224),                      # Center crop to 224x224 (required input size for ResNet50)
-        transforms.ToTensor(),                           # Convert image to tensor
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], # Normalize image using ImageNet mean and standard deviation
+    train_transform = transforms.Compose([
+        transforms.Resize((256, 256)),                    
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2), 
+        transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1), shear=10), 
+        transforms.RandomHorizontalFlip(),                 
+        transforms.RandomRotation(degrees=30),            
+        transforms.CenterCrop(224),                        
+        transforms.ToTensor(),                             
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],   
+                         std=[0.229, 0.224, 0.225])
+    ])
+    validation_transform = transforms.Compose([
+        transforms.Resize((256, 256)),                    
+        transforms.CenterCrop(224),                       
+        transforms.ToTensor(),                             
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],  
                          std=[0.229, 0.224, 0.225])
     ])
     
     # Create Training and Validation Dataset
-    training_dataset = HmcNetDataset(args.train_file, args.hierarchy_file, image_dir,transform=transform)
-    validation_dataset = HmcNetDataset(args.validation_file, args.hierarchy_file, image_dir,transform=transform)
+    training_dataset = HmcNetDataset(args.train_file, args.hierarchy_file, image_dir,transform=train_transform)
+    validation_dataset = HmcNetDataset(args.validation_file, args.hierarchy_file, image_dir,transform=validation_transform)
     
     # Define Trainer for HmcNet
     trainer = HmcNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,explicit_hierarchy=explicit_hierarchy,args=args,device=device,num_classes_list=num_classes_list)
