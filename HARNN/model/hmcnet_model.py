@@ -85,7 +85,7 @@ class CDM(nn.Module):
     def forward(self,x):
         # if last CDM Module, omega_h is not needed any more.
         if self.next_num_classes is None:
-            return None
+            return torch.zeros(1)
         Q_h = torch.matmul(x, self.G_h_implicit)
         omega_h = Q_h.unsqueeze(-1).repeat(1,1,self.attention_unit_size)
         #omega_h = Q_h_repeated.view(self.next_num_classes,self.attention_unit_size)
@@ -246,15 +246,11 @@ class HmcNet(nn.Module):
         feature_extractor_out = self.backbone(x)
         num_channels,spatial_dim1, spatial_dim2 = feature_extractor_out.shape[1:]
         feature_extractor_out = feature_extractor_out.view(-1, num_channels, spatial_dim1 * spatial_dim2)
-        omega_h = None
+        omega_h = torch.ones(self.num_classes_list[0],self.attention_unit_size).to(self.device)
         local_score_list = []
         local_logit_list = []
         for ham_module in self.ham_modules:
-            if omega_h is None:
-                omega_h = torch.ones(self.num_classes_list[0],self.attention_unit_size).to(self.device)
-                local_score, local_logit, omega_h = ham_module(feature_extractor_out,omega_h)
-            else:
-                local_score,local_logit, omega_h = ham_module(feature_extractor_out,omega_h)
+            local_score, local_logit, omega_h = ham_module(feature_extractor_out,omega_h)
             local_score_list.append(local_score)
             local_logit_list.append(local_logit)
         
