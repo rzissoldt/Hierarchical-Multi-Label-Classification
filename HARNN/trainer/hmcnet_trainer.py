@@ -47,7 +47,7 @@ class HmcNetTrainer():
             current_loss += loss.item()
             last_loss = current_loss/(i+1)
 
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], Loss: {last_loss}"
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, Loss: {current_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
@@ -119,7 +119,7 @@ class HmcNetTrainer():
                         predicted_pcp_onehot_labels_tk[top_num].append(i)
                 
                 eval_loss = running_vloss/(eval_counter+1)
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], Loss: {eval_loss}"
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}, Loss: {running_vloss}"
                 print(progress_info, end='\r')
                 eval_counter+=1
             print('\n')
