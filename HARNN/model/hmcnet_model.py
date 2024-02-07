@@ -50,6 +50,9 @@ class TCCA(nn.Module):
         attention_weight_avg = F.softmax(torch.mean(attention_weight, dim=1), dim=1)
         return attention_out_avg
     
+    def __repr__(self):
+        return f'TCCA Module Params: W_s1: {self.W_s1.numel()}, W_s2: {self.W_s2.numel()}'
+    
 class CPM(nn.Module):
     """Class Predicting Module"""
     def __init__(self,spatial_dim,num_classes,fc_hidden_size,device=None):
@@ -58,22 +61,26 @@ class CPM(nn.Module):
         self.b_t = nn.Parameter(torch.ones(fc_hidden_size)*0.1).to(device)
         self.W_l = nn.Parameter(truncated_normal(size=(num_classes, fc_hidden_size),std=0.1)).to(device)
         self.b_l = nn.Parameter(torch.ones(num_classes)*0.1).to(device)
-        self.batchnorm = nn.BatchNorm1d(num_features=fc_hidden_size).to(device)
+        #self.batchnorm = nn.BatchNorm1d(num_features=fc_hidden_size).to(device)
         self.device = device
     def forward(self,x):
         fc = F.linear(x,self.W_t,self.b_t)
-        batchnormed_fc = self.batchnorm(fc)
-        local_fc_out = F.relu(batchnormed_fc)
+        local_fc_out = F.relu(fc)
         local_logits = F.linear(local_fc_out,self.W_l,self.b_l)
         local_scores = F.sigmoid(local_logits)
         return local_scores, local_fc_out
+    
+    def __repr__(self):
+        return f'CPM Module Params: W_t: {self.W_t.numel()}, W_l: {self.W_l.numel()}, b_t: {self.b_t.numel()}, b_l: {self.b_l.numel()}'
     
 class CDM(nn.Module):
     """Class Dependency Module"""
     def __init__(self,num_classes,next_num_classes,attention_unit_size,device=None):
         super(CDM, self).__init__()
+        self.G_h_implicit = None
         if next_num_classes is not None:
             self.G_h_implicit = nn.Parameter(truncated_normal(size=(num_classes, next_num_classes),std=0.1)).to(device)
+        
         self.next_num_classes = next_num_classes
         self.attention_unit_size = attention_unit_size
         self.device=device
@@ -85,6 +92,11 @@ class CDM(nn.Module):
         omega_h = Q_h.unsqueeze(-1).repeat(1,1,self.attention_unit_size)
         #omega_h = Q_h_repeated.view(self.next_num_classes,self.attention_unit_size)
         return omega_h
+    
+    def __repr__(self):
+        if self.G_h_implicit is None:
+            return ''
+        return f'CDM Module Params: G_h_implicit: {self.G_h_implicit.numel()}'
     
 class HAM(nn.Module):
     """HAM Unit"""
@@ -102,7 +114,39 @@ class HAM(nn.Module):
         omega_h_next = self.cdm(local_score)
         return local_score,local_fc_out, omega_h_next
     
+    def __repr__(self):
+        return (f'HAM Module: '
+                f'\nTCCA Module: {self.tcca.__repr__()}'
+                f'\nCPM Module: {self.cpm.__repr__()}'
+                f'\nCDM Module: {self.cdm.__repr__()}')
+    
 class HybridPredictingModule(nn.Module):
+    def __init__(self,fc_hidden_size,total_classes,dropout_keep_prob,alpha,device=None):
+        super(HybridPredictingModule,self).__init__()
+        self.W_g = nn.Parameter(truncated_normal(size=(fc_hidden_size, fc_hidden_size),std=0.1)).to(device)
+        self.b_g = nn.Parameter(torch.ones(fc_hidden_size)*0.1).to(device)
+        self.W_m = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=0.1)).to(device)
+        self.b_m = nn.Parameter(torch.ones(total_classes)*0.1).to(device)
+        self.drop = nn.Dropout(dropout_keep_prob).to(device)
+        self.alpha = alpha
+        self.device = device
+    def forward(self,local_logits_list,local_scores_list):
+        ham_out = torch.cat([local_logits.unsqueeze(1) for local_logits in local_logits_list], dim=1)
+        avg_ham_out = torch.mean(ham_out,dim=1)
+        avg_ham_out_fc = F.linear(avg_ham_out,self.W_g,self.b_g)
+        fc_out = F.relu(avg_ham_out_fc)
+        fc_out_drop = self.drop(fc_out)
+        global_logits = F.linear(fc_out_drop,self.W_m,self.b_m)
+        global_scores = F.sigmoid(global_logits)
+        local_scores_list = torch.cat(local_scores_list,dim=1)
+        scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores_list)
+        return scores, global_logits
+    
+    def __repr__(self):
+        return (f'HybridPredicting Module Params: W_g: {self.W_g.numel()}, W_m: {self.W_m.numel()}, b_g: {self.b_g.numel()}, b_m: {self.b_m.numel()}')
+        
+
+class HybridPredictingModuleHighway(nn.Module):
     def __init__(self,num_layers,fc_hidden_size,total_classes,dropout_keep_prob,alpha,device=None):
         super(HybridPredictingModule,self).__init__()
         self.highway = HighwayLayer(input_size=fc_hidden_size,device=device).to(device)
@@ -128,6 +172,10 @@ class HybridPredictingModule(nn.Module):
         scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores_list)
         return scores, global_logits
     
+    def __repr__(self):
+        return (f'HybridPredicting Module Params: W_highway: {self.W_highway.numel()}, W_global_pred: {self.W_global_pred.numel()}, b_highway: {self.b_highway.numel()}, b_global_pred: {self.b_global_pred.numel()}'
+                f'HighwayLayer Module Params: {self.highway.__repr__()}')
+        
 class HighwayLayer(nn.Module):
     def __init__(self, input_size, num_layers=1, bias=-2.0,device=None):
         super(HighwayLayer, self).__init__()
@@ -159,13 +207,18 @@ class HighwayLayer(nn.Module):
             input_ = output
 
         return output
-
+    
+    def __repr__(self):
+        transform_params = sum(p.numel() for p in self.transform_gate.parameters())
+        carry_params = sum(p.numel() for p in self.carry_gate.parameters())
+        return f'HighwayLayer(input_size={self.transform_gate[0].weight.size(1)}, num_layers={self.num_layers}, transform_params={transform_params}, carry_params={carry_params})'
+        
 class HmcNet(nn.Module):
     """A HARNN for image classification."""
     def __init__(self,feature_dim,attention_unit_size,fc_hidden_size, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
         super(HmcNet,self).__init__()
         self.resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
-        self.backbone = torch.nn.Sequential(*(list(self.resnet50.children())[:len(list(self.resnet50.children()))-2])).to(device)
+        self.backbone = torch.nn.Sequential(*(list(self.resnet50.children())[:len(list(self.resnet50.children()))-1])).to(device)
         self.ham_modules = []
         self.feature_dim = feature_dim
         self.attention_unit_size = attention_unit_size
@@ -186,7 +239,7 @@ class HmcNet(nn.Module):
                 self.ham_modules.append(HAM(feature_dim=feature_dim,num_classes=num_classes_list[i],next_num_classes=None,attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size,device=device))
                 break
             self.ham_modules.append(HAM(feature_dim=feature_dim,num_classes=num_classes_list[i],next_num_classes=num_classes_list[i+1],attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size,device=device))
-        self.hybrid_predicting_module = HybridPredictingModule(num_layers=len(num_classes_list),fc_hidden_size=fc_hidden_size,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha,device=device)
+        self.hybrid_predicting_module = HybridPredictingModule(fc_hidden_size=fc_hidden_size,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha,device=device)
         
     def forward(self,x):
         feature_extractor_out = self.backbone(x)
@@ -208,6 +261,11 @@ class HmcNet(nn.Module):
         scores, global_logits = self.hybrid_predicting_module(local_logits_list,local_scores_list)
         return scores, local_scores_list, global_logits
     
+    def __repr__(self):
+        str = f'{self.hybrid_predicting_module.__repr__()}'
+        for i in range(len(self.ham_modules)):
+            str += f'{self.ham_modules[i].__repr__()}\n'
+        return str
 # Define Loss for HmcNet.
 class HmcNetLoss(nn.Module):
     def __init__(self,beta,l2_lambda,model,explicit_hierarchy,device=None):
