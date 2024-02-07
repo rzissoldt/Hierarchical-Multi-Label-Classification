@@ -103,20 +103,20 @@ class HmcNetTrainer():
                 for j in scores:
                     predicted_onehot_scores.append(j)
                 # Predict by pcp-threshold
-                batch_predicted_onehot_labels_ts = \
-                    dh.get_pcp_onehot_label_threshold(scores=scores,explicit_hierarchy=self.explicit_hierarchy,num_classes_list=self.num_classes_list, pcp_threshold=self.args.pcp_threshold)
-                for k in batch_predicted_onehot_labels_ts:
-                    predicted_pcp_onehot_labels_ts.append(k)
+                #batch_predicted_onehot_labels_ts = \
+                #    dh.get_pcp_onehot_label_threshold(scores=scores,explicit_hierarchy=self.explicit_hierarchy,num_classes_list=self.num_classes_list, pcp_threshold=self.args.pcp_threshold)
+                #for k in batch_predicted_onehot_labels_ts:
+                #    predicted_pcp_onehot_labels_ts.append(k)
                 # Predict by topK
                 for top_num in range(self.args.topK):
                     batch_predicted_onehot_labels_tk = dh.get_onehot_label_topk(scores=scores, top_num=top_num+1)
                     for i in batch_predicted_onehot_labels_tk:
                         predicted_onehot_labels_tk[top_num].append(i)
                 # Predict by pcp-topK
-                for top_num in range(self.args.topK):
-                    batch_predicted_pcp_onehot_labels_tk = dh.get_pcp_onehot_label_topk(scores=scores,explicit_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list, top_num=top_num+1)
-                    for i in batch_predicted_pcp_onehot_labels_tk:
-                        predicted_pcp_onehot_labels_tk[top_num].append(i)
+                #for top_num in range(self.args.topK):
+                #    batch_predicted_pcp_onehot_labels_tk = dh.get_pcp_onehot_label_topk(scores=scores,explicit_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list, top_num=top_num+1)
+                #    for i in batch_predicted_pcp_onehot_labels_tk:
+                #        predicted_pcp_onehot_labels_tk[top_num].append(i)
                 
                 eval_loss = running_vloss/(eval_counter+1)
                 progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}, Loss: {running_vloss}"
@@ -124,12 +124,12 @@ class HmcNetTrainer():
                 eval_counter+=1
             print('\n')
             # Calculate Precision & Recall & F1
-            eval_pre_pcp_ts = precision_score(y_true=np.array(true_onehot_labels),
-                                          y_pred=np.array(predicted_pcp_onehot_labels_ts), average='micro')
-            eval_rec_pcp_ts = recall_score(y_true=np.array(true_onehot_labels),
-                                       y_pred=np.array(predicted_pcp_onehot_labels_ts), average='micro')
-            eval_F1_pcp_ts = f1_score(y_true=np.array(true_onehot_labels),
-                                  y_pred=np.array(predicted_pcp_onehot_labels_ts), average='micro')
+            #eval_pre_pcp_ts = precision_score(y_true=np.array(true_onehot_labels),
+            #                              y_pred=np.array(predicted_pcp_onehot_labels_ts), average='micro')
+            #eval_rec_pcp_ts = recall_score(y_true=np.array(true_onehot_labels),
+            #                           y_pred=np.array(predicted_pcp_onehot_labels_ts), average='micro')
+            #eval_F1_pcp_ts = f1_score(y_true=np.array(true_onehot_labels),
+            #                      y_pred=np.array(predicted_pcp_onehot_labels_ts), average='micro')
             for top_num in range(self.args.topK):
                 eval_pre_tk[top_num] = precision_score(y_true=np.array(true_onehot_labels),
                                                        y_pred=np.array(predicted_onehot_labels_tk[top_num]),
@@ -140,16 +140,16 @@ class HmcNetTrainer():
                 eval_F1_tk[top_num] = f1_score(y_true=np.array(true_onehot_labels),
                                                y_pred=np.array(predicted_onehot_labels_tk[top_num]),
                                                average='micro')
-            for top_num in range(self.args.topK):
-                eval_pre_pcp_tk[top_num] = precision_score(y_true=np.array(true_onehot_labels),
-                                                       y_pred=np.array(predicted_pcp_onehot_labels_tk[top_num]),
-                                                       average='micro')
-                eval_rec_pcp_tk[top_num] = recall_score(y_true=np.array(true_onehot_labels),
-                                                    y_pred=np.array(predicted_pcp_onehot_labels_tk[top_num]),
-                                                    average='micro')
-                eval_F1_pcp_tk[top_num] = f1_score(y_true=np.array(true_onehot_labels),
-                                               y_pred=np.array(predicted_pcp_onehot_labels_tk[top_num]),
-                                               average='micro')
+           # for top_num in range(self.args.topK):
+            #    eval_pre_pcp_tk[top_num] = precision_score(y_true=np.array(true_onehot_labels),
+            #                                           y_pred=np.array(predicted_pcp_onehot_labels_tk[top_num]),
+             #                                          average='micro')
+            #    eval_rec_pcp_tk[top_num] = recall_score(y_true=np.array(true_onehot_labels),
+            #                                        y_pred=np.array(predicted_pcp_onehot_labels_tk[top_num]),
+            #                                        average='micro')
+            #    eval_F1_pcp_tk[top_num] = f1_score(y_true=np.array(true_onehot_labels),
+            #                                   y_pred=np.array(predicted_pcp_onehot_labels_tk[top_num]),
+             #                                  average='micro')
             
             eval_loss = running_vloss/(eval_counter+1)
             # Calculate the average AUC
@@ -169,25 +169,25 @@ class HmcNetTrainer():
             for i, f1 in enumerate(eval_F1_tk):
                 tb_writer.add_scalar(f'Validation/F1TopK/{i}', f1, global_step=epoch_index)
             
-            tb_writer.add_scalar('Validation/PCPPrecision',eval_pre_pcp_ts,epoch_index)
-            tb_writer.add_scalar('Validation/PCPRecall',eval_rec_pcp_ts,epoch_index)
-            tb_writer.add_scalar('Validation/PCPF1',eval_F1_pcp_ts,epoch_index)
-            for i, precision in enumerate(eval_pre_pcp_tk):
-                tb_writer.add_scalar(f'Validation/PCPPrecisionTopK/{i}', precision, global_step=epoch_index)
-            for i, recall in enumerate(eval_rec_pcp_tk):
-                tb_writer.add_scalar(f'Validation/PCPRecallTopK/{i}', recall, global_step=epoch_index)
-            for i, f1 in enumerate(eval_F1_pcp_tk):
-                tb_writer.add_scalar(f'Validation/PCPF1TopK/{i}', f1, global_step=epoch_index)
+            #tb_writer.add_scalar('Validation/PCPPrecision',eval_pre_pcp_ts,epoch_index)
+            #tb_writer.add_scalar('Validation/PCPRecall',eval_rec_pcp_ts,epoch_index)
+            #tb_writer.add_scalar('Validation/PCPF1',eval_F1_pcp_ts,epoch_index)
+            #for i, precision in enumerate(eval_pre_pcp_tk):
+           #     tb_writer.add_scalar(f'Validation/PCPPrecisionTopK/{i}', precision, global_step=epoch_index)
+            #for i, recall in enumerate(eval_rec_pcp_tk):
+            #    tb_writer.add_scalar(f'Validation/PCPRecallTopK/{i}', recall, global_step=epoch_index)
+            #for i, f1 in enumerate(eval_F1_pcp_tk):
+            #    tb_writer.add_scalar(f'Validation/PCPF1TopK/{i}', f1, global_step=epoch_index)
         
             print("All Validation set: Loss {0:g} | AUC {1:g} | AUPRC {2:g}".format(eval_loss, eval_auc, eval_prc))
             # Predict by pcp
-            print("Predict by PCP thresholding: PCP-Precision {0:g}, PCP-Recall {1:g}, PCP-F1 {2:g}".format(eval_pre_pcp_ts, eval_rec_pcp_ts, eval_F1_pcp_ts))
+            #print("Predict by PCP thresholding: PCP-Precision {0:g}, PCP-Recall {1:g}, PCP-F1 {2:g}".format(eval_pre_pcp_ts, eval_rec_pcp_ts, eval_F1_pcp_ts))
             # Predict by topK
             print("Predict by topK:")
             for top_num in range(self.args.topK):
                 print("Top{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}".format(top_num+1, eval_pre_tk[top_num], eval_rec_tk[top_num], eval_F1_tk[top_num])) 
             # Predict by PCP-topK
-            print("Predict by PCP-topK:")
-            for top_num in range(self.args.topK):
-                print("Top{0}: PCP-Precision {1:g}, PCP-Recall {2:g}, PCP-F1 {3:g}".format(top_num+1, eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num], eval_F1_pcp_tk[top_num]))  
+            #print("Predict by PCP-topK:")
+            #for top_num in range(self.args.topK):
+            #    print("Top{0}: PCP-Precision {1:g}, PCP-Recall {2:g}, PCP-F1 {3:g}".format(top_num+1, eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num], eval_F1_pcp_tk[top_num]))  
             return eval_loss
