@@ -352,7 +352,7 @@ def prune_based_coherent_prediction(score, explicit_hierarchy, num_classes_list,
             def _find_paths(node, path):
                 paths = []
                 hierarchy_range_lower = sum(num_classes_list[:len(path)])
-                hierarchy_range_upper = hierarchy_range_lower+num_classes_list[len(path)]
+                hierarchy_range_upper = hierarchy_range_lower+num_classes_list[len(path)-1]
                 hierarchy_prev = sum(num_classes_list[:len(path)-1])
                 if not (node >= hierarchy_prev and node < hierarchy_range_lower):
                     return None
@@ -360,7 +360,10 @@ def prune_based_coherent_prediction(score, explicit_hierarchy, num_classes_list,
                 if not children:  # If no children, return the current path
                     return [path]
                 for child in children:
-                    paths.extend(_find_paths(child, path + [child]))
+                    temp_path = _find_paths(child, path + [child])
+                    if temp_path is None:
+                        continue
+                    paths.extend(temp_path)
                 return paths
 
             all_paths = []

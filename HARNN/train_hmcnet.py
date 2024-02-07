@@ -8,7 +8,7 @@ import time
 import logging
 import torch, copy
 import math
-
+from torchsummary import summary
 import torch.optim as optim
 # PyTorch TensorBoard support
 from torch.utils.tensorboard import SummaryWriter
@@ -26,7 +26,7 @@ from utils import param_parser as parser
 from HARNN.model.hmcnet_model import HmcNet, HmcNetLoss
 from HARNN.dataset.hmcnet_dataset import HmcNetDataset
 from HARNN.trainer.hmcnet_trainer import HmcNetTrainer
-
+import torch.nn as nn
 
 import warnings
 
@@ -36,7 +36,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 def train_hmcnet():
     # Define the augmentation pipeline
     args = parser.hmcnet_parameter_parser()
-    
+        
     # Check if CUDA is available
     if torch.cuda.is_available():
         print("CUDA is available!")
@@ -62,10 +62,12 @@ def train_hmcnet():
     total_classes = sum(num_classes_list)
 
     # Define Model 
-    model = HmcNet(feature_dim=args.feature_dim_backbone,attention_unit_size=args.attention_dim,fc_hidden_size=args.fc_dim,num_classes_list=num_classes_list,total_classes=total_classes,freeze_backbone=args.freeze_backbone,device=device)
+    model = HmcNet(feature_dim=args.feature_dim_backbone,attention_unit_size=args.attention_dim,fc_hidden_size=args.fc_dim,num_classes_list=num_classes_list,total_classes=total_classes,freeze_backbone=args.freeze_backbone,device=device).to(device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
-    print(model.__repr__())
+    for name, param in model.named_parameters():
+        if param.requires_grad is True:
+            print(name, param.size())
     # Define Optimzer and Scheduler    
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.decay_rate)
