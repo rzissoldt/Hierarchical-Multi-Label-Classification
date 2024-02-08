@@ -5,7 +5,8 @@ import numpy as np
 sys.path.append('../')
 from utils import data_helpers as dh
 from torcheval.metrics.functional import multiclass_auprc,multiclass_precision,multiclass_recall,multiclass_f1_score
-from torcheval.metrics.functional import auc
+from torcheval.metrics.functional import multiclass_auroc
+from torchmetrics import AUROC, AveragePrecision
 class HmcNetTrainer():
     def __init__(self,model,criterion,optimizer,scheduler,explicit_hierarchy,num_classes_list,args,device=None):
         self.model = model
@@ -117,18 +118,22 @@ class HmcNetTrainer():
             
             true_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in true_onehot_labels_ts],dim=0).to(self.device)
             
-            print(true_onehot_labels.shape,predicted_pcp_onehot_labels.shape)
             eval_pre_pcp_ts,eval_rec_pcp_ts,eval_F1_pcp_ts = dh.precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels, average='micro')
             
             
             for top_num in range(self.args.topK):
                 predicted_pcp_onehot_labels_topk = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_pcp_onehot_labels_tk[top_num]],dim=0).to(self.device)
                 eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num],eval_F1_pcp_tk[top_num] = dh.precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels_topk, average='micro')
-                                                      
+            
+            num_total_classes = predicted_pcp_onehot_labels.shape[1]
+            auroc = AUROC(task="binary")
+            eval_auc = auroc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
+            auprc = AveragePrecision(task="binary")
+            eval_auprc = auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
             eval_loss = running_vloss/(eval_counter+1)
             tb_writer.add_scalar('Validation/Loss',eval_loss,epoch_index)
-            #tb_writer.add_scalar('Validation/AverageAUC',eval_auc,epoch_index)
-            #tb_writer.add_scalar('Validation/AveragePrecision',eval_prc,epoch_index)
+            tb_writer.add_scalar('Validation/AverageAUC',eval_auc,epoch_index)
+            tb_writer.add_scalar('Validation/AveragePrecision',eval_auprc,epoch_index)
             # Add each scalar individually
             for i, precision in enumerate(eval_pre_tk):
                 tb_writer.add_scalar(f'Validation/PrecisionTopK/{i}', precision, global_step=epoch_index)
@@ -147,7 +152,7 @@ class HmcNetTrainer():
             for i, f1 in enumerate(eval_F1_pcp_tk):
                 tb_writer.add_scalar(f'Validation/PCPF1TopK/{i}', f1, global_step=epoch_index)
         
-            #print("All Validation set: Loss {0:g} | AUC {1:g} | AUPRC {2:g}".format(eval_loss, eval_auc, eval_prc))
+            print("All Validation set: Loss {0:g} | AUC {1:g} | AUPRC {2:g}".format(eval_loss, eval_auc, eval_auprc))
             # Predict by pcp
             print("Predict by PCP thresholding: PCP-Precision {0:g}, PCP-Recall {1:g}, PCP-F1 {2:g}".format(eval_pre_pcp_ts, eval_rec_pcp_ts, eval_F1_pcp_ts))
             # Predict by topK
