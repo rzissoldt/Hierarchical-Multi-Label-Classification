@@ -30,7 +30,7 @@ class HmcNetTrainer():
             self.optimizer.zero_grad()
 
             # Make predictions for this batch
-            _, local_scores_list, global_logits = self.model(inputs)
+            scores, local_scores_list, global_logits = self.model(inputs)
 
             # Compute the loss and its gradients
             predictions = (local_scores_list,global_logits)
@@ -51,11 +51,6 @@ class HmcNetTrainer():
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
-            current_loss = 0.
-            
-            # Update Scheduler
-            if i % self.args.decay_steps == self.args.decay_steps-1:
-                self.scheduler.step()
         print('\n')
         return last_loss
     

@@ -128,7 +128,7 @@ def train_hmcnet():
         # Track best performance, and save the model's state
         if avg_val_loss < best_vloss:
             best_vloss = avg_val_loss
-            model_path = os.path.join(path_to_model,'models','hmcnet_{}'.format(epoch_number))
+            model_path = os.path.join(path_to_model,'models',f'hmcnet_{epoch}')
             os.makedirs(os.path.dirname(model_path), exist_ok=True)
             torch.save(model.state_dict(), model_path)
 
