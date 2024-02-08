@@ -113,7 +113,8 @@ def train_hmcnet():
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     path_to_model = 'runs/hmc_net{}'.format(timestamp)
     tb_writer = SummaryWriter('runs/hmc_net{}'.format(timestamp))
-    epoch_number = 0
+    
+    counter = 0
     
     EPOCHS = args.epochs
     
@@ -121,16 +122,27 @@ def train_hmcnet():
     for epoch in range(EPOCHS):
         
         avg_train_loss = trainer.train(training_loader=training_loader,epoch_index=epoch,tb_writer=tb_writer)
-        avg_val_loss = trainer.validate(validation_loader=validation_loader,epoch_index=epoch,tb_writer=tb_writer)
-        trainer
+        
+        calc_metrics = epoch == EPOCHS-1
+        
+        avg_val_loss = trainer.validate(validation_loader=validation_loader,epoch_index=epoch,tb_writer=tb_writer,calc_metrics=calc_metrics)
         tb_writer.flush()
-
+        print(f'Epoch {epoch}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
         # Track best performance, and save the model's state
         if avg_val_loss < best_vloss:
             best_vloss = avg_val_loss
             model_path = os.path.join(path_to_model,'models',f'hmcnet_{epoch}')
+            counter = 0
             os.makedirs(os.path.dirname(model_path), exist_ok=True)
             torch.save(model.state_dict(), model_path)
+        else:
+            counter += 1
+            if counter >= args.early_stopping_patience:
+                print('Early stopping triggered.')
+                avg_val_loss = trainer.validate(validation_loader=validation_loader,epoch_index=epoch,tb_writer=tb_writer,calc_metrics=calc_metrics)
+                os.makedirs(os.path.dirname(model_path), exist_ok=True)
+                torch.save(model.state_dict(), model_path)
+                break
 
 if __name__ == '__main__':
     train_hmcnet()

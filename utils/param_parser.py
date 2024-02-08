@@ -97,6 +97,7 @@ def hmcnet_parameter_parser():
     # Training Parameters
     parser.add_argument("--gpu", type=bool_argument, default=True, help="GPU-Support active or not")
     parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs.")
+    parser.add_argument("--early-stopping-patience", type=int, default=5, help="Number of patience, when to trigger early stopping.")
     parser.add_argument("--batch-size", type=int, default=32, help="Batch Size.")
     parser.add_argument("--learning-rate", type=float, default=0.001, help="Learning rate.")
     parser.add_argument("--decay-rate", type=float, default=0.95, help="Rate of decay for learning rate.")
