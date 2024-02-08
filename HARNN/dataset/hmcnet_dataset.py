@@ -32,10 +32,10 @@ class HmcNetDataset(Dataset):
                 continue
             
             data_tuple.append(os.path.join(image_dir,file_name))
-            data_tuple.append(self._create_onehot_labels(total_class_labels, total_class_num))
+            data_tuple.append(torch.tensor(self._create_onehot_labels(total_class_labels, total_class_num),dtype=torch.float32))
             level = 0
             for key,labels in label_dict.items():
-                data_tuple.append(self._create_onehot_labels(labels,len(self.hierarchy_dicts[level])))
+                data_tuple.append(torch.tensor(self._create_onehot_labels(labels,len(self.hierarchy_dicts[level])),dtype=torch.float32))
                     
                 level+=1
             self.image_label_tuple_list.append(data_tuple)

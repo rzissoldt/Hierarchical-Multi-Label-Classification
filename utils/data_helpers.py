@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 __author__ = 'Randolph'
-
+import torch
 import os, sys
 import time
 import heapq
@@ -13,7 +13,8 @@ import math
 from texttable import Texttable
 from gensim.models import KeyedVectors
 from skimage import io, transform, color
-
+import torch
+from torch.nn.functional import one_hot
 from solt.core import DataContainer
 sys.path.append('../')
 from utils import xtree_utils as xtree 
@@ -158,6 +159,7 @@ def create_prediction_file(output_file, data_id, true_labels, predict_labels, pr
             fout.write(json.dumps(data_record, ensure_ascii=False) + '\n')
 
 
+
 def get_onehot_label_threshold(scores, threshold=0.5):
     """
     Get the predicted one-hot labels based on the threshold.
@@ -191,21 +193,19 @@ def get_pcp_onehot_label_threshold(scores,explicit_hierarchy,num_classes_list, p
     Args:
         scores: The all classes predicted scores provided by network.
         explicit_hierarchy: The explicit hierarchy matrix.
+        num_classes_list: List of Classes per Hierarchy Layer.
         pcp_threshold: The PCP-threshold (default: -1.0).
     Returns:
         predicted_onehot_labels: The predicted labels (one-hot).
     """
-    scores = np.ndarray.tolist(scores)
-    predicted_onehot_labels = []
+    path_pruned_classes_list = []
     for score in scores:
-        path_pruned_classes = prune_based_coherent_prediction(score=score,explicit_hierarchy=explicit_hierarchy,pcp_threshold=pcp_threshold,num_classes_list=num_classes_list)
-        onehot_labels_list = [0] * len(score)
-    
-        for class_idx in path_pruned_classes:
-            onehot_labels_list[class_idx] = 1
-        predicted_onehot_labels.append(onehot_labels_list)
-    
-    return predicted_onehot_labels 
+        path_pruned_classes = prune_based_coherent_prediction(score=score.tolist(),explicit_hierarchy=explicit_hierarchy,pcp_threshold=pcp_threshold,num_classes_list=num_classes_list)
+        
+        path_pruned_classes_list.append(path_pruned_classes)
+    num_classes=scores.shape[1]
+    pcp_onehot_labels = [torch.zeros(num_classes) if len(path_pruned_classes) == 0 else generate_one_hot(path_pruned_classes,num_classes) for path_pruned_classes in path_pruned_classes_list]
+    return pcp_onehot_labels
 
 def get_pcp_onehot_label_topk(scores,explicit_hierarchy,num_classes_list,pcp_threshold=-1.0, top_num=1):
     """
@@ -214,25 +214,25 @@ def get_pcp_onehot_label_topk(scores,explicit_hierarchy,num_classes_list,pcp_thr
     Args:
         scores: The all classes predicted scores provided by network.
         explicit_hierarchy: The explicit hierarchy matrix.
+        num_classes_list: List of Classes per Hierarchy Layer.
         pcp_threshold: The PCP-threshold (default: -1.0).
         top_num: The max topK number (default: 5).
     Returns:
         predicted_onehot_labels: The predicted labels (one-hot).
     """
-    predicted_onehot_labels = []
-    scores = np.ndarray.tolist(scores)
-    
+    path_pruned_classes_topk_list = []
+    num_classes = scores.shape[1]
     for score in scores:
-        path_pruned_classes = prune_based_coherent_prediction(score=score,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,pcp_threshold=pcp_threshold)
-        onehot_labels_list = [0] * len(score)
-        pruned_score = [0] * len(score)
+        path_pruned_classes = prune_based_coherent_prediction(score=score.tolist(),explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,pcp_threshold=pcp_threshold)
+        pruned_score = torch.zeros(num_classes)
         for class_idx in path_pruned_classes:
             pruned_score[class_idx] = score[class_idx]
-        max_num_index_list = list(map(pruned_score.index, heapq.nlargest(top_num, pruned_score)))
-        for i in max_num_index_list:
-            onehot_labels_list[i] = 1
-        predicted_onehot_labels.append(onehot_labels_list)
-    return predicted_onehot_labels      
+        #for class_idx in path_pruned_classes:
+        #    pruned_score[class_idx] = score[class_idx]
+        _,topk_index = torch.topk(pruned_score,k=top_num)
+        path_pruned_classes_topk_list.append(topk_index)
+    pcp_onehot_labels_topk = [torch.zeros(num_classes) if len(path_pruned_classes_topk) == 0 else generate_one_hot(path_pruned_classes_topk,num_classes) for path_pruned_classes_topk in path_pruned_classes_topk_list]
+    return pcp_onehot_labels_topk      
 
 def get_onehot_label_topk(scores, top_num=1):
     """
@@ -311,6 +311,21 @@ def get_label_topk(scores, top_num=1):
         predicted_labels.append(np.ndarray.tolist(index_list))
         predicted_scores.append(score_list)
     return predicted_labels, predicted_scores
+
+def generate_one_hot(indices, num_classes):
+    """
+    Generate a one-hot encoding tensor for the given indices and num_classes.
+
+    Args:
+    - indices: Index vector
+    - num_classes: Total number of classes
+
+    Returns:
+    - one_hot_tensor: One-hot encoding tensor
+    """
+    one_hot_tensor = torch.zeros(num_classes)
+    one_hot_tensor[indices] = 1
+    return one_hot_tensor
 
 def prune_based_coherent_prediction(score, explicit_hierarchy, num_classes_list,pcp_threshold=-1.0):
     """ Evaluates the PCP Strategy. It gets a score list and explicit hierarchy and count of hierarchy nodes per layer
@@ -767,3 +782,69 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             end_index = min((batch_num + 1) * batch_size, data_size)
             yield shuffled_data[start_index:end_index]
 
+
+
+def precision_recall_f1_score(binary_predictions, labels, average='micro'):
+    """
+    Calculate precision, recall, and F1 score for multi-class classification.
+    
+    Args:
+    - binary_predictions (torch.Tensor): Predicted probabilities (shape: (n, num_classes)).
+    - labels (torch.Tensor): Ground truth labels (shape: (n, num_classes)).
+    - average (str): Type of averaging to perform ('micro' or 'macro').
+    
+    Returns:
+    - precision (float): Precision score.
+    - recall (float): Recall score.
+    - f1_score (float): F1 score.
+    """
+    
+    # True Positives, False Positives, False Negatives
+    TP = torch.sum((binary_predictions == 1) & (labels == 1), dim=0).float()
+    FP = torch.sum((binary_predictions == 1) & (labels == 0), dim=0).float()
+    FN = torch.sum((binary_predictions == 0) & (labels == 1), dim=0).float()
+    
+    # Calculate precision, recall, and F1 score for each class
+    precision = TP / (TP + FP + 1e-10)  # Adding epsilon to avoid division by zero
+    recall = TP / (TP + FN + 1e-10)  # Adding epsilon to avoid division by zero
+    f1_score = 2 * (precision * recall) / (precision + recall + 1e-10)  # Adding epsilon to avoid division by zero
+    
+    # Perform averaging
+    if average == 'micro':
+        precision = torch.sum(TP) / (torch.sum(TP) + torch.sum(FP) + 1e-10)
+        recall = torch.sum(TP) / (torch.sum(TP) + torch.sum(FN) + 1e-10)
+        f1_score = 2 * (precision * recall) / (precision + recall + 1e-10)
+    elif average == 'macro':
+        precision = torch.mean(precision)
+        recall = torch.mean(recall)
+        f1_score = torch.mean(f1_score)
+    else:
+        raise ValueError("Invalid value for 'average'. Allowed values are 'micro' or 'macro'.")
+    
+    return precision.item(), recall.item(), f1_score.item()
+
+def calculate_auc(y_true, y_score):
+    batch_size = y_true.size(0)
+    total_auc = 0.0
+
+    for i in range(batch_size):
+        n = y_true[i].size(0)
+        n_pos = y_true[i].sum()
+        n_neg = n - n_pos
+
+        # Sort scores and corresponding true labels
+        y_true_sorted, indices = torch.sort(y_true[i], descending=True)
+        y_score_sorted = y_score[i][indices]
+
+        # Calculate the ranks
+        rank = torch.arange(1, n + 1, dtype=torch.float, device=y_true.device)
+        rank_pos = rank[y_true_sorted == 1].sum()
+        
+        # Compute AUC
+        auc = (rank_pos - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg)
+        total_auc += auc.item()
+
+    # Calculate average AUC
+    average_auc = total_auc / batch_size
+
+    return average_auc

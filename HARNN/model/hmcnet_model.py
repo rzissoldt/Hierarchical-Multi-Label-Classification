@@ -275,43 +275,44 @@ class HmcNetLoss(nn.Module):
         self.model = model
         self.explicit_hierarchy = explicit_hierarchy
         self.device = device
+        
     
     def forward(self,predictions,targets):
         """Calculation of the HmcNet loss."""
 
         def _local_loss(local_scores_list,local_target_list):
             """Calculation of the Local loss."""
-            losses = []
+            losses = torch.zeros(len(local_scores_list)).to(self.device)
             for i in range(len(local_scores_list)):
-                local_scores = torch.tensor([tensor.tolist() for tensor in local_scores_list[i]],dtype=torch.float32).to(self.device)
-                local_targets = torch.transpose(torch.tensor([tensor.tolist() for tensor in local_target_list[i]],dtype=torch.float32),0,1).to(self.device)
+                local_scores = local_scores_list[i]
+                local_targets = local_target_list[i]
                 loss = F.binary_cross_entropy(local_scores, local_targets)
                 mean_loss = torch.mean(loss)
-                losses.append(mean_loss)
-            return torch.sum(torch.tensor(losses,dtype=torch.float32).to(self.device))
+                losses[i] = mean_loss
+            return torch.sum(losses)
 
         def _global_loss(global_logits,global_target):
             """Calculation of the Global loss."""
             global_scores = torch.sigmoid(global_logits)
-            global_target = torch.transpose(torch.tensor([tensor.tolist() for tensor in global_target],dtype=torch.float32),0,1).to(self.device)
             loss = F.binary_cross_entropy(global_scores,global_target)
-            mean_loss = torch.mean(loss).to(self.device)
+            mean_loss = torch.mean(loss)
             return mean_loss
 
         def _hierarchy_constraint_loss(global_logits):
             """Calculate the Hierarchy Constraint loss."""
             global_scores = torch.sigmoid(global_logits)
-            hierarchy_losses = []
-            for global_score in global_scores:
+            hierarchy_losses = torch.zeros(global_scores.shape[0]).to(self.device)
+            for i, global_score in enumerate(global_scores):
                 mask = self.explicit_hierarchy == 1
                 score_diff = global_score.unsqueeze(0) - global_score.unsqueeze(1)                
-                loss = self.beta * torch.max(torch.tensor(0.0), score_diff[mask]) ** 2
+                loss = self.beta * torch.max(torch.tensor(0.0).to(self.device), score_diff[mask]) ** 2
                 temp_loss = torch.sum(loss)
-                hierarchy_losses.append(temp_loss)
-            return torch.mean(torch.tensor(hierarchy_losses)).to(self.device)
+                hierarchy_losses[i] = temp_loss
+            return torch.mean(hierarchy_losses)
 
         def _l2_loss(model,l2_reg_lambda):
             """Calculation of the L2-Regularization loss."""
+            
             l2_loss = torch.tensor(0.,dtype=torch.float32).to(self.device)
             for param in model.parameters():
                 l2_loss += torch.norm(param,p=2)**2
