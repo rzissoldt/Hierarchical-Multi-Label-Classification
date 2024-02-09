@@ -157,10 +157,6 @@ class HmcNetTrainer():
                 print("All Validation set: Loss {0:g} | AUC {1:g} | AUPRC {2:g}".format(eval_loss, eval_auc, eval_auprc))
                 # Predict by pcp
                 print("Predict by PCP thresholding: PCP-Precision {0:g}, PCP-Recall {1:g}, PCP-F1 {2:g}".format(eval_pre_pcp_ts, eval_rec_pcp_ts, eval_F1_pcp_ts))
-                # Predict by topK
-                print("Predict by topK:")
-                for top_num in range(self.args.topK):
-                    print("Top{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}".format(top_num+1, eval_pre_tk[top_num], eval_rec_tk[top_num], eval_F1_tk[top_num])) 
                 # Predict by PCP-topK
                 print("Predict by PCP-topK:")
                 for top_num in range(self.args.topK):
