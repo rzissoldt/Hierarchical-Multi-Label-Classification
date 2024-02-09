@@ -60,16 +60,10 @@ class CPM(nn.Module):
         self.b_t = nn.Parameter(torch.ones(fc_hidden_size)*0.1)
         self.W_l = nn.Parameter(truncated_normal(size=(num_classes, fc_hidden_size),std=0.1))
         self.b_l = nn.Parameter(torch.ones(num_classes)*0.1)
-        self.batchnorm_t = nn.BatchNorm1d(fc_hidden_size)
-        self.batchnorm_l = nn.BatchNorm1d(num_classes)
     def forward(self,x):
         fc = F.linear(x,self.W_t,self.b_t)
-        if fc.shape[0] != 1:
-            fc = self.batchnorm_t(fc)
         local_fc_out = F.relu(fc)
         local_logits = F.linear(local_fc_out,self.W_l,self.b_l)
-        if local_logits.shape[0] != 1:
-            local_logits = self.batchnorm_l(local_logits)
         local_scores = F.sigmoid(local_logits)
         return local_scores, local_fc_out
     
