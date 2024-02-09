@@ -138,14 +138,6 @@ class HmcNetTrainer():
                 
                 tb_writer.add_scalar('Validation/AverageAUC',eval_auc,epoch_index)
                 tb_writer.add_scalar('Validation/AveragePrecision',eval_auprc,epoch_index)
-                # Add each scalar individually
-                for i, precision in enumerate(eval_pre_tk):
-                    tb_writer.add_scalar(f'Validation/PrecisionTopK/{i}', precision, global_step=epoch_index)
-                for i, recall in enumerate(eval_rec_tk):
-                    tb_writer.add_scalar(f'Validation/RecallTopK/{i}', recall, global_step=epoch_index)
-                for i, f1 in enumerate(eval_F1_tk):
-                    tb_writer.add_scalar(f'Validation/F1TopK/{i}', f1, global_step=epoch_index)
-
                 tb_writer.add_scalar('Validation/PCPPrecision',eval_pre_pcp_ts,epoch_index)
                 tb_writer.add_scalar('Validation/PCPRecall',eval_rec_pcp_ts,epoch_index)
                 tb_writer.add_scalar('Validation/PCPF1',eval_F1_pcp_ts,epoch_index)
