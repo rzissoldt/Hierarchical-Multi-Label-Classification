@@ -32,7 +32,7 @@ class HmcNetTrainer():
             self.optimizer.zero_grad()
 
             # Make predictions for this batch
-            scores, local_scores_list, global_logits = self.model(inputs)
+            _, local_scores_list, global_logits = self.model(inputs)
 
             # Compute the loss and its gradients
             predictions = (local_scores_list,global_logits)
@@ -101,6 +101,8 @@ class HmcNetTrainer():
                 eval_F1_pcp_tk = [0.0] * self.args.topK
                 predicted_pcp_onehot_labels_ts = []
                 predicted_pcp_onehot_labels_tk = [[] for _ in range(self.args.topK)]
+                
+                scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in scores_list],dim=0)
                 
                 # Predict by pcp-threshold
                 batch_predicted_onehot_labels_ts = dh.get_pcp_onehot_label_threshold(scores=scores,explicit_hierarchy=self.explicit_hierarchy,num_classes_list=self.num_classes_list, pcp_threshold=self.args.pcp_threshold)

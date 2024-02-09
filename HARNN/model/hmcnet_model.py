@@ -64,11 +64,13 @@ class CPM(nn.Module):
         self.batchnorm_l = nn.BatchNorm1d(num_classes)
     def forward(self,x):
         fc = F.linear(x,self.W_t,self.b_t)
-        batchnorm_fc = self.batchnorm_t(fc)
-        local_fc_out = F.relu(batchnorm_fc)
+        if fc.shape[0] != 1:
+            fc = self.batchnorm_t(fc)
+        local_fc_out = F.relu(fc)
         local_logits = F.linear(local_fc_out,self.W_l,self.b_l)
-        batchnorm_local_logits = self.batchnorm_l(local_logits)
-        local_scores = F.sigmoid(batchnorm_local_logits)
+        if local_logits.shape[0] != 1:
+            local_logits = self.batchnorm_l(local_logits)
+        local_scores = F.sigmoid(local_logits)
         return local_scores, local_fc_out
     
     def __repr__(self):
@@ -139,12 +141,14 @@ class HybridPredictingModule(nn.Module):
         #ham_out = torch.cat([local_logits.unsqueeze(1) for local_logits in local_logits_list], dim=1)
         avg_ham_out = torch.mean(local_logits,dim=1)
         avg_ham_out_fc = F.linear(avg_ham_out,self.W_g,self.b_g)
-        batchnorm_avg_ham_out_fc = self.batchnorm_g(avg_ham_out_fc)
-        fc_out = F.relu(batchnorm_avg_ham_out_fc)
+        if avg_ham_out_fc.shape[0] != 1:
+            avg_ham_out_fc = self.batchnorm_g(avg_ham_out_fc)
+        fc_out = F.relu(avg_ham_out_fc)
         fc_out_drop = self.drop(fc_out)
         global_logits = F.linear(fc_out_drop,self.W_m,self.b_m)
-        batchnorm_global_logits = self.batchnorm_m(global_logits)
-        global_scores = F.sigmoid(batchnorm_global_logits)
+        if global_logits.shape[0] != 1:
+            global_logits = self.batchnorm_m(global_logits)
+        global_scores = F.sigmoid(global_logits)
         #local_scores_list = torch.cat(local_scores_list,dim=1)
         scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores)
         return scores, global_logits
@@ -169,14 +173,16 @@ class HybridPredictingModuleHighway(nn.Module):
     def forward(self,local_logits,local_scores):
         #ham_out = torch.cat(local_logits_list,dim=1)
         fc = F.linear(local_logits,self.W_highway,self.b_highway)
-        batchnormed_fc=self.batchnorm(fc)
-        fc_out = F.relu(batchnormed_fc)
+        if fc.shape[0] != 1:
+            fc=self.batchnorm(fc)
+        fc_out = F.relu(fc)
         highway = self.highway(fc_out)
         highway_drop_out = self.highway_drop(highway)
         #num_units = highway_drop_out.size(1)
         global_logits = F.linear(highway_drop_out,self.W_global_pred,self.b_global_pred)
-        batchnormed_global_logits = self.batchnorm_global(global_logits)
-        global_scores = F.sigmoid(batchnormed_global_logits)
+        if global_logits.shape[0] != 1:
+            global_logits = self.batchnorm_global(global_logits)
+        global_scores = F.sigmoid(global_logits)
         #local_scores_list = torch.cat(local_scores_list,dim=1)
         scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores)
         return scores, global_logits

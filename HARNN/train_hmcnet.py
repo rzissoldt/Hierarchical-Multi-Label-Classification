@@ -140,8 +140,8 @@ def train_hmcnet():
             if counter >= args.early_stopping_patience:
                 print('Early stopping triggered.')
                 avg_val_loss = trainer.validate(validation_loader=validation_loader,epoch_index=epoch,tb_writer=tb_writer,calc_metrics=True)
-                os.makedirs(os.path.dirname(model_path), exist_ok=True)
-                torch.save(model.state_dict(), model_path)
+                #os.makedirs(os.path.dirname(model_path), exist_ok=True)
+                #torch.save(model.state_dict(), model_path)
                 break
 
 if __name__ == '__main__':
