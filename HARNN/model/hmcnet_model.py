@@ -60,12 +60,15 @@ class CPM(nn.Module):
         self.b_t = nn.Parameter(torch.ones(fc_hidden_size)*0.1)
         self.W_l = nn.Parameter(truncated_normal(size=(num_classes, fc_hidden_size),std=0.1))
         self.b_l = nn.Parameter(torch.ones(num_classes)*0.1)
-        
+        self.batchnorm_t = nn.BatchNorm1d(fc_hidden_size)
+        self.batchnorm_l = nn.BatchNorm1d(num_classes)
     def forward(self,x):
         fc = F.linear(x,self.W_t,self.b_t)
-        local_fc_out = F.relu(fc)
+        batchnorm_fc = self.batchnorm_t(fc)
+        local_fc_out = F.relu(batchnorm_fc)
         local_logits = F.linear(local_fc_out,self.W_l,self.b_l)
-        local_scores = F.sigmoid(local_logits)
+        batchnorm_local_logits = self.batchnorm_l(local_logits)
+        local_scores = F.sigmoid(batchnorm_local_logits)
         return local_scores, local_fc_out
     
     def __repr__(self):
@@ -127,6 +130,8 @@ class HybridPredictingModule(nn.Module):
         self.W_m = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=0.1))
         self.b_m = nn.Parameter(torch.ones(total_classes)*0.1)
         self.drop = nn.Dropout(dropout_keep_prob)
+        self.batchnorm_g = nn.BatchNorm1d(fc_hidden_size)
+        self.batchnorm_m = nn.BatchNorm1d(total_classes)
         self.alpha = alpha
         
         
@@ -134,10 +139,12 @@ class HybridPredictingModule(nn.Module):
         #ham_out = torch.cat([local_logits.unsqueeze(1) for local_logits in local_logits_list], dim=1)
         avg_ham_out = torch.mean(local_logits,dim=1)
         avg_ham_out_fc = F.linear(avg_ham_out,self.W_g,self.b_g)
-        fc_out = F.relu(avg_ham_out_fc)
+        batchnorm_avg_ham_out_fc = self.batchnorm_g(avg_ham_out_fc)
+        fc_out = F.relu(batchnorm_avg_ham_out_fc)
         fc_out_drop = self.drop(fc_out)
         global_logits = F.linear(fc_out_drop,self.W_m,self.b_m)
-        global_scores = F.sigmoid(global_logits)
+        batchnorm_global_logits = self.batchnorm_m(global_logits)
+        global_scores = F.sigmoid(batchnorm_global_logits)
         #local_scores_list = torch.cat(local_scores_list,dim=1)
         scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores)
         return scores, global_logits
@@ -155,7 +162,8 @@ class HybridPredictingModuleHighway(nn.Module):
         self.W_global_pred = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=0.1))
         self.b_global_pred = nn.Parameter(torch.ones(total_classes)*0.1)
         self.highway_drop = nn.Dropout(dropout_keep_prob)
-        self.batchnorm = nn.BatchNorm1d(num_features=fc_hidden_size)
+        self.batchnorm_highway = nn.BatchNorm1d(num_features=fc_hidden_size)
+        self.batchnorm_global = nn.BatchNorm1d(num_features=fc_hidden_size)
         self.alpha = alpha
         
     def forward(self,local_logits,local_scores):
@@ -167,7 +175,8 @@ class HybridPredictingModuleHighway(nn.Module):
         highway_drop_out = self.highway_drop(highway)
         #num_units = highway_drop_out.size(1)
         global_logits = F.linear(highway_drop_out,self.W_global_pred,self.b_global_pred)
-        global_scores = F.sigmoid(global_logits)
+        batchnormed_global_logits = self.batchnorm_global(global_logits)
+        global_scores = F.sigmoid(batchnormed_global_logits)
         #local_scores_list = torch.cat(local_scores_list,dim=1)
         scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores)
         return scores, global_logits

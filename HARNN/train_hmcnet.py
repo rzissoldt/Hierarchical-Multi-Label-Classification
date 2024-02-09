@@ -127,7 +127,7 @@ def train_hmcnet():
         
         avg_val_loss = trainer.validate(validation_loader=validation_loader,epoch_index=epoch,tb_writer=tb_writer,calc_metrics=calc_metrics)
         tb_writer.flush()
-        print(f'Epoch {epoch}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
+        print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
         # Track best performance, and save the model's state
         if avg_val_loss < best_vloss:
             best_vloss = avg_val_loss
@@ -139,7 +139,7 @@ def train_hmcnet():
             counter += 1
             if counter >= args.early_stopping_patience:
                 print('Early stopping triggered.')
-                avg_val_loss = trainer.validate(validation_loader=validation_loader,epoch_index=epoch,tb_writer=tb_writer,calc_metrics=calc_metrics)
+                avg_val_loss = trainer.validate(validation_loader=validation_loader,epoch_index=epoch,tb_writer=tb_writer,calc_metrics=True)
                 os.makedirs(os.path.dirname(model_path), exist_ok=True)
                 torch.save(model.state_dict(), model_path)
                 break
