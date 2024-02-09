@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 __author__ = 'Ruben'
 import numpy as np
-import os
+import os,json
 import sys
 import time
 import logging
@@ -33,10 +33,7 @@ import warnings
 # Ignore specific warning types
 warnings.filterwarnings("ignore", category=UserWarning)
 
-def train_hmcnet():
-    # Define the augmentation pipeline
-    args = parser.hmcnet_parameter_parser()
-        
+def train_hmcnet(args):        
     # Check if CUDA is available
     if torch.cuda.is_available():
         print("CUDA is available!")
@@ -112,7 +109,12 @@ def train_hmcnet():
     # Initialize Tensorboard Summary Writer
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     path_to_model = 'runs/hmc_net{}'.format(timestamp)
-    tb_writer = SummaryWriter('runs/hmc_net{}'.format(timestamp))
+    tb_writer = SummaryWriter(path_to_model)
+    
+    # Save Model ConfigParameters
+    args_dict = vars(args)
+    with open(os.path.join(path_to_model,'model_config.json'),'w') as json_file:
+        json.dump(args_dict, json_file,indent=4)
     
     counter = 0
     
@@ -145,6 +147,8 @@ def train_hmcnet():
                 break
 
 if __name__ == '__main__':
-    train_hmcnet()
+    # Define the augmentation pipeline
+    args = parser.hmcnet_parameter_parser()
+    train_hmcnet(args=args)
     
     

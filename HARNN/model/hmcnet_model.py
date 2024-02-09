@@ -330,7 +330,8 @@ class HmcNetLoss(nn.Module):
             
             l2_loss = torch.tensor(0.,dtype=torch.float32).to(self.device)
             for param in model.parameters():
-                l2_loss += torch.norm(param,p=2)**2
+                if param.requires_grad == True:
+                    l2_loss += torch.norm(param,p=2)**2
             return torch.tensor(l2_loss*l2_reg_lambda,dtype=torch.float32)
         local_scores_list,global_logits  = predictions[0], predictions[1]
         local_target, global_target = targets[0], targets[1]
