@@ -157,12 +157,14 @@ class HybridPredictingModuleHighway(nn.Module):
         self.W_global_pred = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=he_weight_init(fc_hidden_size)))
         self.b_global_pred = nn.Parameter(torch.ones(total_classes)*he_weight_init(fc_hidden_size))
         self.highway_drop = nn.Dropout(dropout_keep_prob)
+        self.batchnorm = nn.BatchNorm1d(fc_hidden_size)
         self.alpha = alpha
         
     def forward(self,local_logits_list,local_scores):
         ham_out = torch.cat(local_logits_list,dim=1)
         fc = F.linear(ham_out,self.W_highway,self.b_highway)
-        fc_out = F.relu(fc)
+        batchnorm_fc = self.batchnorm(fc)
+        fc_out = F.relu(batchnorm_fc)
         highway = self.highway(fc_out)
         highway_drop_out = self.highway_drop(highway)
         global_logits = F.linear(highway_drop_out,self.W_global_pred,self.b_global_pred)
