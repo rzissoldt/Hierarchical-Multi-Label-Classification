@@ -33,8 +33,8 @@ class HmcNetTrainer():
         print(f'Num Classes List: {num_classes_list}')
         print(f'Training Dataset Size {len(self.training_loader)}')
         print(f'Validation Dataset Size {len(self.validation_loader)}')
+    
     def train_and_validate(self):
-        
         counter = 0
         best_epoch = 0
         best_model = copy.deepcopy(self.model)
