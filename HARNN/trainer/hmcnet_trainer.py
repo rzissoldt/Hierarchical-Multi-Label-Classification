@@ -29,6 +29,8 @@ class HmcNetTrainer():
         kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': args.pin_memory} if self.args.gpu else {}
         self.training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
         self.validation_loader = DataLoader(validation_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)  
+        print(f'Training Dataset Size {len(self.training_loader)}')
+        print(f'Validation Dataset Size {len(self.validation_loader)}')
     def train_and_validate(self):
         
         counter = 0
@@ -41,6 +43,9 @@ class HmcNetTrainer():
             avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=calc_metrics)
             self.tb_writer.flush()
             print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
+            # Decay Learningrate if Step Count is reached
+            if epoch % self.args.decay_steps == self.args.decay_steps-1:
+                self.scheduler.step()
             # Track best performance, and save the model's state
             if avg_val_loss < best_vloss:
                 best_epoch = epoch
