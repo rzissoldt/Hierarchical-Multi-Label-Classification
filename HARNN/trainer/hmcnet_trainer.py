@@ -1,14 +1,16 @@
-import copy
+import copy, datetime
 import torch
-import sys
+import sys, os
 import numpy as np
 sys.path.append('../')
 from utils import data_helpers as dh
 from torcheval.metrics.functional import multiclass_auprc,multiclass_precision,multiclass_recall,multiclass_f1_score
 from torcheval.metrics.functional import multiclass_auroc
 from torchmetrics import AUROC, AveragePrecision
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 class HmcNetTrainer():
-    def __init__(self,model,criterion,optimizer,scheduler,explicit_hierarchy,num_classes_list,args,device=None):
+    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,validation_dataset,explicit_hierarchy,num_classes_list,path_to_model,args,device=None):
         self.model = model
         self.criterion = criterion
         self.scheduler = scheduler
@@ -17,12 +19,49 @@ class HmcNetTrainer():
         self.explicit_hierarchy= explicit_hierarchy
         self.args = args
         self.num_classes_list = num_classes_list
-    def train(self,training_loader,epoch_index,tb_writer):
+        self.best_model = copy.deepcopy(model)
+        self.path_to_model = path_to_model        
+        self.tb_writer = SummaryWriter(path_to_model)
+        sharing_strategy = "file_system"
+        def set_worker_sharing_strategy(worker_id: int):
+            torch.multiprocessing.set_sharing_strategy(sharing_strategy)
+        # Create Dataloader for Training and Validation Dataset
+        kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': args.pin_memory} if self.args.gpu else {}
+        self.training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
+        self.validation_loader = DataLoader(validation_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)  
+    def train_and_validate(self):
+        
+        counter = 0
+        best_epoch = 0
+        best_model = copy.deepcopy(self.model)
+        best_vloss = 1_000_000.
+        for epoch in range(self.args.epochs):
+            avg_train_loss = self.train(epoch_index=epoch)
+            calc_metrics = epoch == self.args.epochs-1
+            avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=calc_metrics)
+            self.tb_writer.flush()
+            print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
+            # Track best performance, and save the model's state
+            if avg_val_loss < best_vloss:
+                best_epoch = epoch
+                self.best_model = copy.deepcopy(self.model)
+                best_vloss = avg_val_loss
+                model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{epoch}')
+                counter = 0
+                os.makedirs(os.path.dirname(model_path), exist_ok=True)
+                torch.save(self.model.state_dict(), model_path)
+            else:
+                counter += 1
+                if counter >= self.args.early_stopping_patience:
+                    print(f'Early stopping triggered and validate best Epoch {best_epoch}.')
+                    avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=True)
+                    break
+    def train(self,epoch_index):
         current_loss = 0.
         last_loss = 0.
         self.model.train(True)
-        num_of_train_batches = len(training_loader)
-        for i, data in enumerate(training_loader):
+        num_of_train_batches = len(self.training_loader)
+        for i, data in enumerate(self.training_loader):
             # Every data instance is an input + label pair
             inputs, labels = copy.deepcopy(data)
             inputs = inputs.to(self.device)
@@ -52,22 +91,25 @@ class HmcNetTrainer():
             progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
-            tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
+            self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
         print('\n')
         return last_loss
     
-    def validate(self,validation_loader,epoch_index,tb_writer,calc_metrics=False):
+    def validate(self,epoch_index,calc_metrics=False):
         running_vloss = 0.0
+        if calc_metrics:
+            self.model = self.best_model
+            
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
         self.model.eval()
         eval_counter, eval_loss = 0, 0.0
-        num_of_val_batches = len(validation_loader)
+        num_of_val_batches = len(self.validation_loader)
         scores_list = []
         true_onehot_labels_list = []
         # Disable gradient computation and reduce memory consumption.
         with torch.no_grad():
-            for i, vdata in enumerate(validation_loader):
+            for i, vdata in enumerate(self.validation_loader):
                 vinputs, vlabels = copy.deepcopy(vdata)
                 vinputs = vinputs.to(self.device)
                 y_total_onehot = vlabels[0].to(self.device)
@@ -90,14 +132,11 @@ class HmcNetTrainer():
                 print(progress_info, end='\r')
                 if not calc_metrics:
                     tb_x = epoch_index * num_of_val_batches + eval_counter + 1
-                    tb_writer.add_scalar('Validation/Loss',eval_loss,tb_x)
+                    self.tb_writer.add_scalar('Validation/Loss',eval_loss,tb_x)
                 eval_counter+=1
             print('\n')
             if calc_metrics:
                 # Predict classes by threshold or topk ('ts': threshold; 'tk': topk)
-                eval_pre_tk = [0.0] * self.args.topK
-                eval_rec_tk = [0.0] * self.args.topK
-                eval_F1_tk = [0.0] * self.args.topK
                 eval_pre_pcp_tk = [0.0] * self.args.topK
                 eval_rec_pcp_tk = [0.0] * self.args.topK
                 eval_F1_pcp_tk = [0.0] * self.args.topK
@@ -136,17 +175,17 @@ class HmcNetTrainer():
                 eval_auprc = auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
                 eval_loss = running_vloss/(eval_counter+1)
                 
-                tb_writer.add_scalar('Validation/AverageAUC',eval_auc,epoch_index)
-                tb_writer.add_scalar('Validation/AveragePrecision',eval_auprc,epoch_index)
-                tb_writer.add_scalar('Validation/PCPPrecision',eval_pre_pcp_ts,epoch_index)
-                tb_writer.add_scalar('Validation/PCPRecall',eval_rec_pcp_ts,epoch_index)
-                tb_writer.add_scalar('Validation/PCPF1',eval_F1_pcp_ts,epoch_index)
+                self.tb_writer.add_scalar('Validation/AverageAUC',eval_auc,epoch_index)
+                self.tb_writer.add_scalar('Validation/AveragePrecision',eval_auprc,epoch_index)
+                self.tb_writer.add_scalar('Validation/PCPPrecision',eval_pre_pcp_ts,epoch_index)
+                self.tb_writer.add_scalar('Validation/PCPRecall',eval_rec_pcp_ts,epoch_index)
+                self.tb_writer.add_scalar('Validation/PCPF1',eval_F1_pcp_ts,epoch_index)
                 for i, precision in enumerate(eval_pre_pcp_tk):
-                    tb_writer.add_scalar(f'Validation/PCPPrecisionTopK/{i}', precision, global_step=epoch_index)
+                    self.tb_writer.add_scalar(f'Validation/PCPPrecisionTopK/{i}', precision, global_step=epoch_index)
                 for i, recall in enumerate(eval_rec_pcp_tk):
-                    tb_writer.add_scalar(f'Validation/PCPRecallTopK/{i}', recall, global_step=epoch_index)
+                    self.tb_writer.add_scalar(f'Validation/PCPRecallTopK/{i}', recall, global_step=epoch_index)
                 for i, f1 in enumerate(eval_F1_pcp_tk):
-                    tb_writer.add_scalar(f'Validation/PCPF1TopK/{i}', f1, global_step=epoch_index)
+                    self.tb_writer.add_scalar(f'Validation/PCPF1TopK/{i}', f1, global_step=epoch_index)
 
                 print("All Validation set: Loss {0:g} | AUC {1:g} | AUPRC {2:g}".format(eval_loss, eval_auc, eval_auprc))
                 # Predict by pcp

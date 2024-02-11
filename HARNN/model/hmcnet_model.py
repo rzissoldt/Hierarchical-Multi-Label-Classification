@@ -126,8 +126,6 @@ class HybridPredictingModule(nn.Module):
         self.W_m = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=0.1))
         self.b_m = nn.Parameter(torch.ones(total_classes)*0.1)
         self.drop = nn.Dropout(dropout_keep_prob)
-        self.batchnorm_g = nn.BatchNorm1d(fc_hidden_size)
-        self.batchnorm_m = nn.BatchNorm1d(total_classes)
         self.alpha = alpha
         
         
@@ -135,13 +133,9 @@ class HybridPredictingModule(nn.Module):
         #ham_out = torch.cat([local_logits.unsqueeze(1) for local_logits in local_logits_list], dim=1)
         avg_ham_out = torch.mean(local_logits,dim=1)
         avg_ham_out_fc = F.linear(avg_ham_out,self.W_g,self.b_g)
-        if avg_ham_out_fc.shape[0] != 1:
-            avg_ham_out_fc = self.batchnorm_g(avg_ham_out_fc)
         fc_out = F.relu(avg_ham_out_fc)
         fc_out_drop = self.drop(fc_out)
         global_logits = F.linear(fc_out_drop,self.W_m,self.b_m)
-        if global_logits.shape[0] != 1:
-            global_logits = self.batchnorm_m(global_logits)
         global_scores = F.sigmoid(global_logits)
         #local_scores_list = torch.cat(local_scores_list,dim=1)
         scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores)
@@ -152,30 +146,23 @@ class HybridPredictingModule(nn.Module):
         
 
 class HybridPredictingModuleHighway(nn.Module):
-    def __init__(self,num_layers,fc_hidden_size,total_classes,dropout_keep_prob,alpha):
-        super(HybridPredictingModule,self).__init__()
-        self.highway = HighwayLayer(input_size=fc_hidden_size)
+    def __init__(self,num_layers,num_highway_layers,fc_hidden_size,total_classes,dropout_keep_prob,alpha):
+        super(HybridPredictingModuleHighway,self).__init__()
+        self.highway = HighwayLayer(input_size=fc_hidden_size,num_layers=num_highway_layers)
         self.W_highway = nn.Parameter(truncated_normal(size=(fc_hidden_size, fc_hidden_size*num_layers),std=0.1))
         self.b_highway = nn.Parameter(torch.ones(fc_hidden_size)*0.1)
         self.W_global_pred = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=0.1))
         self.b_global_pred = nn.Parameter(torch.ones(total_classes)*0.1)
         self.highway_drop = nn.Dropout(dropout_keep_prob)
-        self.batchnorm_highway = nn.BatchNorm1d(num_features=fc_hidden_size)
-        self.batchnorm_global = nn.BatchNorm1d(num_features=fc_hidden_size)
         self.alpha = alpha
         
-    def forward(self,local_logits,local_scores):
-        #ham_out = torch.cat(local_logits_list,dim=1)
-        fc = F.linear(local_logits,self.W_highway,self.b_highway)
-        if fc.shape[0] != 1:
-            fc=self.batchnorm(fc)
+    def forward(self,local_logits_list,local_scores):
+        ham_out = torch.cat(local_logits_list,dim=1)
+        fc = F.linear(ham_out,self.W_highway,self.b_highway)
         fc_out = F.relu(fc)
         highway = self.highway(fc_out)
         highway_drop_out = self.highway_drop(highway)
-        #num_units = highway_drop_out.size(1)
         global_logits = F.linear(highway_drop_out,self.W_global_pred,self.b_global_pred)
-        if global_logits.shape[0] != 1:
-            global_logits = self.batchnorm_global(global_logits)
         global_scores = F.sigmoid(global_logits)
         #local_scores_list = torch.cat(local_scores_list,dim=1)
         scores = torch.add(self.alpha*global_scores,(1. - self.alpha)*local_scores)
@@ -224,7 +211,7 @@ class HighwayLayer(nn.Module):
         
 class HmcNet(nn.Module):
     """A HARNN for image classification."""
-    def __init__(self,feature_dim,attention_unit_size,fc_hidden_size, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
+    def __init__(self,feature_dim,attention_unit_size,fc_hidden_size,highway_num_layers, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
         super(HmcNet,self).__init__()
         resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
         self.backbone = torch.nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
@@ -249,7 +236,7 @@ class HmcNet(nn.Module):
                 break
             self.ham_modules.append(HAM(feature_dim=feature_dim,num_classes=num_classes_list[i],next_num_classes=num_classes_list[i+1],attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
         
-        self.hybrid_predicting_module = HybridPredictingModule(fc_hidden_size=fc_hidden_size,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha)
+        self.hybrid_predicting_module = HybridPredictingModuleHighway(fc_hidden_size=fc_hidden_size,num_layers=len(num_classes_list),num_highway_layers=highway_num_layers,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha)
         
     def forward(self,x):
         feature_extractor_out = self.backbone(x)
@@ -263,11 +250,11 @@ class HmcNet(nn.Module):
             local_score_list.append(local_score)
             local_logit_list.append(local_logit)
         
-        local_logits= torch.cat([local_logits.unsqueeze(1) for local_logits in local_logit_list], dim=1)
+        #local_logits= torch.cat([local_logits.unsqueeze(1) for local_logits in local_logit_list], dim=1)
         local_scores = torch.cat(local_score_list,dim=1)
         
         
-        scores, global_logits = self.hybrid_predicting_module(local_logits,local_scores)
+        scores, global_logits = self.hybrid_predicting_module(local_logit_list,local_scores)
         return scores, local_score_list, global_logits
     
     def __repr__(self):
@@ -275,6 +262,7 @@ class HmcNet(nn.Module):
         for i in range(len(self.ham_modules)):
             str += f'{self.ham_modules[i].__repr__()}\n'
         return str
+    
 # Define Loss for HmcNet.
 class HmcNetLoss(nn.Module):
     def __init__(self,beta,l2_lambda,model,explicit_hierarchy,device=None):
