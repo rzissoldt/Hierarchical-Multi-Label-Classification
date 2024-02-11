@@ -89,7 +89,7 @@ class HmcNetTrainer():
                 progress_info = f'Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}'
                 print(progress_info, end='\r')
                 if not calc_metrics:
-                    tb_x = epoch_index * num_of_val_batches + i + 1
+                    tb_x = epoch_index * num_of_val_batches + eval_counter + 1
                     print(tb_x, eval_loss)
                     tb_writer.add_scalar('Validation/Loss',eval_loss,tb_x)
                 eval_counter+=1
