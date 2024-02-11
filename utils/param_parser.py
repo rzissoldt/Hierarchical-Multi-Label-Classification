@@ -96,10 +96,10 @@ def hmcnet_parameter_parser():
     parser.add_argument("--threshold", type=float, default=0.5, help="Threshold for prediction classes.")
     parser.add_argument("--pcp-threshold", type=float, default=-1.0, help="PCP-Threshold for path-pruned-coherent-prediction classes.")
     # Training Parameters
-    parser.add_argument("--hyperparameter-search", type=bool_argument, default=True, help="Is random Hyperparameter search active?")
+    parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
     parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
     parser.add_argument("--gpu", type=bool_argument, default=True, help="GPU-Support active or not")
-    parser.add_argument("--optimzer",default="adam", help="Select between SGD or Adam.")
+    parser.add_argument("--optimizer",default="adam", help="Select between SGD or Adam.")
     parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs.")
     parser.add_argument("--early-stopping-patience", type=int, default=5, help="Number of patience, when to trigger early stopping.")
     parser.add_argument("--batch-size", type=int, default=32, help="Batch Size.")
