@@ -73,6 +73,7 @@ def hmcnet_parameter_parser():
     parser = argparse.ArgumentParser(description="Run Image HmcNet.")
 
     # Data Parameters
+    parser.add_argument("--dataset-name", nargs="?", default="einrichtungsgegenstand", help="Name of the Dataset.")
     parser.add_argument("--train-file", nargs="?", default="../data/Train_sample.json", help="Training data.")
     parser.add_argument("--validation-file", nargs="?", default="../data/Validation_sample.json", help="Validation data.")
     parser.add_argument("--test-file", nargs="?", default="../data/Test_sample.json", help="Testing data.")
@@ -84,9 +85,9 @@ def hmcnet_parameter_parser():
     parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
     parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,49), help="Dimensionality of the Feature Output of backbone.")
     parser.add_argument("--attention-dim", type=int, default=200, help="Dimensionality of Attention neurons.")
-    parser.add_argument("--attention-penalization", type=bool, default=True, help="Use attention penalization or not.")
     parser.add_argument("--fc-dim", type=int, default=512, help="Dimensionality for FC neurons.")
     parser.add_argument("--highway-num-layers", type=int, default=1, help="Number of layers in the Highway Module.")
+    parser.add_argument("--highway-fc-dim", type=int, default=512, help="Dimensionality for Highway-FC neurons.")
     parser.add_argument("--dropout-rate", type=float, default=0.5, help="Dropout keep probability.")
     parser.add_argument("--alpha", type=float, default=0.5, help="Weight of global part in scores cal.")
     parser.add_argument("--beta", type=float, default=0.2, help="Weight of Hierarchy Constraint Loss in loss cal.")
@@ -96,7 +97,10 @@ def hmcnet_parameter_parser():
     parser.add_argument("--threshold", type=float, default=0.5, help="Threshold for prediction classes.")
     parser.add_argument("--pcp-threshold", type=float, default=-1.0, help="PCP-Threshold for path-pruned-coherent-prediction classes.")
     # Training Parameters
+    parser.add_argument("--hyperparameter-search", type=bool_argument, default=True, help="Is random Hyperparameter search active?")
+    parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
     parser.add_argument("--gpu", type=bool_argument, default=True, help="GPU-Support active or not")
+    parser.add_argument("--optimzer",default="adam", help="Select between SGD or Adam.")
     parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs.")
     parser.add_argument("--early-stopping-patience", type=int, default=5, help="Number of patience, when to trigger early stopping.")
     parser.add_argument("--batch-size", type=int, default=32, help="Batch Size.")
@@ -107,12 +111,9 @@ def hmcnet_parameter_parser():
     parser.add_argument("--norm-ratio", type=float, default=1.25,
                         help="The ratio of the sum of gradients norms of trainable variable.")
     parser.add_argument("--l2-lambda", type=float, default=1e-5, help="L2 regularization lambda.")
-    parser.add_argument("--checkpoint-steps", type=int, default=10, help="Save model after how many steps.")
-    parser.add_argument("--num-checkpoints", type=int, default=5, help="Number of checkpoints to store.")
     parser.add_argument("--freeze-backbone",type=bool_argument, default=True, help="Freezes Backbone Feature Extractor if needed.")
     # Misc Parameters
     parser.add_argument("--allow-soft-placement", type=bool_argument, default=True, help="Allow device soft device placement.")
-    parser.add_argument("--log-device-placement", type=bool_argument, default=False, help="Log placement of ops on devices.")
     parser.add_argument("--gpu-options-allow-growth", type=bool_argument, default=True, help="Allow gpu options growth.")
 
     return parser.parse_args()
