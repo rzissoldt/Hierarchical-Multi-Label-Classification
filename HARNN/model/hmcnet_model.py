@@ -26,13 +26,16 @@ def truncated_normal(size, mean=0, std=1):
 
     return samples
 
+def he_weight_init(input_size):
+    return 1./input_size
+
 class TCCA(nn.Module):
     """TCCA Module"""
     def __init__(self,feature_dim,num_classes,attention_unit_size):
         super(TCCA, self).__init__()
         num_channels, spatial_dim = feature_dim
-        self.W_s1 = nn.Parameter(truncated_normal(size=(attention_unit_size,spatial_dim),std=0.1))
-        self.W_s2 = nn.Parameter(truncated_normal(size=(num_classes, attention_unit_size),std=0.1))
+        self.W_s1 = nn.Parameter(truncated_normal(size=(attention_unit_size,spatial_dim),std=he_weight_init(spatial_dim)))
+        self.W_s2 = nn.Parameter(truncated_normal(size=(num_classes, attention_unit_size),std=he_weight_init(attention_unit_size)))
         
     def forward(self,x,omega_h):
         x_transposed = torch.permute(x,(0,2,1))
@@ -56,10 +59,10 @@ class CPM(nn.Module):
     """Class Predicting Module"""
     def __init__(self,spatial_dim,num_classes,fc_hidden_size):
         super(CPM, self).__init__()
-        self.W_t = nn.Parameter(truncated_normal(size=(fc_hidden_size, 2*spatial_dim),std=0.1))
-        self.b_t = nn.Parameter(torch.ones(fc_hidden_size)*0.1)
-        self.W_l = nn.Parameter(truncated_normal(size=(num_classes, fc_hidden_size),std=0.1))
-        self.b_l = nn.Parameter(torch.ones(num_classes)*0.1)
+        self.W_t = nn.Parameter(truncated_normal(size=(fc_hidden_size, 2*spatial_dim),std=he_weight_init(2*spatial_dim)))
+        self.b_t = nn.Parameter(torch.ones(fc_hidden_size)*he_weight_init(2*spatial_dim))
+        self.W_l = nn.Parameter(truncated_normal(size=(num_classes, fc_hidden_size),std=he_weight_init(fc_hidden_size)))
+        self.b_l = nn.Parameter(torch.ones(num_classes)*he_weight_init(fc_hidden_size))
     def forward(self,x):
         fc = F.linear(x,self.W_t,self.b_t)
         local_fc_out = F.relu(fc)
@@ -76,7 +79,7 @@ class CDM(nn.Module):
         super(CDM, self).__init__()
         self.G_h_implicit = None
         if next_num_classes is not None:
-            self.G_h_implicit = nn.Parameter(truncated_normal(size=(num_classes, next_num_classes),std=0.1))
+            self.G_h_implicit = nn.Parameter(truncated_normal(size=(num_classes, next_num_classes),std=he_weight_init(next_num_classes)))
         
         self.next_num_classes = next_num_classes
         self.attention_unit_size = attention_unit_size
@@ -121,10 +124,10 @@ class HAM(nn.Module):
 class HybridPredictingModule(nn.Module):
     def __init__(self,fc_hidden_size,total_classes,dropout_keep_prob,alpha):
         super(HybridPredictingModule,self).__init__()
-        self.W_g = nn.Parameter(truncated_normal(size=(fc_hidden_size, fc_hidden_size),std=0.1))
-        self.b_g = nn.Parameter(torch.ones(fc_hidden_size)*0.1)
-        self.W_m = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=0.1))
-        self.b_m = nn.Parameter(torch.ones(total_classes)*0.1)
+        self.W_g = nn.Parameter(truncated_normal(size=(fc_hidden_size, fc_hidden_size),std=he_weight_init(fc_hidden_size)))
+        self.b_g = nn.Parameter(torch.ones(fc_hidden_size)*he_weight_init(fc_hidden_size))
+        self.W_m = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=he_weight_init(fc_hidden_size)))
+        self.b_m = nn.Parameter(torch.ones(total_classes)*he_weight_init(fc_hidden_size))
         self.drop = nn.Dropout(dropout_keep_prob)
         self.alpha = alpha
         
@@ -149,10 +152,10 @@ class HybridPredictingModuleHighway(nn.Module):
     def __init__(self,num_layers,num_highway_layers,fc_hidden_size,total_classes,dropout_keep_prob,alpha):
         super(HybridPredictingModuleHighway,self).__init__()
         self.highway = HighwayLayer(input_size=fc_hidden_size,num_layers=num_highway_layers)
-        self.W_highway = nn.Parameter(truncated_normal(size=(fc_hidden_size, fc_hidden_size*num_layers),std=0.1))
-        self.b_highway = nn.Parameter(torch.ones(fc_hidden_size)*0.1)
-        self.W_global_pred = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=0.1))
-        self.b_global_pred = nn.Parameter(torch.ones(total_classes)*0.1)
+        self.W_highway = nn.Parameter(truncated_normal(size=(fc_hidden_size, fc_hidden_size*num_layers),std=he_weight_init(fc_hidden_size*num_layers)))
+        self.b_highway = nn.Parameter(torch.ones(fc_hidden_size)*he_weight_init(fc_hidden_size*num_layers))
+        self.W_global_pred = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=he_weight_init(fc_hidden_size)))
+        self.b_global_pred = nn.Parameter(torch.ones(total_classes)*he_weight_init(fc_hidden_size))
         self.highway_drop = nn.Dropout(dropout_keep_prob)
         self.alpha = alpha
         
