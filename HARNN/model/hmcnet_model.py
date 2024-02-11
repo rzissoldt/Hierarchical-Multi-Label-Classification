@@ -146,12 +146,12 @@ class HybridPredictingModule(nn.Module):
         
 
 class HybridPredictingModuleHighway(nn.Module):
-    def __init__(self,num_layers,num_highway_layers,highway_fc_hidden_size,total_classes,dropout_keep_prob,alpha):
+    def __init__(self,num_layers,num_highway_layers,fc_hidden_size,total_classes,dropout_keep_prob,alpha):
         super(HybridPredictingModuleHighway,self).__init__()
-        self.highway = HighwayLayer(input_size=highway_fc_hidden_size,num_layers=num_highway_layers)
-        self.W_highway = nn.Parameter(truncated_normal(size=(highway_fc_hidden_size, highway_fc_hidden_size*num_layers),std=0.1))
-        self.b_highway = nn.Parameter(torch.ones(highway_fc_hidden_size)*0.1)
-        self.W_global_pred = nn.Parameter(truncated_normal(size=(total_classes,highway_fc_hidden_size),std=0.1))
+        self.highway = HighwayLayer(input_size=fc_hidden_size,num_layers=num_highway_layers)
+        self.W_highway = nn.Parameter(truncated_normal(size=(fc_hidden_size, fc_hidden_size*num_layers),std=0.1))
+        self.b_highway = nn.Parameter(torch.ones(fc_hidden_size)*0.1)
+        self.W_global_pred = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=0.1))
         self.b_global_pred = nn.Parameter(torch.ones(total_classes)*0.1)
         self.highway_drop = nn.Dropout(dropout_keep_prob)
         self.alpha = alpha
@@ -211,7 +211,7 @@ class HighwayLayer(nn.Module):
         
 class HmcNet(nn.Module):
     """A HARNN for image classification."""
-    def __init__(self,feature_dim,attention_unit_size,fc_hidden_size,highway_fc_hidden_size,highway_num_layers, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
+    def __init__(self,feature_dim,attention_unit_size,fc_hidden_size,highway_num_layers, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
         super(HmcNet,self).__init__()
         resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
         self.backbone = torch.nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
@@ -236,7 +236,7 @@ class HmcNet(nn.Module):
                 break
             self.ham_modules.append(HAM(feature_dim=feature_dim,num_classes=num_classes_list[i],next_num_classes=num_classes_list[i+1],attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
         
-        self.hybrid_predicting_module = HybridPredictingModuleHighway(highway_fc_hidden_size=highway_fc_hidden_size,num_layers=len(num_classes_list),num_highway_layers=highway_num_layers,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha)
+        self.hybrid_predicting_module = HybridPredictingModuleHighway(fc_hidden_size=fc_hidden_size,num_layers=len(num_classes_list),num_highway_layers=highway_num_layers,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha)
         
     def forward(self,x):
         feature_extractor_out = self.backbone(x)

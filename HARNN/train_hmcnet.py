@@ -59,14 +59,14 @@ def train_hmcnet(args):
     total_classes = sum(num_classes_list)
 
     # Define Model 
-    model = HmcNet(feature_dim=args.feature_dim_backbone,attention_unit_size=args.attention_dim,fc_hidden_size=args.fc_dim,highway_num_layers=args.highway_num_layers,highway_fc_hidden_size=args.highway_fc_dim,num_classes_list=num_classes_list,total_classes=total_classes,freeze_backbone=args.freeze_backbone,device=device).to(device)
+    model = HmcNet(feature_dim=args.feature_dim_backbone,attention_unit_size=args.attention_dim,fc_hidden_size=args.fc_dim,highway_num_layers=args.highway_num_layers,num_classes_list=num_classes_list,total_classes=total_classes,freeze_backbone=args.freeze_backbone,device=device).to(device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     
     # Define Optimzer and Scheduler
-    if args.optimizer is 'adam':    
+    if args.optimizer == 'adam':    
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-    elif args.optimizer is 'sgd':
+    elif args.optimizer == 'sgd':
         optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
     else:
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
@@ -121,28 +121,25 @@ def train_hmcnet(args):
 
 
 def get_random_hyperparameter(base_args):
-    attention_dim = [100,200,400,800]
-    fc_dim = [256,512,1024,2048]
-    highway_fc_dim = [256,512,1024]
-    highway_num_layers = [1,2]
-    batch_size = [32,64,128]
-    learning_rate = [0.01,0.001]
-    optimizer = ['adam','sgd']
-    base_args.attention_dim = random.choice(attention_dim)
-    base_args.highway_fc_dim = random.choice(highway_fc_dim)
-    base_args.highway_num_layers = random.choice(highway_num_layers)
-    base_args.batch_size = random.choice(batch_size)
-    base_args.fc_dim = random.choice(fc_dim)
-    base_args.fc_dim = random.choice(fc_dim)
-    base_args.learning_rate = random.choice(learning_rate)
-    base_args.optimizer = random.choice(optimizer)
-    print(f'Attention-Dim: {attention_dim}'
-          f'FC-Dim: {fc_dim}'
-          f'Highway-FC-Dim: {highway_fc_dim}'
-          f'Highway-Num-Layers: {highway_num_layers}'
-          f'Batch-Size: {batch_size}'
-          f'Learning Rate: {learning_rate}'
-          f'Optimizer: {optimizer}')
+    attention_dim = random.choice([100,200,400,800])
+    fc_dim = random.choice([256,512,1024,2048,4096])
+    highway_num_layers = random.choice([1,2])
+    batch_size = random.choice([32,64,128])
+    learning_rate = random.choice([0.01,0.001])
+    optimizer = random.choice(['adam','sgd'])
+    
+    print(f'Attention-Dim: {attention_dim}\n'
+          f'FC-Dim: {fc_dim}\n'
+          f'Highway-Num-Layers: {highway_num_layers}\n'
+          f'Batch-Size: {batch_size}\n'
+          f'Learning Rate: {learning_rate}\n'
+          f'Optimizer: {optimizer}\n')
+    base_args.attention_dim = attention_dim
+    base_args.fc_dim = fc_dim
+    base_args.highway_num_layers = highway_num_layers
+    base_args.batch_size = batch_size
+    base_args.learning_rate = learning_rate
+    base_args.optimizer = optimizer
     return base_args
 
 
