@@ -143,6 +143,7 @@ class HybridPredictingModule(nn.Module):
         self.W_m = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=he_weight_init(fc_hidden_size)))
         self.b_m = nn.Parameter(torch.ones(total_classes)*he_weight_init(fc_hidden_size))
         self.drop = nn.Dropout(dropout_keep_prob)
+        self.batchnorm_1 = nn.BatchNorm1d(fc_hidden_size)
         self.alpha = alpha
         
         
@@ -151,6 +152,8 @@ class HybridPredictingModule(nn.Module):
         avg_ham_out = torch.mean(ham_out,dim=1)
         avg_ham_out_fc = F.linear(avg_ham_out,self.W_g,self.b_g)
         fc_out = F.relu(avg_ham_out_fc)
+        if fc_out.shape[0] != 1:
+            fc_out = self.batchnorm_1(fc_out)
         fc_out_drop = self.drop(fc_out)
         global_logits = F.linear(fc_out_drop,self.W_m,self.b_m)
         global_scores = F.sigmoid(global_logits)
