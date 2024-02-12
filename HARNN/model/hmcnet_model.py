@@ -36,7 +36,7 @@ class TCCA(nn.Module):
         num_channels, spatial_dim = input_size
         self.W_s1 = nn.Parameter(truncated_normal(size=(attention_unit_size,spatial_dim),std=he_weight_init(spatial_dim)))
         self.W_s2 = nn.Parameter(truncated_normal(size=(num_classes, attention_unit_size),std=he_weight_init(attention_unit_size)))
-        
+        self.layer_norm = nn.LayerNorm([num_classes, spatial_dim])
     def forward(self,x,omega_h):
         x_transposed = torch.permute(x,(0,2,1))
         attention_matrix = torch.matmul(
@@ -48,7 +48,8 @@ class TCCA(nn.Module):
         )
         attention_weight = F.softmax(attention_matrix, dim=1)
         attention_out = torch.matmul(attention_weight, x)
-        attention_out_avg = torch.mean(attention_out, dim=1)
+        attention_out_norm = self.layer_norm(attention_out)
+        attention_out_avg = torch.mean(attention_out_norm, dim=1)
         attention_weight_avg = F.softmax(torch.mean(attention_weight, dim=1), dim=1)
         return attention_out_avg
     
@@ -230,7 +231,7 @@ class HmcNet(nn.Module):
     def __init__(self,feature_dim,attention_unit_size,backbone_hidden_size,fc_hidden_size,highway_num_layers, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
         super(HmcNet,self).__init__()
         resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
-        self.backbone = torch.nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-2]))
+        self.backbone = torch.nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
         #self.entity_representation_module = EntityRepresentationModule(backbone_hidden_size=backbone_hidden_size,input_size=feature_dim[0])
         self.ham_modules = nn.ModuleList()
         self.feature_dim = feature_dim
