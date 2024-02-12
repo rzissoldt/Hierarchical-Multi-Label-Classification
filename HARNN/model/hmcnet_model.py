@@ -168,7 +168,7 @@ class HybridPredictingModule(nn.Module):
 class HybridPredictingModuleHighway(nn.Module):
     def __init__(self,num_layers,num_highway_layers,fc_hidden_size,total_classes,dropout_keep_prob,alpha):
         super(HybridPredictingModuleHighway,self).__init__()
-        self.highway = HighwayLayer(input_size=fc_hidden_size,num_layers=num_highway_layers,bias=0)
+        self.highway = HighwayLayer(input_size=fc_hidden_size,num_layers=num_highway_layers)
         self.W_highway = nn.Parameter(truncated_normal(size=(fc_hidden_size, fc_hidden_size*num_layers),std=he_weight_init(fc_hidden_size*num_layers)))
         self.b_highway = nn.Parameter(torch.ones(fc_hidden_size)*he_weight_init(fc_hidden_size*num_layers))
         self.W_global_pred = nn.Parameter(truncated_normal(size=(total_classes,fc_hidden_size),std=he_weight_init(fc_hidden_size)))
