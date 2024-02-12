@@ -31,9 +31,9 @@ def he_weight_init(input_size):
 
 class TCCA(nn.Module):
     """TCCA Module"""
-    def __init__(self,feature_dim,num_classes,attention_unit_size):
+    def __init__(self,input_size,num_classes,attention_unit_size):
         super(TCCA, self).__init__()
-        num_channels, spatial_dim = feature_dim
+        num_channels, spatial_dim = input_size
         self.W_s1 = nn.Parameter(truncated_normal(size=(attention_unit_size,spatial_dim),std=he_weight_init(spatial_dim)))
         self.W_s2 = nn.Parameter(truncated_normal(size=(num_classes, attention_unit_size),std=he_weight_init(attention_unit_size)))
         
@@ -100,10 +100,10 @@ class CDM(nn.Module):
     
 class HAM(nn.Module):
     """HAM Unit"""
-    def __init__(self,feature_dim,num_classes,next_num_classes,attention_unit_size,fc_hidden_size):
+    def __init__(self,input_size,num_classes,next_num_classes,attention_unit_size,fc_hidden_size):
         super(HAM, self).__init__()
-        self.tcca = TCCA(feature_dim=feature_dim,num_classes=num_classes,attention_unit_size=attention_unit_size)
-        self.cpm = CPM(num_classes=num_classes, fc_hidden_size=fc_hidden_size,spatial_dim=feature_dim[1])
+        self.tcca = TCCA(input_size=input_size,num_classes=num_classes,attention_unit_size=attention_unit_size)
+        self.cpm = CPM(num_classes=num_classes, fc_hidden_size=fc_hidden_size,spatial_dim=input_size[1])
         self.cdm = CDM(num_classes=num_classes,next_num_classes=next_num_classes,attention_unit_size=attention_unit_size)
         
         
@@ -120,6 +120,19 @@ class HAM(nn.Module):
                 f'\nTCCA Module: {self.tcca.__repr__()}'
                 f'\nCPM Module: {self.cpm.__repr__()}'
                 f'\nCDM Module: {self.cdm.__repr__()}')
+
+class EntityRepresentationModule(nn.Module):
+    def __init__(self,input_size,backbone_hidden_size):
+        super(EntityRepresentationModule,self).__init__()
+        self.enhance_embedding_weights = nn.Parameter(truncated_normal(size=(input_size, input_size*backbone_hidden_size),std=he_weight_init(input_size*backbone_hidden_size)))
+        self.enhance_embedding_bias = nn.Parameter(torch.ones(input_size)*he_weight_init(input_size))
+        self.input_size = input_size
+        self.backbone_hidden_size = backbone_hidden_size
+    def forward(self,x):
+        fc = F.linear(x,self.enhance_embedding_weights,self.enhance_embedding_bias)
+        fc_out = F.relu(fc)
+        output_embedding = fc_out.view(self.backbone_hidden_size, self.input_size)
+        return output_embedding
     
 class HybridPredictingModule(nn.Module):
     def __init__(self,fc_hidden_size,total_classes,dropout_keep_prob,alpha):
@@ -214,10 +227,11 @@ class HighwayLayer(nn.Module):
         
 class HmcNet(nn.Module):
     """A HARNN for image classification."""
-    def __init__(self,feature_dim,attention_unit_size,fc_hidden_size,highway_num_layers, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
+    def __init__(self,feature_dim,attention_unit_size,backbone_hidden_size,fc_hidden_size,highway_num_layers, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
         super(HmcNet,self).__init__()
         resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
         self.backbone = torch.nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
+        #self.entity_representation_module = EntityRepresentationModule(backbone_hidden_size=backbone_hidden_size,input_size=feature_dim[0])
         self.ham_modules = nn.ModuleList()
         self.feature_dim = feature_dim
         self.attention_unit_size = attention_unit_size
@@ -235,9 +249,9 @@ class HmcNet(nn.Module):
         for i in range(len(num_classes_list)):
             if i == len(num_classes_list)-1:
                 #If its the last HAM Module, the last omega_h of CDM ist not needed.
-                self.ham_modules.append(HAM(feature_dim=feature_dim,num_classes=num_classes_list[i],next_num_classes=None,attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
+                self.ham_modules.append(HAM(input_size=feature_dim,num_classes=num_classes_list[i],next_num_classes=None,attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
                 break
-            self.ham_modules.append(HAM(feature_dim=feature_dim,num_classes=num_classes_list[i],next_num_classes=num_classes_list[i+1],attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
+            self.ham_modules.append(HAM(input_size=feature_dim,num_classes=num_classes_list[i],next_num_classes=num_classes_list[i+1],attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
         
         self.hybrid_predicting_module = HybridPredictingModuleHighway(fc_hidden_size=fc_hidden_size,num_layers=len(num_classes_list),num_highway_layers=highway_num_layers,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha)
         

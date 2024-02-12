@@ -59,7 +59,7 @@ def train_hmcnet(args):
     total_classes = sum(num_classes_list)
 
     # Define Model 
-    model = HmcNet(feature_dim=args.feature_dim_backbone,attention_unit_size=args.attention_dim,fc_hidden_size=args.fc_dim,highway_num_layers=args.highway_num_layers,num_classes_list=num_classes_list,total_classes=total_classes,freeze_backbone=args.freeze_backbone,device=device).to(device)
+    model = HmcNet(feature_dim=args.feature_dim_backbone,attention_unit_size=args.attention_dim,backbone_hidden_size=args.backbone_dim,fc_hidden_size=args.fc_dim,highway_num_layers=args.highway_num_layers,num_classes_list=num_classes_list,total_classes=total_classes,freeze_backbone=args.freeze_backbone,device=device).to(device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     

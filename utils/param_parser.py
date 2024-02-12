@@ -83,6 +83,8 @@ def hmcnet_parameter_parser():
     parser.add_argument("--pin-memory", type=bool_argument, default=True, help="Pin Memory in Dataloading activated or not.")
     
     parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
+    parser.add_argument("--backbone-dim", type=int, default=256, help="Dimensionality of Backbone neurons.")
+    parser.add_argument("--backbone-layers", type=int, default=1, help="Number of Backbone layers.")
     parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,49), help="Dimensionality of the Feature Output of backbone.")
     parser.add_argument("--attention-dim", type=int, default=200, help="Dimensionality of Attention neurons.")
     parser.add_argument("--fc-dim", type=int, default=512, help="Dimensionality for FC neurons.")
