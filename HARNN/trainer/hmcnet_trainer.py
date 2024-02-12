@@ -39,6 +39,7 @@ class HmcNetTrainer():
         best_epoch = 0
         best_model = copy.deepcopy(self.model)
         best_vloss = 1_000_000.
+        
         is_fine_tuning = False
         for epoch in range(self.args.epochs):
             avg_train_loss = self.train(epoch_index=epoch)
@@ -75,6 +76,10 @@ class HmcNetTrainer():
                     break
     def train(self,epoch_index):
         current_loss = 0.
+        current_global_loss = 0.
+        current_local_loss = 0.
+        current_hierarchy_loss = 0.
+        current_l2_loss = 0.
         last_loss = 0.
         self.model.train(True)
         num_of_train_batches = len(self.training_loader)
@@ -123,7 +128,10 @@ class HmcNetTrainer():
         running_vloss = 0.0
         if calc_metrics:
             self.model = self.best_model
-            
+        current_vglobal_loss = 0.
+        current_vlocal_loss = 0.
+        current_vhierarchy_loss = 0.
+        current_vl2_loss = 0.
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
         self.model.eval()
@@ -160,7 +168,7 @@ class HmcNetTrainer():
                     true_onehot_labels_list.append(i)                
                 eval_loss = running_vloss/(eval_counter+1)
                 #progress_info = f'Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}'
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {eval_loss}, Global Loss: {last_vglobal_loss}, Local Loss: {last_vlocal_loss}, Hiearchy Loss: {last_vhierarchy_loss}, L2 Loss: {last_vl2_loss}"
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}, Global Loss: {last_vglobal_loss}, Local Loss: {last_vlocal_loss}, Hiearchy Loss: {last_vhierarchy_loss}, L2 Loss: {last_vl2_loss}"
                 print(progress_info, end='\r')
                 if not calc_metrics:
                     tb_x = epoch_index * num_of_val_batches + eval_counter + 1
