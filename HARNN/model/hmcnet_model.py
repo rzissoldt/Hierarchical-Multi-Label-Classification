@@ -201,8 +201,8 @@ class HighwayLayer(nn.Module):
         self.transform_gate = nn.ModuleList([nn.Linear(input_size, input_size) for _ in range(num_layers)])
         self.carry_gate = nn.ModuleList([nn.Linear(input_size, input_size) for _ in range(num_layers)])
         
-        # Initialize the bias for the carry gate
-        for layer in self.carry_gate:
+        # Initialize the bias for the transform gate
+        for layer in self.transform_gate:
             layer.bias.data.fill_(bias)
 
     def forward(self, input_):
@@ -234,7 +234,7 @@ class HmcNet(nn.Module):
     def __init__(self,feature_dim,attention_unit_size,backbone_hidden_size,fc_hidden_size,highway_num_layers, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
         super(HmcNet,self).__init__()
         resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
-        self.backbone = torch.nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-2]))
+        self.backbone = nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
         #self.entity_representation_module = EntityRepresentationModule(backbone_hidden_size=backbone_hidden_size,input_size=feature_dim[0])
         self.ham_modules = nn.ModuleList()
         self.feature_dim = feature_dim
