@@ -117,10 +117,14 @@ class HmcNetTrainer():
             last_local_loss = current_local_loss/(i+1)
             last_hierarchy_loss = current_hierarchy_loss/(i+1)
             last_l2_loss = current_l2_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, Global Loss: {last_global_loss}, Local Loss: {last_local_loss}, Hierarchy Loss: {last_hierarchy_loss}, L2 Loss: {last_l2_loss}"
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
+            self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
+            self.tb_writer.add_scalar('Training/LocalLoss', last_local_loss, tb_x)
+            self.tb_writer.add_scalar('Training/HierarchyLoss', last_hierarchy_loss, tb_x)
+            self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
         print('\n')
         return last_loss
     
@@ -168,11 +172,15 @@ class HmcNetTrainer():
                     true_onehot_labels_list.append(i)                
                 eval_loss = running_vloss/(eval_counter+1)
                 #progress_info = f'Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}'
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}, Global Loss: {last_vglobal_loss}, Local Loss: {last_vlocal_loss}, Hierarchy Loss: {last_vhierarchy_loss}, L2 Loss: {last_vl2_loss}"
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}"
                 print(progress_info, end='\r')
                 if not calc_metrics:
                     tb_x = epoch_index * num_of_val_batches + eval_counter + 1
                     self.tb_writer.add_scalar('Validation/Loss',eval_loss,tb_x)
+                    self.tb_writer.add_scalar('Validation/GlobalLoss',last_vglobal_loss,tb_x)
+                    self.tb_writer.add_scalar('Validation/LocalLoss',last_vlocal_loss,tb_x)
+                    self.tb_writer.add_scalar('Validation/HierarchyLoss',last_vhierarchy_loss,tb_x)
+                    self.tb_writer.add_scalar('Validation/L2Loss',last_vl2_loss,tb_x)
                 eval_counter+=1
             print('\n')
             if calc_metrics:
