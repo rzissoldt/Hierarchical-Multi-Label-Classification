@@ -55,14 +55,14 @@ class HmcNetTrainer():
                 best_epoch = epoch
                 self.best_model = copy.deepcopy(self.model)
                 best_vloss = avg_val_loss
-                model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{epoch}')
+                model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{epoch+1}')
                 counter = 0
                 os.makedirs(os.path.dirname(model_path), exist_ok=True)
                 torch.save(self.model.state_dict(), model_path)
             else:
                 counter += 1
                 if counter >= self.args.early_stopping_patience and not is_fine_tuning:
-                    print(f'Early stopping triggered and validate best Epoch {best_epoch}.')
+                    print(f'Early stopping triggered and validate best Epoch {best_epoch+1}.')
                     print(f'Begin fine tuning model.')
                     avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=True)
                     self.unfreeze_backbone()
@@ -70,7 +70,7 @@ class HmcNetTrainer():
                     counter = 0
                     continue
                 if counter >= self.args.early_stopping_patience and is_fine_tuning:
-                    print(f'Early stopping triggered in fine tuning Phase. {best_epoch} was the best Epoch.')
+                    print(f'Early stopping triggered in fine tuning Phase. {best_epoch+1} was the best Epoch.')
                     print(f'Validate fine tuned Model.')
                     avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=True)
                     break
