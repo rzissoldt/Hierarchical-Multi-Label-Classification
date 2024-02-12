@@ -267,13 +267,12 @@ class HmcNet(nn.Module):
             local_score, local_logit, omega_h = ham_module(feature_extractor_out,omega_h)
             local_score_list.append(local_score)
             local_logit_list.append(local_logit)
-        
-        #local_logits= torch.cat([local_logits.unsqueeze(1) for local_logits in local_logit_list], dim=1)
         local_scores = torch.cat(local_score_list,dim=1)
-        
-        
         scores, global_logits = self.hybrid_predicting_module(local_logit_list,local_scores)
         return scores, local_score_list, global_logits
+    
+    
+        
     
     def __repr__(self):
         str = f'{self.hybrid_predicting_module.__repr__()}'

@@ -39,6 +39,7 @@ class HmcNetTrainer():
         best_epoch = 0
         best_model = copy.deepcopy(self.model)
         best_vloss = 1_000_000.
+        is_fine_tuning = False
         for epoch in range(self.args.epochs):
             avg_train_loss = self.train(epoch_index=epoch)
             calc_metrics = epoch == self.args.epochs-1
@@ -59,8 +60,17 @@ class HmcNetTrainer():
                 torch.save(self.model.state_dict(), model_path)
             else:
                 counter += 1
-                if counter >= self.args.early_stopping_patience:
+                if counter >= self.args.early_stopping_patience and not is_fine_tuning:
                     print(f'Early stopping triggered and validate best Epoch {best_epoch}.')
+                    print(f'Begin fine tuning model.')
+                    avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=True)
+                    self.unfreeze_backbone()
+                    is_fine_tuning = True
+                    counter = 0
+                    continue
+                else:
+                    print(f'Early stopping triggered in fine tuning Phase. {best_epoch} was the best Epoch.')
+                    print(f'Validate fine tuned Model.')
                     avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=True)
                     break
     def train(self,epoch_index):
@@ -202,3 +212,37 @@ class HmcNetTrainer():
                 for top_num in range(self.args.topK):
                     print("Top{0}: PCP-Precision {1:g}, PCP-Recall {2:g}, PCP-F1 {3:g}".format(top_num+1, eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num], eval_F1_pcp_tk[top_num]))  
             return eval_loss
+        
+    def unfreeze_backbone(self):
+        """
+        Unfreezes the backbone of the model and splits the learning rate into three different parts.
+
+
+        Returns:
+        - None
+        """
+        # Set the requires_grad attribute of the backbone parameters to True
+        for param in self.model.backbone.parameters():
+            param.requires_grad = True
+        
+        optimizer_dict = self.optimizer.param_groups[0]
+        param_groups = [copy.deepcopy(optimizer_dict) for i in range(4)]
+        # Get the parameters of the model
+        backbone_model_params = list(self.model.backbone.parameters())
+
+        # Calculate the number of parameters for each section
+        first_backbone_params = int(0.2 * len(backbone_model_params))
+
+        # Assign learning rates to each parameter group
+        test = backbone_model_params[:first_backbone_params]
+        param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
+        param_groups[0]['lr'] = 1e-6
+        param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
+        param_groups[1]['lr'] = 1e-4
+        param_groups[2]['params'] = self.model.ham_modules.parameters()
+        param_groups[2]['lr'] = 1e-2
+        param_groups[3]['params'] = self.model.hybrid_predicting_module.parameters()
+        param_groups[3]['lr'] = 1e-2
+
+        # Update the optimizer with the new parameter groups
+        self.optimizer.param_groups = param_groups
