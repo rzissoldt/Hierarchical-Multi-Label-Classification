@@ -147,8 +147,8 @@ class HybridPredictingModule(nn.Module):
         
         
     def forward(self,local_logits,local_scores):
-        #ham_out = torch.cat([local_logits.unsqueeze(1) for local_logits in local_logits_list], dim=1)
-        avg_ham_out = torch.mean(local_logits,dim=1)
+        ham_out = torch.cat([local_logit.unsqueeze(1) for local_logit in local_logits], dim=1)
+        avg_ham_out = torch.mean(ham_out,dim=1)
         avg_ham_out_fc = F.linear(avg_ham_out,self.W_g,self.b_g)
         fc_out = F.relu(avg_ham_out_fc)
         fc_out_drop = self.drop(fc_out)
@@ -254,7 +254,7 @@ class HmcNet(nn.Module):
                 break
             self.ham_modules.append(HAM(input_size=feature_dim,num_classes=num_classes_list[i],next_num_classes=num_classes_list[i+1],attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
         
-        self.hybrid_predicting_module = HybridPredictingModuleHighway(fc_hidden_size=fc_hidden_size,num_layers=len(num_classes_list),num_highway_layers=highway_num_layers,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha)
+        self.hybrid_predicting_module = HybridPredictingModule(fc_hidden_size=fc_hidden_size,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha)
         
     def forward(self,x):
         feature_extractor_out = self.backbone(x)
@@ -308,8 +308,7 @@ class HmcNetLoss(nn.Module):
             """Calculation of the Global loss."""
             global_scores = torch.sigmoid(global_logits)
             loss = F.binary_cross_entropy(global_scores,global_target)
-            mean_loss = torch.mean(loss)
-            return mean_loss
+            return loss
 
         def _hierarchy_constraint_loss(global_logits):
             """Calculate the Hierarchy Constraint loss."""
