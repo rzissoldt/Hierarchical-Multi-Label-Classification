@@ -88,6 +88,7 @@ def hmcnet_parameter_parser():
     parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,49), help="Dimensionality of the Feature Output of backbone.")
     parser.add_argument("--attention-dim", type=int, default=200, help="Dimensionality of Attention neurons.")
     parser.add_argument("--fc-dim", type=int, default=512, help="Dimensionality for FC neurons.")
+    parser.add_argument("--highway-fc-dim", type=int, default=512, help="Dimensionality for Highway FC neurons.")
     parser.add_argument("--highway-num-layers", type=int, default=1, help="Number of layers in the Highway Module.")
     parser.add_argument("--dropout-rate", type=float, default=0.5, help="Dropout keep probability.")
     parser.add_argument("--alpha", type=float, default=0.5, help="Weight of global part in scores cal.")
