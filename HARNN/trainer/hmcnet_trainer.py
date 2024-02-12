@@ -93,7 +93,7 @@ class HmcNetTrainer():
             # Compute the loss and its gradients
             predictions = (local_scores_list,global_logits)
             targets = (y_local_onehots,y_total_onehot)
-            loss = self.criterion(predictions=predictions,targets=targets)
+            loss,global_loss,local_loss,hierarchy_loss,l2_loss = self.criterion(predictions=predictions,targets=targets)
             loss.backward()
             
             # Clip gradients by global norm
@@ -103,9 +103,16 @@ class HmcNetTrainer():
             self.optimizer.step()
             # Gather data and report
             current_loss += loss.item()
+            current_global_loss += global_loss.item()
+            current_local_loss += local_loss.item()
+            current_hierarchy_loss += hierarchy_loss.item()
+            current_l2_loss += l2_loss.item()
             last_loss = current_loss/(i+1)
-
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"
+            last_global_loss = current_global_loss/(i+1)
+            last_local_loss = current_local_loss/(i+1)
+            last_hierarchy_loss = current_hierarchy_loss/(i+1)
+            last_l2_loss = current_l2_loss/(i+1)
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, Global Loss: {last_global_loss}, Local Loss: {last_local_loss}, Hiearchy Loss: {last_hierarchy_loss}, L2 Loss: {last_l2_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
@@ -136,8 +143,15 @@ class HmcNetTrainer():
 
                 # Compute the loss and its gradients
                 predictions, targets = (local_scores_list,global_logits),(y_local_onehots,y_total_onehot)
-                vloss = self.criterion(predictions=predictions,targets=targets)
-                
+                vloss,vglobal_loss,vlocal_loss,vhierarchy_loss,vl2_loss = self.criterion(predictions=predictions,targets=targets)
+                current_vglobal_loss += vglobal_loss.item()
+                current_vlocal_loss += vlocal_loss.item()
+                current_vhierarchy_loss += vhierarchy_loss.item()
+                current_vl2_loss += vl2_loss.item()
+                last_vglobal_loss = current_vglobal_loss/(i+1)
+                last_vlocal_loss = current_vlocal_loss/(i+1)
+                last_vhierarchy_loss = current_vhierarchy_loss/(i+1)
+                last_vl2_loss = current_vl2_loss/(i+1)
                 running_vloss += vloss.item()
                 for j in scores:
                     scores_list.append(j)
@@ -145,7 +159,8 @@ class HmcNetTrainer():
                 for i in y_total_onehot:
                     true_onehot_labels_list.append(i)                
                 eval_loss = running_vloss/(eval_counter+1)
-                progress_info = f'Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}'
+                #progress_info = f'Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}'
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {eval_loss}, Global Loss: {last_vglobal_loss}, Local Loss: {last_vlocal_loss}, Hiearchy Loss: {last_vhierarchy_loss}, L2 Loss: {last_vl2_loss}"
                 print(progress_info, end='\r')
                 if not calc_metrics:
                     tb_x = epoch_index * num_of_val_batches + eval_counter + 1

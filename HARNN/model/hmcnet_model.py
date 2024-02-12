@@ -339,6 +339,6 @@ class HmcNetLoss(nn.Module):
         l2_loss = _l2_loss(model=self.model,l2_reg_lambda=self.l2_lambda)
         hierarchy_loss = _hierarchy_constraint_loss(global_logits=global_logits)
         loss = torch.sum(torch.stack([global_loss,local_loss,l2_loss,hierarchy_loss]))
-        return loss
+        return loss, global_loss,local_loss,hierarchy_loss, l2_loss
         
 
