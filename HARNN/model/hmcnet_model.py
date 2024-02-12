@@ -301,9 +301,8 @@ class HmcNetLoss(nn.Module):
                 local_scores = local_scores_list[i]
                 local_targets = local_target_list[i]
                 loss = F.binary_cross_entropy(local_scores, local_targets)
-                mean_loss = torch.mean(loss)
-                losses[i] = mean_loss
-            return torch.sum(losses)
+                losses[i] = loss
+            return torch.mean(losses)
 
         def _global_loss(global_logits,global_target):
             """Calculation of the Global loss."""
