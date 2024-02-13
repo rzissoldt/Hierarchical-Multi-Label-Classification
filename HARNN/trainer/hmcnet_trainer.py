@@ -19,7 +19,6 @@ class HmcNetTrainer():
         self.explicit_hierarchy= explicit_hierarchy
         self.args = args
         self.num_classes_list = num_classes_list
-        self.best_model = copy.deepcopy(model)
         self.path_to_model = path_to_model        
         self.tb_writer = SummaryWriter(path_to_model)
         sharing_strategy = "file_system"
@@ -53,7 +52,7 @@ class HmcNetTrainer():
             # Track best performance, and save the model's state
             if avg_val_loss < best_vloss:
                 best_epoch = epoch
-                self.best_model = copy.deepcopy(self.model)
+                best_model = copy.deepcopy(self.model)
                 best_vloss = avg_val_loss
                 model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{epoch+1}')
                 counter = 0
@@ -65,6 +64,7 @@ class HmcNetTrainer():
                     print(f'Early stopping triggered and validate best Epoch {best_epoch+1}.')
                     print(f'Begin fine tuning model.')
                     avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=True)
+                    self.model = copy.deepcopy(best_model)
                     self.unfreeze_backbone()
                     best_vloss = 1_000_000.
                     is_fine_tuning = True
@@ -119,7 +119,7 @@ class HmcNetTrainer():
             last_local_loss = current_local_loss/(i+1)
             last_hierarchy_loss = current_hierarchy_loss/(i+1)
             last_l2_loss = current_l2_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, GlobalLoss: {last_global_loss}, LocalLoss: {last_local_loss}, HierarchyLoss: {last_hierarchy_loss}, L2Loss: {last_l2_loss}"
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_global_loss+last_local_loss+last_hierarchy_loss}, L2Loss: {last_l2_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
@@ -128,7 +128,7 @@ class HmcNetTrainer():
             self.tb_writer.add_scalar('Training/HierarchyLoss', last_hierarchy_loss, tb_x)
             self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
         print('\n')
-        return last_loss
+        return last_global_loss+last_local_loss+last_hierarchy_loss
     
     def validate(self,epoch_index,calc_metrics=False):
         running_vloss = 0.0
@@ -175,7 +175,7 @@ class HmcNetTrainer():
                     true_onehot_labels_list.append(i)                
                 eval_loss = running_vloss/(eval_counter+1)
                 #progress_info = f'Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}'
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}, , GlobalLoss: {last_vglobal_loss}, LocalLoss: {last_vlocal_loss}, HierarchyLoss: {last_vhierarchy_loss}, L2Loss: {last_vl2_loss}"
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {last_vglobal_loss+last_vlocal_loss+last_vhierarchy_loss}, L2Loss: {last_vl2_loss}"
                 print(progress_info, end='\r')
                 if not calc_metrics:
                     tb_x = epoch_index * num_of_val_batches + eval_counter + 1
@@ -245,7 +245,7 @@ class HmcNetTrainer():
                 print("Predict by PCP-topK:")
                 for top_num in range(self.args.topK):
                     print("Top{0}: PCP-Precision {1:g}, PCP-Recall {2:g}, PCP-F1 {3:g}".format(top_num+1, eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num], eval_F1_pcp_tk[top_num]))  
-            return eval_loss
+            return last_vglobal_loss+last_vlocal_loss+last_vhierarchy_loss
         
     def unfreeze_backbone(self):
         """
