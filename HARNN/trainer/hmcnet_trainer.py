@@ -117,7 +117,7 @@ class HmcNetTrainer():
             last_local_loss = current_local_loss/(i+1)
             last_hierarchy_loss = current_hierarchy_loss/(i+1)
             last_l2_loss = current_l2_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, GlobalLoss: {last_global_loss}, LocalLoss: {last_local_loss}, HierarchyLoss: {last_hierarchy_loss}"
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, GlobalLoss: {last_global_loss}, LocalLoss: {last_local_loss}, HierarchyLoss: {last_hierarchy_loss}, L2Loss: {last_l2_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
@@ -172,7 +172,7 @@ class HmcNetTrainer():
                     true_onehot_labels_list.append(i)                
                 eval_loss = running_vloss/(eval_counter+1)
                 #progress_info = f'Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}'
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}"
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}, , GlobalLoss: {last_vglobal_loss}, LocalLoss: {last_vlocal_loss}, HierarchyLoss: {last_vhierarchy_loss}, L2Loss: {last_vl2_loss}"
                 print(progress_info, end='\r')
                 if not calc_metrics:
                     tb_x = epoch_index * num_of_val_batches + eval_counter + 1
