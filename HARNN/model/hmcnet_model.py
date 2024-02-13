@@ -34,9 +34,9 @@ class TCCA(nn.Module):
     def __init__(self,input_size,num_classes,attention_unit_size):
         super(TCCA, self).__init__()
         num_channels, spatial_dim = input_size
-        self.W_s1 = nn.Parameter(truncated_normal(size=(attention_unit_size,spatial_dim),std=he_weight_init(spatial_dim)))
+        self.W_s1 = nn.Parameter(truncated_normal(size=(attention_unit_size,num_channels),std=he_weight_init(num_channels)))
         self.W_s2 = nn.Parameter(truncated_normal(size=(num_classes, attention_unit_size),std=he_weight_init(attention_unit_size)))
-        self.layer_norm = nn.LayerNorm([num_classes, spatial_dim])
+        self.layer_norm = nn.LayerNorm([num_classes, num_channels])
     def forward(self,x,omega_h):
         x_transposed = torch.permute(x,(0,2,1))
         attention_matrix = torch.matmul(
@@ -58,10 +58,11 @@ class TCCA(nn.Module):
     
 class CPM(nn.Module):
     """Class Predicting Module"""
-    def __init__(self,spatial_dim,num_classes,fc_hidden_size):
+    def __init__(self,feature_dim,num_classes,fc_hidden_size):
         super(CPM, self).__init__()
-        self.W_t = nn.Parameter(truncated_normal(size=(fc_hidden_size, 2*spatial_dim),std=he_weight_init(2*spatial_dim)))
-        self.b_t = nn.Parameter(torch.ones(fc_hidden_size)*he_weight_init(2*spatial_dim))
+        num_channels, spatial = feature_dim
+        self.W_t = nn.Parameter(truncated_normal(size=(fc_hidden_size, 2*num_channels),std=he_weight_init(2*num_channels)))
+        self.b_t = nn.Parameter(torch.ones(fc_hidden_size)*he_weight_init(2*num_channels))
         self.W_l = nn.Parameter(truncated_normal(size=(num_classes, fc_hidden_size),std=he_weight_init(fc_hidden_size)))
         self.b_l = nn.Parameter(torch.ones(num_classes)*he_weight_init(fc_hidden_size))
     def forward(self,x):
@@ -104,7 +105,7 @@ class HAM(nn.Module):
     def __init__(self,input_size,num_classes,next_num_classes,attention_unit_size,fc_hidden_size):
         super(HAM, self).__init__()
         self.tcca = TCCA(input_size=input_size,num_classes=num_classes,attention_unit_size=attention_unit_size)
-        self.cpm = CPM(num_classes=num_classes, fc_hidden_size=fc_hidden_size,spatial_dim=input_size[1])
+        self.cpm = CPM(num_classes=num_classes, fc_hidden_size=fc_hidden_size,feature_dim=input_size)
         self.cdm = CDM(num_classes=num_classes,next_num_classes=next_num_classes,attention_unit_size=attention_unit_size)
         
         
@@ -263,11 +264,12 @@ class HmcNet(nn.Module):
         feature_extractor_out = self.backbone(x)
         num_channels,spatial_dim1, spatial_dim2 = feature_extractor_out.shape[1:]
         feature_extractor_out = feature_extractor_out.view(-1, num_channels, spatial_dim1 * spatial_dim2)
+        feature_extractor_out_transposed = torch.permute(feature_extractor_out,(0,2,1))
         omega_h = torch.ones(self.num_classes_list[0],self.attention_unit_size).to(self.device)
         local_score_list = []
         local_logit_list = []
         for ham_module in self.ham_modules:
-            local_score, local_logit, omega_h = ham_module(feature_extractor_out,omega_h)
+            local_score, local_logit, omega_h = ham_module(feature_extractor_out_transposed,omega_h)
             local_score_list.append(local_score)
             local_logit_list.append(local_logit)
         local_scores = torch.cat(local_score_list,dim=1)
