@@ -287,18 +287,16 @@ class HmcNet(nn.Module):
     
 # Define Loss for HmcNet.
 class HmcNetLoss(nn.Module):
-    def __init__(self,beta,l2_lambda,model,explicit_hierarchy,device=None):
+    def __init__(self,beta,l2_lambda,explicit_hierarchy,device=None):
         super(HmcNetLoss, self).__init__()
         self.beta = beta
         self.l2_lambda = l2_lambda
-        self.model = model
         self.explicit_hierarchy = explicit_hierarchy
         self.device = device
         
     
-    def forward(self,predictions,targets):
+    def forward(self,x):
         """Calculation of the HmcNet loss."""
-
         def _local_loss(local_scores_list,local_target_list):
             """Calculation of the Local loss."""
             losses = torch.zeros(len(local_scores_list)).to(self.device)
@@ -329,17 +327,17 @@ class HmcNetLoss(nn.Module):
 
         def _l2_loss(model,l2_reg_lambda):
             """Calculation of the L2-Regularization loss."""
-            
             l2_loss = torch.tensor(0.,dtype=torch.float32).to(self.device)
             for param in model.parameters():
                 if param.requires_grad == True:
                     l2_loss += torch.norm(param,p=2)**2
             return torch.tensor(l2_loss*l2_reg_lambda,dtype=torch.float32)
+        predictions, targets, model = x
         local_scores_list,global_logits  = predictions[0], predictions[1]
         local_target, global_target = targets[0], targets[1]
         global_loss = _global_loss(global_logits=global_logits,global_target=global_target)
         local_loss = _local_loss(local_scores_list=local_scores_list,local_target_list=local_target)
-        l2_loss = _l2_loss(model=self.model,l2_reg_lambda=self.l2_lambda)
+        l2_loss = _l2_loss(model=model,l2_reg_lambda=self.l2_lambda)
         hierarchy_loss = _hierarchy_constraint_loss(global_logits=global_logits)
         loss = torch.sum(torch.stack([global_loss,local_loss,l2_loss,hierarchy_loss]))
         return loss, global_loss,local_loss,hierarchy_loss, l2_loss

@@ -75,7 +75,7 @@ def train_hmcnet(args):
     model.eval().to(device)
     
     # Define Loss for HmcNet.
-    criterion = HmcNetLoss(l2_lambda=args.l2_lambda,beta=args.beta,model=model,explicit_hierarchy=explicit_hierarchy,device=device)
+    criterion = HmcNetLoss(l2_lambda=args.l2_lambda,beta=args.beta,explicit_hierarchy=explicit_hierarchy,device=device)
               
     # Define the transformation pipeline for image preprocessing.
     train_transform = transforms.Compose([

@@ -66,6 +66,7 @@ class HmcNetTrainer():
                     print(f'Begin fine tuning model.')
                     avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=True)
                     self.unfreeze_backbone()
+                    best_vloss = 1_000_000.
                     is_fine_tuning = True
                     counter = 0
                     continue
@@ -98,7 +99,8 @@ class HmcNetTrainer():
             # Compute the loss and its gradients
             predictions = (local_scores_list,global_logits)
             targets = (y_local_onehots,y_total_onehot)
-            loss,global_loss,local_loss,hierarchy_loss,l2_loss = self.criterion(predictions=predictions,targets=targets)
+            x = (predictions,targets,self.model)
+            loss,global_loss,local_loss,hierarchy_loss,l2_loss = self.criterion(x)
             loss.backward()
             
             # Clip gradients by global norm
@@ -155,7 +157,8 @@ class HmcNetTrainer():
 
                 # Compute the loss and its gradients
                 predictions, targets = (local_scores_list,global_logits),(y_local_onehots,y_total_onehot)
-                vloss,vglobal_loss,vlocal_loss,vhierarchy_loss,vl2_loss = self.criterion(predictions=predictions,targets=targets)
+                x = (predictions,targets,self.model)
+                vloss,vglobal_loss,vlocal_loss,vhierarchy_loss,vl2_loss = self.criterion(x)
                 current_vglobal_loss += vglobal_loss.item()
                 current_vlocal_loss += vlocal_loss.item()
                 current_vhierarchy_loss += vhierarchy_loss.item()
