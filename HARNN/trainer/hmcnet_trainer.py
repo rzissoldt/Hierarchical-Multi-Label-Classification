@@ -16,6 +16,7 @@ class HmcNetTrainer():
         self.scheduler = scheduler
         self.optimizer = optimizer
         self.device = device
+        self.best_model = None
         self.explicit_hierarchy= explicit_hierarchy
         self.args = args
         self.num_classes_list = num_classes_list
@@ -36,7 +37,6 @@ class HmcNetTrainer():
     def train_and_validate(self):
         counter = 0
         best_epoch = 0
-        best_model = copy.deepcopy(self.model)
         best_vloss = 1_000_000.
         
         is_fine_tuning = False
@@ -52,7 +52,7 @@ class HmcNetTrainer():
             # Track best performance, and save the model's state
             if avg_val_loss < best_vloss:
                 best_epoch = epoch
-                best_model = copy.deepcopy(self.model)
+                self.best_model = copy.deepcopy(self.model)
                 best_vloss = avg_val_loss
                 model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{epoch+1}')
                 counter = 0
@@ -64,7 +64,6 @@ class HmcNetTrainer():
                     print(f'Early stopping triggered and validate best Epoch {best_epoch+1}.')
                     print(f'Begin fine tuning model.')
                     avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=True)
-                    self.model = copy.deepcopy(best_model)
                     self.unfreeze_backbone()
                     best_vloss = 1_000_000.
                     is_fine_tuning = True
@@ -133,7 +132,7 @@ class HmcNetTrainer():
     def validate(self,epoch_index,calc_metrics=False):
         running_vloss = 0.0
         if calc_metrics:
-            self.model = self.best_model
+            self.model = copy.deepcopy(self.best_model)
         current_vglobal_loss = 0.
         current_vlocal_loss = 0.
         current_vhierarchy_loss = 0.
