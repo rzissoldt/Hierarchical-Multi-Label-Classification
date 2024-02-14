@@ -87,6 +87,7 @@ def hmcnet_parameter_parser():
     parser.add_argument("--backbone-layers", type=int, default=1, help="Number of Backbone layers.")
     parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,49), help="Dimensionality of the Feature Output of backbone.")
     parser.add_argument("--attention-dim", type=int, default=200, help="Dimensionality of Attention neurons.")
+    parser.add_argument("--backbone-fc-dim", type=int, default=512, help="Number of Backbone FC Neurons.")
     parser.add_argument("--fc-dim", type=int, default=512, help="Dimensionality for FC neurons.")
     parser.add_argument("--highway-fc-dim", type=int, default=512, help="Dimensionality for Highway FC neurons.")
     parser.add_argument("--highway-num-layers", type=int, default=1, help="Number of layers in the Highway Module.")

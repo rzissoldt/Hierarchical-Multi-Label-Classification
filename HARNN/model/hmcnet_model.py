@@ -33,10 +33,9 @@ class TCCA(nn.Module):
     """TCCA Module"""
     def __init__(self,input_size,num_classes,attention_unit_size):
         super(TCCA, self).__init__()
-        num_channels, spatial_dim = input_size
-        self.W_s1 = nn.Parameter(truncated_normal(size=(attention_unit_size,num_channels),std=he_weight_init(num_channels)))
+        self.W_s1 = nn.Parameter(truncated_normal(size=(attention_unit_size,input_size),std=he_weight_init(input_size)))
         self.W_s2 = nn.Parameter(truncated_normal(size=(num_classes, attention_unit_size),std=he_weight_init(attention_unit_size)))
-        self.layer_norm = nn.LayerNorm([num_classes, num_channels])
+        self.layer_norm = nn.LayerNorm([num_classes, input_size])
     def forward(self,x,omega_h):
         x_transposed = torch.permute(x,(0,2,1))
         attention_matrix = torch.matmul(
@@ -58,11 +57,10 @@ class TCCA(nn.Module):
     
 class CPM(nn.Module):
     """Class Predicting Module"""
-    def __init__(self,feature_dim,num_classes,fc_hidden_size):
+    def __init__(self,input_size,num_classes,fc_hidden_size):
         super(CPM, self).__init__()
-        num_channels, spatial = feature_dim
-        self.W_t = nn.Parameter(truncated_normal(size=(fc_hidden_size, 2*num_channels),std=he_weight_init(2*num_channels)))
-        self.b_t = nn.Parameter(torch.ones(fc_hidden_size)*he_weight_init(2*num_channels))
+        self.W_t = nn.Parameter(truncated_normal(size=(fc_hidden_size, 2*input_size),std=he_weight_init(2*input_size)))
+        self.b_t = nn.Parameter(torch.ones(fc_hidden_size)*he_weight_init(2*input_size))
         self.W_l = nn.Parameter(truncated_normal(size=(num_classes, fc_hidden_size),std=he_weight_init(fc_hidden_size)))
         self.b_l = nn.Parameter(torch.ones(num_classes)*he_weight_init(fc_hidden_size))
     def forward(self,x):
@@ -105,7 +103,7 @@ class HAM(nn.Module):
     def __init__(self,input_size,num_classes,next_num_classes,attention_unit_size,fc_hidden_size):
         super(HAM, self).__init__()
         self.tcca = TCCA(input_size=input_size,num_classes=num_classes,attention_unit_size=attention_unit_size)
-        self.cpm = CPM(num_classes=num_classes, fc_hidden_size=fc_hidden_size,feature_dim=input_size)
+        self.cpm = CPM(num_classes=num_classes, fc_hidden_size=fc_hidden_size,input_size=input_size)
         self.cdm = CDM(num_classes=num_classes,next_num_classes=next_num_classes,attention_unit_size=attention_unit_size)
         
         
@@ -123,19 +121,7 @@ class HAM(nn.Module):
                 f'\nCPM Module: {self.cpm.__repr__()}'
                 f'\nCDM Module: {self.cdm.__repr__()}')
 
-class EntityRepresentationModule(nn.Module):
-    def __init__(self,input_size,backbone_hidden_size):
-        super(EntityRepresentationModule,self).__init__()
-        self.enhance_embedding_weights = nn.Parameter(truncated_normal(size=(input_size, input_size*backbone_hidden_size),std=he_weight_init(input_size*backbone_hidden_size)))
-        self.enhance_embedding_bias = nn.Parameter(torch.ones(input_size)*he_weight_init(input_size))
-        self.input_size = input_size
-        self.backbone_hidden_size = backbone_hidden_size
-    def forward(self,x):
-        fc = F.linear(x,self.enhance_embedding_weights,self.enhance_embedding_bias)
-        fc_out = F.relu(fc)
-        output_embedding = fc_out.view(self.backbone_hidden_size, self.input_size)
-        return output_embedding
-    
+        
 class HybridPredictingModule(nn.Module):
     def __init__(self,fc_hidden_size,total_classes,dropout_keep_prob,alpha):
         super(HybridPredictingModule,self).__init__()
@@ -232,10 +218,11 @@ class HighwayLayer(nn.Module):
         
 class HmcNet(nn.Module):
     """A HARNN for image classification."""
-    def __init__(self,feature_dim,attention_unit_size,highway_fc_hidden_size,highway_num_layers,fc_hidden_size, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
+    def __init__(self,feature_dim,attention_unit_size,backbone_fc_hidden_size,highway_fc_hidden_size,highway_num_layers,fc_hidden_size, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
         super(HmcNet,self).__init__()
         resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
         self.backbone = nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
+        self.backbone_fc_layer = nn.Linear(in_features=feature_dim[0],out_features=backbone_fc_hidden_size)
         #self.entity_representation_module = EntityRepresentationModule(backbone_hidden_size=backbone_hidden_size,input_size=feature_dim[0])
         self.ham_modules = nn.ModuleList()
         self.feature_dim = feature_dim
@@ -254,9 +241,9 @@ class HmcNet(nn.Module):
         for i in range(len(num_classes_list)):
             if i == len(num_classes_list)-1:
                 #If its the last HAM Module, the last omega_h of CDM ist not needed.
-                self.ham_modules.append(HAM(input_size=feature_dim,num_classes=num_classes_list[i],next_num_classes=None,attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
+                self.ham_modules.append(HAM(input_size=backbone_fc_hidden_size,num_classes=num_classes_list[i],next_num_classes=None,attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
                 break
-            self.ham_modules.append(HAM(input_size=feature_dim,num_classes=num_classes_list[i],next_num_classes=num_classes_list[i+1],attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
+            self.ham_modules.append(HAM(input_size=backbone_fc_hidden_size,num_classes=num_classes_list[i],next_num_classes=num_classes_list[i+1],attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
         
         self.hybrid_predicting_module = HybridPredictingModuleHighway(fc_hidden_size=fc_hidden_size,highway_fc_hidden_size=highway_fc_hidden_size,num_layers=len(num_classes_list),highway_num_layers=highway_num_layers,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha)
         
@@ -264,7 +251,10 @@ class HmcNet(nn.Module):
         feature_extractor_out = self.backbone(x)
         num_channels,spatial_dim1, spatial_dim2 = feature_extractor_out.shape[1:]
         feature_extractor_out = feature_extractor_out.view(-1, num_channels, spatial_dim1 * spatial_dim2)
-        feature_extractor_out_transposed = torch.permute(feature_extractor_out,(0,2,1))
+        feature_extractor_out = torch.squeeze(feature_extractor_out,dim=2)
+        fc_feature_out = self.backbone_fc_layer(feature_extractor_out)
+        fc_feature_out = torch.unsqueeze(fc_feature_out,dim=2)
+        feature_extractor_out_transposed = torch.permute(fc_feature_out,(0,2,1))
         omega_h = torch.ones(self.num_classes_list[0],self.attention_unit_size).to(self.device)
         local_score_list = []
         local_logit_list = []
