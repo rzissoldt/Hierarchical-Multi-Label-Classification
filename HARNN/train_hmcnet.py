@@ -125,6 +125,7 @@ def get_random_hyperparameter(base_args):
     fc_dim = random.choice([128,256])
     highway_fc_dim = random.choice([128])
     highway_num_layers = random.choice([1,2])
+    backbone_fc_dim = random.choice([128,256,512])
     batch_size = random.choice([128,256])
     learning_rate = random.choice([0.001])
     optimizer = random.choice(['adam'])
@@ -133,10 +134,12 @@ def get_random_hyperparameter(base_args):
           f'FC-Dim: {fc_dim}\n'
           f'Highway-FC-Dim: {highway_fc_dim}\n'
           f'Highway-Num-Layers: {highway_num_layers}\n'
+          f'Backbone-FC-Dim: {backbone_fc_dim}\n'
           f'Batch-Size: {batch_size}\n'
           f'Learning Rate: {learning_rate}\n'
           f'Optimizer: {optimizer}\n')
     base_args.attention_dim = attention_dim
+    base_args.backbone_fc_dim = backbone_fc_dim
     base_args.fc_dim = fc_dim
     base_args.highway_fc_dim = highway_fc_dim
     base_args.highway_num_layers = highway_num_layers
