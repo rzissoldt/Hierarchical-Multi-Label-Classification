@@ -121,11 +121,11 @@ def train_hmcnet(args):
 
 
 def get_random_hyperparameter(base_args):
-    attention_dim = random.choice([200,400,800])
-    fc_dim = random.choice([256,512,1024,2028])
-    highway_fc_dim = random.choice([128,256,512])
-    highway_num_layers = random.choice([1])
-    batch_size = random.choice([64,128])
+    attention_dim = random.choice([100,200])
+    fc_dim = random.choice([128,256])
+    highway_fc_dim = random.choice([128])
+    highway_num_layers = random.choice([1,2])
+    batch_size = random.choice([128,256])
     learning_rate = random.choice([0.001])
     optimizer = random.choice(['adam'])
     
