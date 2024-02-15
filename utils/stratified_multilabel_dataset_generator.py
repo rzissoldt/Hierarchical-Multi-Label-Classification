@@ -31,7 +31,7 @@ def generate_train_and_validation_dataset(image_dict_file_path,xtree_file_path, 
     for file_path, value in image_dict.items():
         decoded_file_path = unquote(file_path)  # Decode file path
         basename = os.path.basename(decoded_file_path)
-        #basename = basename.replace(' ','_')
+        basename = basename.replace(' ','_')
         
         if basename in image_dir_set:
             
