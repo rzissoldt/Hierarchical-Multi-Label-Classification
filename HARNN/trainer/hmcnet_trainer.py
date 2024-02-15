@@ -79,53 +79,51 @@ class HmcNetTrainer():
         is_fine_tuning = False
         mskf = MultilabelStratifiedKFold(n_splits=k_folds,shuffle=True,random_state=42)
         X = [image_tuple[0] for image_tuple in self.data_loader.dataset.image_label_tuple_list]
-        y = [image_tuple[1] for image_tuple in self.data_loader.dataset.image_label_tuple_list]
-        y = np.stack([tensor.numpy() for tensor in y])
-        for fold, (train_index, val_index) in enumerate(mskf.split(X, y)):
-            
-            train_dataset = torch.utils.data.Subset(self.data_loader.dataset, train_index)
-            val_dataset = torch.utils.data.Subset(self.data_loader.dataset, val_index)
-            val_dataset.dataset.is_training = False
-            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True)
-            val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False)
-
-            print(f"Fold {fold + 1}/{k_folds}:")
-            for epoch in range(self.args.epochs):
-
-                avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
-                calc_metrics = epoch == self.args.epochs-1
-                avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=calc_metrics)
+        y = np.stack([image_tuple[1].numpy() for image_tuple in self.data_loader.dataset.image_label_tuple_list])
+        for epoch in range(self.args.epochs):
+            for fold, (train_index, val_index) in enumerate(mskf.split(X, y)):
+                train_dataset = torch.utils.data.Subset(self.data_loader.dataset, train_index)
+                val_dataset = torch.utils.data.Subset(self.data_loader.dataset, val_index)
+                val_dataset.dataset.is_training = False
+                train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True)
+                val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False)
+    
+                print(f"Epoch {epoch + 1}/{self.args.epochs}, Fold {fold + 1}/{k_folds}:")
+                avg_train_loss = self.train(epoch_index=epoch, data_loader=train_loader)
+                calc_metrics = epoch == self.args.epochs - 1
+                avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=calc_metrics)
                 self.tb_writer.flush()
                 print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
-                # Decay Learningrate if Step Count is reached
-                if epoch % self.args.decay_steps == self.args.decay_steps-1:
+    
+                # Decay Learning rate if Step Count is reached
+                if epoch % self.args.decay_steps == self.args.decay_steps - 1:
                     self.scheduler.step()
+    
                 # Track best performance, and save the model's state
                 if avg_val_loss < best_vloss:
                     best_epoch = epoch
                     self.best_model = copy.deepcopy(self.model)
                     best_vloss = avg_val_loss
-                    model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{epoch+1}')
-                    counter = 0
+                    model_path = os.path.join(self.path_to_model, 'models', f'hmcnet_{epoch+1}')
                     os.makedirs(os.path.dirname(model_path), exist_ok=True)
                     torch.save(self.model.state_dict(), model_path)
                 else:
                     counter += 1
                     if counter >= self.args.early_stopping_patience and not is_fine_tuning:
-                        print(f'Early stopping triggered and validate best Epoch {best_epoch+1}.')
-                        print(f'Begin fine tuning model.')
-                        avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=True)
+                        print(f'Early stopping triggered and validate best Epoch {best_epoch + 1}.')
+                        print(f'Begin fine-tuning model.')
+                        avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=True)
                         self.unfreeze_backbone()
                         best_vloss = 1_000_000.
                         is_fine_tuning = True
                         counter = 0
                         continue
                     if counter >= self.args.early_stopping_patience and is_fine_tuning:
-                        print(f'Early stopping triggered in fine tuning Phase. {best_epoch+1} was the best Epoch.')
-                        print(f'Validate fine tuned Model.')
-                        avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=True)
+                        print(f'Early stopping triggered in fine-tuning Phase. {best_epoch + 1} was the best Epoch.')
+                        print(f'Validate fine-tuned Model.')
+                        avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=True)
                         break
-    
+                    
     def train(self,epoch_index):
         current_loss = 0.
         current_global_loss = 0.
