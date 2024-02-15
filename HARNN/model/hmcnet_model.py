@@ -223,6 +223,7 @@ class HmcNet(nn.Module):
         resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
         self.backbone = nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
         self.backbone_fc_layer = nn.Linear(in_features=feature_dim[0],out_features=backbone_fc_hidden_size)
+        self.backbone_activation = nn.ReLU()
         #self.entity_representation_module = EntityRepresentationModule(backbone_hidden_size=backbone_hidden_size,input_size=feature_dim[0])
         self.ham_modules = nn.ModuleList()
         self.feature_dim = feature_dim
@@ -253,6 +254,7 @@ class HmcNet(nn.Module):
         feature_extractor_out = feature_extractor_out.view(-1, num_channels, spatial_dim1 * spatial_dim2)
         feature_extractor_out = torch.squeeze(feature_extractor_out,dim=2)
         fc_feature_out = self.backbone_fc_layer(feature_extractor_out)
+        fc_feature_out = self.backbone_activation(fc_feature_out)
         fc_feature_out = torch.unsqueeze(fc_feature_out,dim=2)
         feature_extractor_out_transposed = torch.permute(fc_feature_out,(0,2,1))
         omega_h = torch.ones(self.num_classes_list[0],self.attention_unit_size).to(self.device)
