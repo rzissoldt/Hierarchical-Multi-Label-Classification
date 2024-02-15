@@ -77,28 +77,10 @@ def train_hmcnet(args):
     # Define Loss for HmcNet.
     criterion = HmcNetLoss(l2_lambda=args.l2_lambda,beta=args.beta,explicit_hierarchy=explicit_hierarchy,device=device)
               
-    # Define the transformation pipeline for image preprocessing.
-    train_transform = transforms.Compose([
-        transforms.Resize((256, 256)),                    
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2), 
-        transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1), shear=10), 
-        transforms.RandomHorizontalFlip(),                 
-        transforms.RandomRotation(degrees=30),            
-        transforms.CenterCrop(224),                        
-        transforms.ToTensor(),                             
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],   
-                         std=[0.229, 0.224, 0.225])
-    ])
-    validation_transform = transforms.Compose([
-        transforms.Resize((256, 256)),                    
-        transforms.CenterCrop(224),                       
-        transforms.ToTensor(),                             
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],  
-                         std=[0.229, 0.224, 0.225])
-    ])
+    
     
     # Create Training and Validation Dataset
-    training_dataset = HmcNetDataset(args.train_file, args.hierarchy_file, image_dir,transform=train_transform)
+    training_dataset = HmcNetDataset(args.train_file, args.hierarchy_file, image_dir)
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
@@ -108,14 +90,14 @@ def train_hmcnet(args):
     
     
     # Define Trainer for HmcNet
-    trainer = HmcNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,validation_dataset=validation_dataset,path_to_model=path_to_model,explicit_hierarchy=explicit_hierarchy,args=args,device=device,num_classes_list=num_classes_list)
+    trainer = HmcNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,explicit_hierarchy=explicit_hierarchy,args=args,device=device,num_classes_list=num_classes_list)
     
     # Save Model ConfigParameters
     args_dict = vars(args)
     with open(os.path.join(path_to_model,'model_config.json'),'w') as json_file:
         json.dump(args_dict, json_file,indent=4)
     
-    trainer.train_and_validate()
+    trainer.train_and_validate_k_crossfold(k_folds=args.k_folds)
 
 
 

@@ -4,8 +4,8 @@ import sys, os
 import numpy as np
 sys.path.append('../')
 from utils import data_helpers as dh
-from torcheval.metrics.functional import multiclass_auprc,multiclass_precision,multiclass_recall,multiclass_f1_score
-from torcheval.metrics.functional import multiclass_auroc
+from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit,MultilabelStratifiedKFold
+
 from torchmetrics import AUROC, AveragePrecision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -27,17 +27,14 @@ class HmcNetTrainer():
             torch.multiprocessing.set_sharing_strategy(sharing_strategy)
         # Create Dataloader for Training and Validation Dataset
         kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': args.pin_memory} if self.args.gpu else {}
-        self.training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)  
+        self.data_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)  
         print(f'Total Classes: {sum(num_classes_list)}')
         print(f'Num Classes List: {num_classes_list}')
-        print(f'Training Dataset Size {len(self.training_loader)}')
-        print(f'Validation Dataset Size {len(self.validation_loader)}')
     
     def train_and_validate(self):
         counter = 0
         best_epoch = 0
         best_vloss = 1_000_000.
-        
         is_fine_tuning = False
         for epoch in range(self.args.epochs):
             avg_train_loss = self.train(epoch_index=epoch)
@@ -73,6 +70,62 @@ class HmcNetTrainer():
                     print(f'Validate fine tuned Model.')
                     avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=True)
                     break
+    
+    def train_and_validate_k_crossfold(self,k_folds=5):
+        counter = 0
+        best_epoch = 0
+        best_vloss = 1_000_000.
+        
+        is_fine_tuning = False
+        mskf = MultilabelStratifiedKFold(n_splits=k_folds,shuffle=True,random_state=42)
+        X = [image_tuple[0] for image_tuple in self.data_loader.dataset.image_label_tuple_list]
+        y = [image_tuple[1] for image_tuple in self.data_loader.dataset.image_label_tuple_list]
+        y = np.stack([tensor.numpy() for tensor in y])
+        for fold, (train_index, val_index) in enumerate(mskf.split(X, y)):
+            
+            train_dataset = torch.utils.data.Subset(self.data_loader.dataset, train_index)
+            val_dataset = torch.utils.data.Subset(self.data_loader.dataset, val_index)
+            val_dataset.dataset.is_training = False
+            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True)
+            val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False)
+
+            print(f"Fold {fold + 1}/{k_folds}:")
+            for epoch in range(self.args.epochs):
+
+                avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
+                calc_metrics = epoch == self.args.epochs-1
+                avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=calc_metrics)
+                self.tb_writer.flush()
+                print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
+                # Decay Learningrate if Step Count is reached
+                if epoch % self.args.decay_steps == self.args.decay_steps-1:
+                    self.scheduler.step()
+                # Track best performance, and save the model's state
+                if avg_val_loss < best_vloss:
+                    best_epoch = epoch
+                    self.best_model = copy.deepcopy(self.model)
+                    best_vloss = avg_val_loss
+                    model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{epoch+1}')
+                    counter = 0
+                    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+                    torch.save(self.model.state_dict(), model_path)
+                else:
+                    counter += 1
+                    if counter >= self.args.early_stopping_patience and not is_fine_tuning:
+                        print(f'Early stopping triggered and validate best Epoch {best_epoch+1}.')
+                        print(f'Begin fine tuning model.')
+                        avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=True)
+                        self.unfreeze_backbone()
+                        best_vloss = 1_000_000.
+                        is_fine_tuning = True
+                        counter = 0
+                        continue
+                    if counter >= self.args.early_stopping_patience and is_fine_tuning:
+                        print(f'Early stopping triggered in fine tuning Phase. {best_epoch+1} was the best Epoch.')
+                        print(f'Validate fine tuned Model.')
+                        avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=True)
+                        break
+    
     def train(self,epoch_index):
         current_loss = 0.
         current_global_loss = 0.
@@ -128,7 +181,62 @@ class HmcNetTrainer():
         print('\n')
         return last_global_loss+last_local_loss+last_hierarchy_loss
     
-    def validate(self,epoch_index,calc_metrics=False):
+    def train(self,epoch_index,data_loader):
+        current_loss = 0.
+        current_global_loss = 0.
+        current_local_loss = 0.
+        current_hierarchy_loss = 0.
+        current_l2_loss = 0.
+        last_loss = 0.
+        self.model.train(True)
+        num_of_train_batches = len(data_loader)
+        for i, data in enumerate(data_loader):
+            # Every data instance is an input + label pair
+            inputs, labels = copy.deepcopy(data)
+            inputs = inputs.to(self.device)
+            y_total_onehot = labels[0].to(self.device)
+            y_local_onehots = [label.to(self.device) for label in labels[1:]]
+            # Zero your gradients for every batch!
+            self.optimizer.zero_grad()
+
+            # Make predictions for this batch
+            _, local_scores_list, global_logits = self.model(inputs)
+
+            # Compute the loss and its gradients
+            predictions = (local_scores_list,global_logits)
+            targets = (y_local_onehots,y_total_onehot)
+            x = (predictions,targets,self.model)
+            loss,global_loss,local_loss,hierarchy_loss,l2_loss = self.criterion(x)
+            loss.backward()
+            
+            # Clip gradients by global norm
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
+            
+            # Adjust learning weights
+            self.optimizer.step()
+            # Gather data and report
+            current_loss += loss.item()
+            current_global_loss += global_loss.item()
+            current_local_loss += local_loss.item()
+            current_hierarchy_loss += hierarchy_loss.item()
+            current_l2_loss += l2_loss.item()
+            last_loss = current_loss/(i+1)
+            last_global_loss = current_global_loss/(i+1)
+            last_local_loss = current_local_loss/(i+1)
+            last_hierarchy_loss = current_hierarchy_loss/(i+1)
+            last_l2_loss = current_l2_loss/(i+1)
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_global_loss+last_local_loss+last_hierarchy_loss}, L2Loss: {last_l2_loss}"
+            print(progress_info, end='\r')
+            tb_x = epoch_index * num_of_train_batches + i + 1
+            self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
+            self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
+            self.tb_writer.add_scalar('Training/LocalLoss', last_local_loss, tb_x)
+            self.tb_writer.add_scalar('Training/HierarchyLoss', last_hierarchy_loss, tb_x)
+            self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
+        print('\n')
+        return last_global_loss+last_local_loss+last_hierarchy_loss
+    
+    def validate(self,epoch_index,data_loader,calc_metrics=False):
         running_vloss = 0.0
         if calc_metrics:
             self.model = copy.deepcopy(self.best_model)
@@ -140,12 +248,12 @@ class HmcNetTrainer():
         # statistics for batch normalization.
         self.model.eval()
         eval_counter, eval_loss = 0, 0.0
-        num_of_val_batches = len(self.validation_loader)
+        num_of_val_batches = len(data_loader)
         scores_list = []
         true_onehot_labels_list = []
         # Disable gradient computation and reduce memory consumption.
         with torch.no_grad():
-            for i, vdata in enumerate(self.validation_loader):
+            for i, vdata in enumerate(data_loader):
                 vinputs, vlabels = copy.deepcopy(vdata)
                 vinputs = vinputs.to(self.device)
                 y_total_onehot = vlabels[0].to(self.device)

@@ -75,7 +75,6 @@ def hmcnet_parameter_parser():
     # Data Parameters
     parser.add_argument("--dataset-name", nargs="?", default="einrichtungsgegenstand", help="Name of the Dataset.")
     parser.add_argument("--train-file", nargs="?", default="../data/Train_sample.json", help="Training data.")
-    parser.add_argument("--validation-file", nargs="?", default="../data/Validation_sample.json", help="Validation data.")
     parser.add_argument("--test-file", nargs="?", default="../data/Test_sample.json", help="Testing data.")
     parser.add_argument("--hierarchy-file", nargs="?", default="../data/image_harnn/bauwerke", help="Hierarchy data.")
     parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
@@ -102,6 +101,7 @@ def hmcnet_parameter_parser():
     # Training Parameters
     parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
     parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
+    parser.add_argument("--k-folds", type=int, default=5, help="Count of K-Folds for Stratified Crossvalidation.")
     parser.add_argument("--gpu", type=bool_argument, default=True, help="GPU-Support active or not")
     parser.add_argument("--optimizer",default="adam", help="Select between SGD or Adam.")
     parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs.")
