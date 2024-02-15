@@ -85,20 +85,24 @@ class HmcNetTrainer():
                 train_dataset = torch.utils.data.Subset(self.data_loader.dataset, train_index)
                 val_dataset = torch.utils.data.Subset(self.data_loader.dataset, val_index)
                 val_dataset.dataset.is_training = False
-                train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True)
-                val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False)
-    
+                def set_worker_sharing_strategy(worker_id: int):
+                    torch.multiprocessing.set_sharing_strategy("file_system")
+                # Create Dataloader for Training and Validation Dataset
+                kwargs = {'num_workers': self.args.num_workers_dataloader, 'pin_memory': self.args.pin_memory} if self.args.gpu else {}
+                train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
+                val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
+
                 print(f"Epoch {epoch + 1}/{self.args.epochs}, Fold {fold + 1}/{k_folds}:")
                 avg_train_loss = self.train(epoch_index=epoch, data_loader=train_loader)
                 calc_metrics = epoch == self.args.epochs - 1
                 avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=calc_metrics)
                 self.tb_writer.flush()
                 print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
-    
+
                 # Decay Learning rate if Step Count is reached
                 if epoch % self.args.decay_steps == self.args.decay_steps - 1:
                     self.scheduler.step()
-    
+
                 # Track best performance, and save the model's state
                 if avg_val_loss < best_vloss:
                     best_epoch = epoch
