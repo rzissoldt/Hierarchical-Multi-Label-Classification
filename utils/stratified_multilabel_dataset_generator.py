@@ -5,6 +5,20 @@ from xtree_utils import load_xtree_json,find_all_paths, get_id_paths
 from sklearn.model_selection import train_test_split
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold,MultilabelStratifiedShuffleSplit
 import numpy as np
+
+def get_suffix_from_last_underscore(string):
+    # Find the index of the last underscore in the string
+    last_underscore_index = string.rfind('_')
+
+    # If there is no underscore in the string or it's at the end, return an empty string
+    if last_underscore_index == -1 or last_underscore_index == len(string) - 1:
+        return ""
+
+    # Extract the suffix starting from the character after the last underscore
+    suffix = string[last_underscore_index + 1:]
+
+    return suffix
+
 def generate_train_and_validation_dataset(image_dict_file_path,xtree_file_path, output_path, image_dir=None):
     if image_dir is None:
         print('image_dir is not defined.')
@@ -87,7 +101,7 @@ def generate_train_and_validation_dataset(image_dict_file_path,xtree_file_path, 
         for index in indices_of_ones:
             for key,value in label_dict.items():
                 if value == index:
-                    temp_labels.append(key)
+                    temp_labels.append(get_suffix_from_last_underscore(key))
         y_train_labels.append(temp_labels)
     
     for y_test_one_hot in y_test_whole:
@@ -96,7 +110,7 @@ def generate_train_and_validation_dataset(image_dict_file_path,xtree_file_path, 
         for index in indices_of_ones:
             for key,value in label_dict.items():
                 if value == index:
-                    temp_labels.append(key)
+                    temp_labels.append(get_suffix_from_last_underscore(key))
         y_test_labels.append(temp_labels)
     
     print(len(X_train_whole))

@@ -10,7 +10,7 @@ from torchmetrics import AUROC, AveragePrecision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 class HmcNetTrainer():
-    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,validation_dataset,explicit_hierarchy,num_classes_list,path_to_model,args,device=None):
+    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,explicit_hierarchy,num_classes_list,path_to_model,args,device=None):
         self.model = model
         self.criterion = criterion
         self.scheduler = scheduler
@@ -27,8 +27,7 @@ class HmcNetTrainer():
             torch.multiprocessing.set_sharing_strategy(sharing_strategy)
         # Create Dataloader for Training and Validation Dataset
         kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': args.pin_memory} if self.args.gpu else {}
-        self.training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
-        self.validation_loader = DataLoader(validation_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)  
+        self.training_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)  
         print(f'Total Classes: {sum(num_classes_list)}')
         print(f'Num Classes List: {num_classes_list}')
         print(f'Training Dataset Size {len(self.training_loader)}')

@@ -62,6 +62,34 @@ class HmcNetDataset(Dataset):
         return pil_image, labels
 
     
+    def _find_labels_in_hierarchy_dicts_old(self,labels):
+        for label in labels:
+            label_dict = {}
+            labels_index = []
+            level = 0
+            for dict in self.hierarchy_dicts:
+                labels_index = []
+                label_dict['layer-{0}'.format(level)] = []
+                level +=1
+            level = 0
+            for dict in self.hierarchy_dicts:
+                labels_index = []
+                for key in dict.keys():
+                    if key.endswith(label):
+                        labels_index.append(dict[key])
+                        temp_labels = key.split('_')
+                        for i in range(len(temp_labels)-2,0,-1):
+                            temp_key = '_'.join(temp_labels[:i+1])
+                            temp_dict = self.hierarchy_dicts[i-1]
+                            temp_label = temp_dict[temp_key]
+                            label_dict['layer-{0}'.format(i-1)].append(temp_label)
+                            
+                        
+                label_dict['layer-{0}'.format(level)].extend(labels_index)
+                level+=1
+        
+        return label_dict
+    
     def _find_labels_in_hierarchy_dicts(self,labels):
         for label in labels:
             label_dict = {}

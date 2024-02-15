@@ -99,7 +99,6 @@ def train_hmcnet(args):
     
     # Create Training and Validation Dataset
     training_dataset = HmcNetDataset(args.train_file, args.hierarchy_file, image_dir,transform=train_transform)
-    validation_dataset = HmcNetDataset(args.validation_file, args.hierarchy_file, image_dir,transform=validation_transform)
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
