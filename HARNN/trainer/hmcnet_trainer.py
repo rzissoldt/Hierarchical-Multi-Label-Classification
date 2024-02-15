@@ -75,12 +75,12 @@ class HmcNetTrainer():
         counter = 0
         best_epoch = 0
         best_vloss = 1_000_000.
-        
+        epoch = 0
         is_fine_tuning = False
         mskf = MultilabelStratifiedKFold(n_splits=k_folds,shuffle=True,random_state=42)
         X = [image_tuple[0] for image_tuple in self.data_loader.dataset.image_label_tuple_list]
         y = np.stack([image_tuple[1].numpy() for image_tuple in self.data_loader.dataset.image_label_tuple_list])
-        for epoch in range(self.args.epochs):
+        while epoch < self.args.epochs:
             for fold, (train_index, val_index) in enumerate(mskf.split(X, y)):
                 train_dataset = torch.utils.data.Subset(self.data_loader.dataset, train_index)
                 val_dataset = torch.utils.data.Subset(self.data_loader.dataset, val_index)
@@ -98,7 +98,7 @@ class HmcNetTrainer():
                 avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=calc_metrics)
                 self.tb_writer.flush()
                 print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
-
+                epoch+=1
                 # Decay Learning rate if Step Count is reached
                 if epoch % self.args.decay_steps == self.args.decay_steps - 1:
                     self.scheduler.step()
