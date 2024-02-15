@@ -115,4 +115,4 @@ def generate_train_and_validation_dataset(image_dict_file_path,xtree_file_path, 
     
     
         
-generate_train_and_validation_dataset(image_dict_file_path='../data/image_harnn/fahrzeug/Fahrzeug_image_list.json',xtree_file_path='../data/image_harnn/fahrzeug/Fahrzeug_tree_final.json', output_path='../data/image_harnn/fahrzeug/',image_dir='~/workspace/downloaded_images/')
+generate_train_and_validation_dataset(image_dict_file_path='../data/image_harnn/fahrzeug/Fahrzeug_image_list.json',xtree_file_path='../data/image_harnn/fahrzeug/Fahrzeug_tree_final.json', output_path='../data/image_harnn/fahrzeug/',image_dir='/home/users/zissoldt/workspace/downloaded_images/')
