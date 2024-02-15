@@ -35,6 +35,19 @@ class xTreeEncoder(json.JSONEncoder):
     def default(self, o):
         return o.__dict__
 
+def find_all_paths(root):
+    paths = []
+
+    def _dfs(node, path):
+        path.append(node.id)
+        paths.append(path[:])  # Append a copy of the path
+        for child in node.nodes:
+            _dfs(child, path[:])  # Start a new path at each child node
+
+    _dfs(root, [])
+    return paths
+    
+
 def count_leaf_nodes(root):
     """
     Counts the number of leaf nodes in the tree.
