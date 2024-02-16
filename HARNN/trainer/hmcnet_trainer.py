@@ -36,10 +36,26 @@ class HmcNetTrainer():
         best_epoch = 0
         best_vloss = 1_000_000.
         is_fine_tuning = False
+         # Generate one MultiLabelStratifiedShuffleSplit for normal Training.
+        train_loader,val_loader = None,None
+        
+        msss = MultilabelStratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=0)
+        X = [image_tuple[0] for image_tuple in self.data_loader.dataset.image_label_tuple_list] 
+        y = np.stack([image_tuple[1].numpy() for image_tuple in self.data_loader.dataset.image_label_tuple_list])
+        for train_index, val_index in msss.split(X, y):
+            train_dataset = torch.utils.data.Subset(self.data_loader.dataset, train_index)
+            val_dataset = torch.utils.data.Subset(self.data_loader.dataset, val_index)
+            val_dataset.dataset.is_training = False
+            def set_worker_sharing_strategy(worker_id: int):
+                torch.multiprocessing.set_sharing_strategy("file_system")
+            # Create Dataloader for Training and Validation Dataset
+            kwargs = {'num_workers': self.args.num_workers_dataloader, 'pin_memory': self.args.pin_memory} if self.args.gpu else {}
+            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
+            val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
         for epoch in range(self.args.epochs):
-            avg_train_loss = self.train(epoch_index=epoch)
+            avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
             calc_metrics = epoch == self.args.epochs-1
-            avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=calc_metrics)
+            avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=calc_metrics)
             self.tb_writer.flush()
             print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
             # Decay Learningrate if Step Count is reached
@@ -59,7 +75,7 @@ class HmcNetTrainer():
                 if counter >= self.args.early_stopping_patience and not is_fine_tuning:
                     print(f'Early stopping triggered and validate best Epoch {best_epoch+1}.')
                     print(f'Begin fine tuning model.')
-                    avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=True)
+                    avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=True)
                     self.unfreeze_backbone()
                     best_vloss = 1_000_000.
                     is_fine_tuning = True
@@ -68,7 +84,7 @@ class HmcNetTrainer():
                 if counter >= self.args.early_stopping_patience and is_fine_tuning:
                     print(f'Early stopping triggered in fine tuning Phase. {best_epoch+1} was the best Epoch.')
                     print(f'Validate fine tuned Model.')
-                    avg_val_loss = self.validate(epoch_index=epoch,calc_metrics=True)
+                    avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=True)
                     break
     
     def train_and_validate_k_crossfold(self,k_folds=5):
@@ -129,62 +145,7 @@ class HmcNetTrainer():
                         avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=True)
                         is_finished = True
                         break
-                    
-    def train(self,epoch_index):
-        current_loss = 0.
-        current_global_loss = 0.
-        current_local_loss = 0.
-        current_hierarchy_loss = 0.
-        current_l2_loss = 0.
-        last_loss = 0.
-        self.model.train(True)
-        num_of_train_batches = len(self.training_loader)
-        for i, data in enumerate(self.training_loader):
-            # Every data instance is an input + label pair
-            inputs, labels = copy.deepcopy(data)
-            inputs = inputs.to(self.device)
-            y_total_onehot = labels[0].to(self.device)
-            y_local_onehots = [label.to(self.device) for label in labels[1:]]
-            # Zero your gradients for every batch!
-            self.optimizer.zero_grad()
-
-            # Make predictions for this batch
-            _, local_scores_list, global_logits = self.model(inputs)
-
-            # Compute the loss and its gradients
-            predictions = (local_scores_list,global_logits)
-            targets = (y_local_onehots,y_total_onehot)
-            x = (predictions,targets,self.model)
-            loss,global_loss,local_loss,hierarchy_loss,l2_loss = self.criterion(x)
-            loss.backward()
-            
-            # Clip gradients by global norm
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
-            
-            # Adjust learning weights
-            self.optimizer.step()
-            # Gather data and report
-            current_loss += loss.item()
-            current_global_loss += global_loss.item()
-            current_local_loss += local_loss.item()
-            current_hierarchy_loss += hierarchy_loss.item()
-            current_l2_loss += l2_loss.item()
-            last_loss = current_loss/(i+1)
-            last_global_loss = current_global_loss/(i+1)
-            last_local_loss = current_local_loss/(i+1)
-            last_hierarchy_loss = current_hierarchy_loss/(i+1)
-            last_l2_loss = current_l2_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_global_loss+last_local_loss+last_hierarchy_loss}, L2Loss: {last_l2_loss}"
-            print(progress_info, end='\r')
-            tb_x = epoch_index * num_of_train_batches + i + 1
-            self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
-            self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
-            self.tb_writer.add_scalar('Training/LocalLoss', last_local_loss, tb_x)
-            self.tb_writer.add_scalar('Training/HierarchyLoss', last_hierarchy_loss, tb_x)
-            self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
-        print('\n')
-        return last_global_loss+last_local_loss+last_hierarchy_loss
-    
+                        
     def train(self,epoch_index,data_loader):
         current_loss = 0.
         current_global_loss = 0.
