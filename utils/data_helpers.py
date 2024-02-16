@@ -554,16 +554,6 @@ def load_word2vec_matrix(word2vec_file):
 def get_num_classes_from_hierarchy(hierarchy_dicts):
         return [len(hierarchy_dict.keys()) for hierarchy_dict in hierarchy_dicts]
 
-
-
-    
-        
-        
-    
-    
-    
-    
-
 def load_image_data_and_labels(input_file, hierarchy_dicts):
     """
     Load the wnk data from files, with images, generate one-hot labels via hierarchy.
