@@ -332,7 +332,7 @@ class HmcNetTrainer():
         
         optimizer_dict = self.optimizer.param_groups[0]
         
-        param_groups = [copy.deepcopy(optimizer_dict) for i in range(4)]
+        param_groups = [copy.deepcopy(optimizer_dict) for i in range(5)]
         # Get the parameters of the model
         backbone_model_params = list(self.model.backbone.parameters())
 
