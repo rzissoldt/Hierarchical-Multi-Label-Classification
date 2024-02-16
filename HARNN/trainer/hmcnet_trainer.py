@@ -77,10 +77,11 @@ class HmcNetTrainer():
         best_vloss = 1_000_000.
         epoch = 0
         is_fine_tuning = False
+        is_finished = False
         mskf = MultilabelStratifiedKFold(n_splits=k_folds,shuffle=True,random_state=42)
         X = [image_tuple[0] for image_tuple in self.data_loader.dataset.image_label_tuple_list]
         y = np.stack([image_tuple[1].numpy() for image_tuple in self.data_loader.dataset.image_label_tuple_list])
-        while epoch < self.args.epochs:
+        while epoch < self.args.epochs and not is_finished:
             for fold, (train_index, val_index) in enumerate(mskf.split(X, y)):
                 train_dataset = torch.utils.data.Subset(self.data_loader.dataset, train_index)
                 val_dataset = torch.utils.data.Subset(self.data_loader.dataset, val_index)
@@ -126,6 +127,7 @@ class HmcNetTrainer():
                         print(f'Early stopping triggered in fine-tuning Phase. {best_epoch + 1} was the best Epoch.')
                         print(f'Validate fine-tuned Model.')
                         avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=True)
+                        is_finished = True
                         break
                     
     def train(self,epoch_index):
