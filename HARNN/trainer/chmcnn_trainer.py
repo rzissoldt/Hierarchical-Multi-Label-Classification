@@ -65,13 +65,11 @@ class CHMCNNTrainer():
                 self.scheduler.step()
             # Track best performance, and save the model's state
             if avg_val_loss < best_vloss:
-                best_epoch = epoch
+                best_epoch = epoch+1
                 self.best_model = copy.deepcopy(self.model)
                 best_vloss = avg_val_loss
-                model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{epoch+1}')
                 counter = 0
-                os.makedirs(os.path.dirname(model_path), exist_ok=True)
-                torch.save(self.model.state_dict(), model_path)
+                
             else:
                 counter += 1
                 if counter >= self.args.early_stopping_patience and not is_fine_tuning:
@@ -88,7 +86,10 @@ class CHMCNNTrainer():
                     print(f'Validate fine tuned Model.')
                     avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=True)
                     break
-    
+        model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{best_epoch}')
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        torch.save(self.model.state_dict(), model_path)
+        
     def train_and_validate_k_crossfold(self,k_folds=5):
         counter = 0
         best_epoch = 0
@@ -124,12 +125,10 @@ class CHMCNNTrainer():
 
                 # Track best performance, and save the model's state
                 if avg_val_loss < best_vloss:
-                    best_epoch = epoch
+                    best_epoch = epoch+1
                     self.best_model = copy.deepcopy(self.model)
                     best_vloss = avg_val_loss
-                    model_path = os.path.join(self.path_to_model, 'models', f'hmcnet_{epoch+1}')
-                    os.makedirs(os.path.dirname(model_path), exist_ok=True)
-                    torch.save(self.model.state_dict(), model_path)
+                    counter = 0
                 else:
                     counter += 1
                     if counter >= self.args.early_stopping_patience and not is_fine_tuning:
@@ -147,7 +146,9 @@ class CHMCNNTrainer():
                         avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=True)
                         is_finished = True
                         break
-                        
+        model_path = os.path.join(self.path_to_model, 'models', f'hmcnet_{best_epoch}')
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        torch.save(self.model.state_dict(), model_path)
     def train(self,epoch_index,data_loader):
         current_loss = 0.
         
@@ -336,7 +337,7 @@ class CHMCNNTrainer():
         param_groups[0]['lr'] = base_lr * 1e-4
         param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
         param_groups[1]['lr'] = base_lr * 1e-2
-        param_groups[2]['params'] = self.fc.parameters()
+        param_groups[2]['params'] = self.model.fc.parameters()
         param_groups[2]['lr'] = base_lr
         
         # Update the optimizer with the new parameter groups

@@ -115,7 +115,10 @@ def train_chmcnn(args):
     with open(os.path.join(path_to_model,'model_config.json'),'w') as json_file:
         json.dump(args_dict, json_file,indent=4)
     
-    trainer.train_and_validate()
+    if args.is_k_crossfold_val:
+        trainer.train_and_validate_k_crossfold(k_folds=args.k_folds)
+    else:
+        trainer.train_and_validate()
 
 def get_random_hyperparameter(base_args):
     fc_dim = random.choice([128,256,512])
