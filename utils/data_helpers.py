@@ -554,24 +554,7 @@ def load_word2vec_matrix(word2vec_file):
 def get_num_classes_from_hierarchy(hierarchy_dicts):
         return [len(hierarchy_dict.keys()) for hierarchy_dict in hierarchy_dicts]
 
-def generate_hierarchy_matrix_from_tree(hierarchy_tree):
-    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy_tree)
-    total_hierarchy_dict =  {}
-    counter = 0 
-    for hierarchy_dict in hierarchy_dicts:
-        for key in hierarchy_dict.keys():
-            total_hierarchy_dict[key] = counter
-            counter+=1   
 
-    hierarchy_matrix = np.zeros((len(total_hierarchy_dict),len(total_hierarchy_dict)))
-    for key_parent,value_parent in total_hierarchy_dict.items():
-        for key_child,value_child in total_hierarchy_dict.items():
-            if key_parent == key_child:
-                hierarchy_matrix[total_hierarchy_dict[key_parent],total_hierarchy_dict[key_parent]] = 1
-            elif key_child.startswith(key_parent):
-                hierarchy_matrix[total_hierarchy_dict[key_parent],total_hierarchy_dict[key_child]] = 1
-    
-    return hierarchy_matrix        
 
     
         

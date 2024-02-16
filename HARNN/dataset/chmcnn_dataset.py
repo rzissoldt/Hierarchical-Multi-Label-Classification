@@ -12,14 +12,13 @@ import cv2
 import torch.multiprocessing
 #torch.multiprocessing.set_sharing_strategy('file_system')
 from torchvision import transforms
-
-     
-class HmcNetDataset(Dataset):
+class CHMCNNDataset(Dataset):
     def __init__(self, annotation_file_path, hierarchy_file_path, image_dir):
         #self.lock = threading.Lock()
         with open(annotation_file_path,'r') as infile:
             self.image_dict = json.load(infile)
-        self.hierarchy_dicts = xtree.generate_dicts_per_level(xtree.load_xtree_json(hierarchy_file_path))
+        hierarchy = xtree.load_xtree_json(hierarchy_file_path)
+        self.hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
         self.image_dir = image_dir
         # Define the transformation pipeline for image preprocessing.
         self.train_transform = transforms.Compose([
@@ -53,11 +52,6 @@ class HmcNetDataset(Dataset):
             
             data_tuple.append(os.path.join(image_dir,file_name))
             data_tuple.append(torch.tensor(self._create_onehot_labels(total_class_labels, total_class_num),dtype=torch.float32))
-            level = 0
-            for key,labels in label_dict.items():
-                data_tuple.append(torch.tensor(self._create_onehot_labels(labels,len(self.hierarchy_dicts[level])),dtype=torch.float32))
-                    
-                level+=1
             self.image_label_tuple_list.append(data_tuple)
         
 
@@ -78,7 +72,7 @@ class HmcNetDataset(Dataset):
             pil_image = self.train_transform(image)
         else:
             pil_image = self.validation_transform(image)
-        labels = self.image_label_tuple_list[idx][1:]
+        labels = self.image_label_tuple_list[idx][1]
         image.close()
         return pil_image, labels
 

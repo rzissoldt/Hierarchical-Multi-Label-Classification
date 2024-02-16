@@ -388,6 +388,8 @@ class HmcNetTrainer():
         param_groups[2]['lr'] = base_lr
         param_groups[3]['params'] = self.model.hybrid_predicting_module.parameters()
         param_groups[3]['lr'] = base_lr
+        param_groups[4]['params'] = self.model.backbone_fc_layer.parameters()
+        param_groups[4]['lr'] = base_lr
 
         # Update the optimizer with the new parameter groups
         self.optimizer.param_groups = param_groups

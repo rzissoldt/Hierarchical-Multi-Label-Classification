@@ -8,7 +8,6 @@ import numpy as np
 from PIL import Image
 
 
-
 def truncated_normal(size, mean=0, std=1):
     lower_bound = mean - 2 * std
     upper_bound = mean + 2 * std
