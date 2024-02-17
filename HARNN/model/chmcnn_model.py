@@ -26,15 +26,18 @@ class ConstrainedFFNNModel(nn.Module):
                 param.requires_grad = False
             self.backbone.eval()
         fc = []
+        batchnorm = []
         for i in range(self.nb_layers):
             if i == 0:
                 fc.append(nn.Linear(self.feature_dim, self.hidden_dim))
+                batchnorm.append(nn.BatchNorm1d(self.hidden_dim))
             elif i == self.nb_layers-1:
                 fc.append(nn.Linear(self.hidden_dim, output_dim))
             else:
                 fc.append(nn.Linear(self.hidden_dim, self.hidden_dim))
+                batchnorm.append(nn.BatchNorm1d(self.hidden_dim))
         self.fc = nn.ModuleList(fc)
-        
+        self.batchnorm = nn.ModuleList(batchnorm)
         self.drop = nn.Dropout(args.dropout_rate)
         
         
@@ -54,6 +57,7 @@ class ConstrainedFFNNModel(nn.Module):
                 x = self.sigmoid(self.fc[i](x))
             else:
                 x = self.f(self.fc[i](x))
+                x = self.batchnorm[i](x)
                 x = self.drop(x)
         
         return x
