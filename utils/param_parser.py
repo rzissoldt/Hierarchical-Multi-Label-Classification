@@ -84,7 +84,7 @@ def chmcnn_parameter_parser():
     parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
     parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,1), help="Dimensionality of the Feature Output of backbone.")
     parser.add_argument("--fc-dim", type=int, default=512, help="Dimensionality for FC neurons.")
-    parser.add_argument("--num-layers", type=int, default=512, help="Layer count of FC Layers.")
+    parser.add_argument("--num-layers", type=int, default=2, help="Layer count of FC Layers.")
     parser.add_argument("--dropout-rate", type=float, default=0.5, help="Dropout keep probability.")
     parser.add_argument("--activation-func", default="tanh", help="If tanh should be used or ReLU.")
     
@@ -105,7 +105,9 @@ def chmcnn_parameter_parser():
                         help="The ratio of the sum of gradients norms of trainable variable.")
     parser.add_argument("--l2-lambda", type=float, default=1e-5, help="L2 regularization lambda.")
     parser.add_argument("--freeze-backbone",type=bool_argument, default=True, help="Freezes Backbone Feature Extractor if needed.")
-    
+    parser.add_argument("--topK", type=int, default=5, help="Number of top K prediction classes.")
+    parser.add_argument("--threshold", type=float, default=0.5, help="Threshold for prediction classes.")
+    parser.add_argument("--pcp-threshold", type=float, default=-1.0, help="PCP-Threshold for path-pruned-coherent-prediction classes.")
     # Misc Parameters
     parser.add_argument("--gpu", type=bool_argument, default=True, help="GPU-Support active or not")
     parser.add_argument("--allow-soft-placement", type=bool_argument, default=True, help="Allow device soft device placement.")

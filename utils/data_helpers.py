@@ -157,8 +157,42 @@ def create_prediction_file(output_file, data_id, true_labels, predict_labels, pr
                 ('predict_scores', [round(i, 4) for i in predict_scores[i]])
             ])
             fout.write(json.dumps(data_record, ensure_ascii=False) + '\n')
+def generate_hierarchy_matrix_from_tree_hmcnet(hierarchy_tree):
+    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy_tree)
+    total_hierarchy_dict =  {}
+    counter = 0 
+    for hierarchy_dict in hierarchy_dicts:
+        for key in hierarchy_dict.keys():
+            total_hierarchy_dict[key] = counter
+            counter+=1   
 
+    hierarchy_matrix = np.zeros((len(total_hierarchy_dict),len(total_hierarchy_dict)))
+    for key_parent,value_parent in total_hierarchy_dict.items():
+        for key_child,value_child in total_hierarchy_dict.items():
+            if key_parent == key_child:
+                hierarchy_matrix[total_hierarchy_dict[key_parent],total_hierarchy_dict[key_parent]] = 1
+            elif key_child.startswith(key_parent):
+                hierarchy_matrix[total_hierarchy_dict[key_parent],total_hierarchy_dict[key_child]] = 1
+    
+    return hierarchy_matrix   
+def generate_hierarchy_matrix_from_tree_chmcnn(hierarchy_tree):
+    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy_tree)
+    total_hierarchy_dict =  {}
+    counter = 0 
+    for hierarchy_dict in hierarchy_dicts:
+        for key in hierarchy_dict.keys():
+            total_hierarchy_dict[key] = counter
+            counter+=1   
 
+    hierarchy_matrix = np.zeros((len(total_hierarchy_dict),len(total_hierarchy_dict)))
+    for key_parent,value_parent in total_hierarchy_dict.items():
+        for key_child,value_child in total_hierarchy_dict.items():
+            if key_parent == key_child:
+                hierarchy_matrix[total_hierarchy_dict[key_parent],total_hierarchy_dict[key_parent]] = 1
+            elif key_child.startswith(key_parent):
+                hierarchy_matrix[total_hierarchy_dict[key_child],total_hierarchy_dict[key_parent]] = 1
+    
+    return hierarchy_matrix   
 
 def get_onehot_label_threshold(scores, threshold=0.5):
     """
@@ -234,6 +268,28 @@ def get_pcp_onehot_label_topk(scores,explicit_hierarchy,num_classes_list,pcp_thr
     pcp_onehot_labels_topk = [torch.zeros(num_classes) if len(path_pruned_classes_topk) == 0 else generate_one_hot(path_pruned_classes_topk,num_classes) for path_pruned_classes_topk in path_pruned_classes_topk_list]
     return pcp_onehot_labels_topk      
 
+def get_per_layer_pre_rec_f1_scores(scores,labels, num_classes_list):
+    # Calculate Precision & Recall & F1 per Hierarchy-Layer
+    begin = 0
+    end = 0
+    eval_pre_rec_f1_per_layer = []
+    for i in range(len(num_classes_list)):
+        if i == 0:
+            begin = 0
+            end = num_classes_list[0]
+        else:
+            begin += num_classes_list[i-1]
+            end += num_classes_list[i]
+        per_layer_pred = scores[:,begin:end]
+        per_layer_labels = labels[:,begin:end]
+        eval_pre_layer, eval_rec_layer,eval_f1_layer = precision_recall_f1_score(labels=per_layer_labels,binary_predictions=per_layer_pred)
+        eval_pre_rec_f1_per_layer.append({
+            "pre": eval_pre_layer,
+            "rec": eval_rec_layer,
+            "f1": eval_f1_layer
+        })
+    return eval_pre_rec_f1_per_layer
+    
 def get_onehot_label_topk(scores, top_num=1):
     """
     Get the predicted one-hot labels based on the topK.

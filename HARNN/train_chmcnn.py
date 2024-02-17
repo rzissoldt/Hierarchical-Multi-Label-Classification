@@ -29,24 +29,7 @@ import warnings
 # Ignore specific warning types
 warnings.filterwarnings("ignore", category=UserWarning)
 
-def generate_hierarchy_matrix_from_tree(hierarchy_tree):
-    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy_tree)
-    total_hierarchy_dict =  {}
-    counter = 0 
-    for hierarchy_dict in hierarchy_dicts:
-        for key in hierarchy_dict.keys():
-            total_hierarchy_dict[key] = counter
-            counter+=1   
 
-    hierarchy_matrix = np.zeros((len(total_hierarchy_dict),len(total_hierarchy_dict)))
-    for key_parent,value_parent in total_hierarchy_dict.items():
-        for key_child,value_child in total_hierarchy_dict.items():
-            if key_parent == key_child:
-                hierarchy_matrix[total_hierarchy_dict[key_parent],total_hierarchy_dict[key_parent]] = 1
-            elif key_child.startswith(key_parent):
-                hierarchy_matrix[total_hierarchy_dict[key_child],total_hierarchy_dict[key_parent]] = 1
-    
-    return hierarchy_matrix   
 
 def train_chmcnn(args):
     # Check if CUDA is available
@@ -68,18 +51,18 @@ def train_chmcnn(args):
     hierarchy = xtree.load_xtree_json(args.hierarchy_file)
     hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
     num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
-    explicit_hierarchy = generate_hierarchy_matrix_from_tree(hierarchy)
-    
-    explicit_hierarchy = torch.tensor(explicit_hierarchy)
-    explicit_hierarchy = explicit_hierarchy.transpose(1,0)
-    explicit_hierarchy = explicit_hierarchy.unsqueeze(0).to(device)
+    chmcnn_hierarchy = dh.generate_hierarchy_matrix_from_tree_chmcnn(hierarchy)
+    hmcnet_hierarchy = dh.generate_hierarchy_matrix_from_tree_hmcnet(hierarchy)
+    chmcnn_hierarchy = torch.tensor(chmcnn_hierarchy)
+    chmcnn_hierarchy = chmcnn_hierarchy.transpose(1,0)
+    chmcnn_hierarchy = chmcnn_hierarchy.unsqueeze(0).to(device)
     
     image_dir = args.image_dir
-    total_class_num = explicit_hierarchy.shape[0]
+    total_class_num = chmcnn_hierarchy.shape[0]
     
     
     # Define Model
-    model = ConstrainedFFNNModel(output_dim=total_class_num,R=explicit_hierarchy, args=args)
+    model = ConstrainedFFNNModel(output_dim=total_class_num,R=chmcnn_hierarchy, args=args)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     
@@ -108,7 +91,7 @@ def train_chmcnn(args):
         path_to_model = f'runs/chmcnn_{args.dataset_name}_{timestamp}'
     
     # Define Trainer for HmcNet
-    trainer = CHMCNNTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,total_class_num=total_class_num,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
+    trainer = CHMCNNTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=chmcnn_hierarchy,pcp_hierarchy=hmcnet_hierarchy,args=args,device=device)
     
     # Save Model ConfigParameters
     args_dict = vars(args)

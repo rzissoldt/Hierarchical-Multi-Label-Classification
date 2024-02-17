@@ -12,17 +12,19 @@ from torch.utils.tensorboard import SummaryWriter
 from HARNN.model.chmcnn_model import get_constr_out
 from sklearn.metrics import average_precision_score
 class CHMCNNTrainer():
-    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,explicit_hierarchy,total_class_num,path_to_model,args,device=None):
+    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,num_classes_list,explicit_hierarchy,pcp_hierarchy,path_to_model,args,device=None):
         self.model = model
         self.criterion = criterion
         self.scheduler = scheduler
         self.optimizer = optimizer
         self.device = device
-        self.best_model = None
+        self.best_model = copy.deepcopy(model)
         self.explicit_hierarchy= explicit_hierarchy
+        self.pcp_hierarchy = pcp_hierarchy
         self.args = args
         self.path_to_model = path_to_model
-        self.total_class_num = total_class_num   
+        self.total_class_num = sum(num_classes_list)
+        self.num_classes_list = num_classes_list   
         self.tb_writer = SummaryWriter(path_to_model)
         sharing_strategy = "file_system"
         def set_worker_sharing_strategy(worker_id: int):
@@ -220,23 +222,165 @@ class CHMCNNTrainer():
 
 
                 # Make predictions for this batch
-                output = self.model(inputs)
-                vloss = self.criterion(output,labels.double())
+                 # Make predictions for this batch
+                voutput = self.model(inputs.float())
+                constr_output = get_constr_out(voutput, self.explicit_hierarchy)
+                val_output = labels*voutput.double()
+                val_output = get_constr_out(val_output, self.explicit_hierarchy)
+                val_output = (1-labels)*constr_output.double() + labels*val_output
+                vloss = self.criterion(val_output,labels.double())
                 
-                scores_list.extend(output)
+                # Clip gradients by global norm
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
+                
+                scores_list.extend(constr_output)
                 labels_list.extend(labels)
                 running_vloss+=vloss.item()
                 eval_loss = running_vloss/(i+1)
                 progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {eval_loss}"
                 print(progress_info, end='\r')
                 tb_x = epoch_index * num_of_val_batches + i + 1
-            self.tb_writer.add_scalar('Validation/Loss', eval_loss, tb_x)
-            scores = torch.stack([tensor for tensor in scores_list],dim=0).to('cpu')
-            labels = torch.stack([tensor for tensor in labels_list],dim=0).to('cpu')
-            eval_auprc = average_precision_score(labels.numpy(), scores.numpy(), average='micro')           
-            self.tb_writer.add_scalar('Validation/AveragePrecision',eval_auprc,epoch_index)
-            print(f"Validation: Epoch [{epoch_index+1}], Average Precision {eval_auprc}")  
-        return running_vloss
+                self.tb_writer.add_scalar('Validation/Loss', eval_loss, tb_x)
+            
+            
+            if calc_metrics:
+                eval_pre_pcp_tk = [0.0] * self.args.topK
+                eval_rec_pcp_tk = [0.0] * self.args.topK
+                eval_F1_pcp_tk = [0.0] * self.args.topK
+                eval_pre_tk = [0.0] * self.args.topK
+                eval_rec_tk = [0.0] * self.args.topK
+                eval_F1_tk = [0.0] * self.args.topK
+                
+                eval_pre_rec_f1_per_layer = []
+                
+                predicted_onehot_labels_ts = []
+                predicted_pcp_onehot_labels_ts = []
+                predicted_onehot_labels_tk = [[] for _ in range(self.args.topK)]
+                predicted_pcp_onehot_labels_tk = [[] for _ in range(self.args.topK)]
+                scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in scores_list],dim=0).to('cpu')
+                scores_np = scores.numpy()
+                # Predict by threshold
+                batch_predicted_onehot_labels = dh.get_onehot_label_threshold(scores=scores_np,threshold=0.5)
+                for k in batch_predicted_onehot_labels:
+                    predicted_onehot_labels_ts.append(k)
+                
+                # Predict by topK
+                for top_num in range(self.args.topK):
+                    batch_predicted_onehot_labels_tk = dh.get_onehot_label_topk(scores=scores_np,top_num=top_num+1)
+                    for i in batch_predicted_onehot_labels_tk:
+                        predicted_onehot_labels_tk[top_num].append(i)
+                
+                # Predict by pcp-threshold
+                batch_predicted_pcp_onehot_labels_ts = dh.get_pcp_onehot_label_threshold(scores=scores_np,explicit_hierarchy=self.pcp_hierarchy,num_classes_list=self.num_classes_list, pcp_threshold=self.args.pcp_threshold)
+                for k in batch_predicted_pcp_onehot_labels_ts:
+                    predicted_pcp_onehot_labels_ts.append(k)
+                
+                # Predict by pcp-topK
+                for top_num in range(self.args.topK):
+                    batch_predicted_pcp_onehot_labels_tk = dh.get_pcp_onehot_label_topk(scores=scores_np,explicit_hierarchy=self.pcp_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list, top_num=top_num+1)
+                    for i in batch_predicted_pcp_onehot_labels_tk:
+                        predicted_pcp_onehot_labels_tk[top_num].append(i)
+                        
+                # Calculate PCP Precision & Recall & F1
+                true_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
+                predicted_pcp_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_pcp_onehot_labels_ts],dim=0).to(self.device)
+                
+                
+                eval_pre_pcp_ts,eval_rec_pcp_ts,eval_F1_pcp_ts = dh.precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels, average='micro')
+                
+                for top_num in range(self.args.topK):
+                    predicted_pcp_onehot_labels_topk = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_pcp_onehot_labels_tk[top_num]],dim=0).to(self.device)
+                    eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num],eval_F1_pcp_tk[top_num] = dh.precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels_topk, average='micro')
+                
+                # Calculate Precision & Recall & F1
+                predicted_onehot_labels = torch.cat([torch.unsqueeze(torch.tensor(tensor),0) for tensor in predicted_onehot_labels_ts],dim=0).to(self.device)
+                
+                eval_pre_ts,eval_rec_ts,eval_F1_ts = dh.precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='micro')
+                    
+                for top_num in range(self.args.topK):
+                    predicted_onehot_labels_topk = torch.cat([torch.unsqueeze(torch.tensor(tensor),0) for tensor in predicted_onehot_labels_tk[top_num]],dim=0).to(self.device)
+                    eval_pre_tk[top_num], eval_rec_tk[top_num],eval_F1_tk[top_num] = dh.precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels_topk, average='micro')
+
+                # Calculate Precision & Recall & F1 per Hierarchy-Layer
+                eval_pre_rec_f1_per_layer = dh.get_per_layer_pre_rec_f1_scores(scores=predicted_onehot_labels,labels=true_onehot_labels,num_classes_list=self.num_classes_list)
+                
+                # Calculate PCP Precision & Recall & F1 per Hierarchy-Layer
+                eval_pcp_pre_rec_f1_per_layer = dh.get_per_layer_pre_rec_f1_scores(scores=predicted_pcp_onehot_labels,labels=true_onehot_labels,num_classes_list=self.num_classes_list)
+                
+                        
+                auroc = AUROC(task="binary")
+                eval_pcp_auc = auroc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
+                
+                auprc = AveragePrecision(task="binary")
+                eval_pcp_auprc = auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
+                
+                eval_loss = running_vloss/(eval_counter+1)
+                
+                eval_auc = auroc(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+                eval_auprc = auprc(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+                self.tb_writer.add_scalar('Validation/PCPAverageAUC',eval_pcp_auc,epoch_index)
+                self.tb_writer.add_scalar('Validation/PCPAveragePrecision',eval_pcp_auprc,epoch_index)
+                self.tb_writer.add_scalar('Validation/PCPPrecision',eval_pre_pcp_ts,epoch_index)
+                self.tb_writer.add_scalar('Validation/PCPRecall',eval_rec_pcp_ts,epoch_index)
+                self.tb_writer.add_scalar('Validation/PCPF1',eval_F1_pcp_ts,epoch_index)
+                
+                for i, precision in enumerate(eval_pre_pcp_tk):
+                    self.tb_writer.add_scalar(f'Validation/PCPPrecisionTopK/{i}', precision, global_step=epoch_index)
+                for i, recall in enumerate(eval_rec_pcp_tk):
+                    self.tb_writer.add_scalar(f'Validation/PCPRecallTopK/{i}', recall, global_step=epoch_index)
+                for i, f1 in enumerate(eval_F1_pcp_tk):
+                    self.tb_writer.add_scalar(f'Validation/PCPF1TopK/{i}', f1, global_step=epoch_index)
+                    
+                self.tb_writer.add_scalar('Validation/AverageAUC',eval_auc,epoch_index)
+                self.tb_writer.add_scalar('Validation/AveragePrecision',eval_auprc,epoch_index)
+                self.tb_writer.add_scalar('Validation/Precision',eval_pre_ts,epoch_index)
+                self.tb_writer.add_scalar('Validation/Recall',eval_rec_ts,epoch_index)
+                self.tb_writer.add_scalar('Validation/F1',eval_F1_ts,epoch_index)
+                for i, precision in enumerate(eval_pre_tk):
+                    self.tb_writer.add_scalar(f'Validation/PrecisionTopK/{i}', precision, global_step=epoch_index)
+                for i, recall in enumerate(eval_rec_tk):
+                    self.tb_writer.add_scalar(f'Validation/RecallTopK/{i}', recall, global_step=epoch_index)
+                for i, f1 in enumerate(eval_F1_tk):
+                    self.tb_writer.add_scalar(f'Validation/F1TopK/{i}', f1, global_step=epoch_index)
+                
+                for i in range(len(eval_pre_rec_f1_per_layer)):
+                    eval_layer_pre = eval_pre_rec_f1_per_layer[i]['pre']
+                    eval_layer_rec = eval_pre_rec_f1_per_layer[i]['rec']
+                    eval_layer_f1 = eval_pre_rec_f1_per_layer[i]['f1']
+                    eval_layer_pcp_pre = eval_pcp_pre_rec_f1_per_layer[i]['pre']
+                    eval_layer_pcp_rec = eval_pcp_pre_rec_f1_per_layer[i]['rec']
+                    eval_layer_pcp_f1 = eval_pcp_pre_rec_f1_per_layer[i]['f1']
+                    self.tb_writer.add_scalar(f'Validation/{i+1}-LayerPrecision',eval_layer_pre,epoch_index)
+                    self.tb_writer.add_scalar(f'Validation/{i+1}-LayerRecall',eval_layer_rec,epoch_index)
+                    self.tb_writer.add_scalar(f'Validation/{i+1}-LayerF1',eval_layer_f1,epoch_index)
+                    self.tb_writer.add_scalar(f'Validation/{i+1}-LayerPCPPrecision',eval_layer_pcp_pre,epoch_index)
+                    self.tb_writer.add_scalar(f'Validation/{i+1}-LayerPCPRecall',eval_layer_pcp_rec,epoch_index)
+                    self.tb_writer.add_scalar(f'Validation/{i+1}-LayerPCPF1',eval_layer_pcp_f1,epoch_index)
+                
+                # Show metrics
+                print("All Validation set: Loss {0:g}".format(eval_loss))
+                # Predict by pcp
+                print("Predict by PCP thresholding: PCP-Precision {0:g}, PCP-Recall {1:g}, PCP-F1 {2:g}, PCP-AUC {3:g} , PCP-AUPRC {4:g}".format(eval_pre_pcp_ts, eval_rec_pcp_ts, eval_F1_pcp_ts,eval_pcp_auc,eval_pcp_auprc))
+                # Predict by PCP-topK
+                print("Predict by PCP-topK:")
+                for top_num in range(self.args.topK):
+                    print("Top{0}: PCP-Precision {1:g}, PCP-Recall {2:g}, PCP-F1 {3:g}".format(top_num+1, eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num], eval_F1_pcp_tk[top_num]))
+                
+                # Predict by threshold
+                print("Predict by thresholding: Precision {0:g}, Recall {1:g}, F1 {2:g}, AUC {3:g} , AUPRC {4:g}".format(eval_pre_ts, eval_rec_ts, eval_F1_ts,eval_auc,eval_auprc))
+                # Predict by topK
+                print("Predict by topK:")
+                for top_num in range(self.args.topK):
+                    print("Top{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}".format(top_num+1, eval_pre_tk[top_num], eval_rec_tk[top_num], eval_F1_tk[top_num]))  
+                # Predict by threshold per layer
+                print("Thresholding Prediction by Layer:")
+                for i in range(len(eval_pre_rec_f1_per_layer)):
+                    print("Layer{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}".format(i+1, eval_pre_rec_f1_per_layer[i]['pre'], eval_pre_rec_f1_per_layer[i]['rec'], eval_pre_rec_f1_per_layer[i]['f1']))  
+                # Predict by PCP-tresholding per layer
+                print("PCP-Thresholding Prediction by Layer:")
+                for i in range(len(eval_pcp_pre_rec_f1_per_layer)):
+                    print("Layer{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}".format(i+1, eval_pcp_pre_rec_f1_per_layer[i]['pre'], eval_pcp_pre_rec_f1_per_layer[i]['rec'], eval_pcp_pre_rec_f1_per_layer[i]['f1']))  
+        return eval_loss
         
     def unfreeze_backbone(self):
         """

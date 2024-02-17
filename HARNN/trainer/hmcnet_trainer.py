@@ -318,23 +318,11 @@ class HmcNetTrainer():
                     eval_pre_tk[top_num], eval_rec_tk[top_num],eval_F1_tk[top_num] = dh.precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels_topk, average='micro')
 
                 # Calculate Precision & Recall & F1 per Hierarchy-Layer
-                begin = 0
-                end = 0
-                for i in range(len(self.num_classes_list)):
-                    if i == 0:
-                        begin = 0
-                        end = self.num_classes_list[0]
-                    else:
-                        begin += self.num_classes_list[i-1]
-                        end += self.num_classes_list[i]
-                    per_layer_pred = predicted_onehot_labels[:,begin:end]
-                    per_layer_labels = true_onehot_labels[:,begin:end]
-                    eval_pre_layer, eval_rec_layer,eval_f1_layer = dh.precision_recall_f1_score(labels=per_layer_labels,binary_predictions=per_layer_pred)
-                    eval_pre_rec_f1_per_layer.append({
-                        "pre": eval_pre_layer,
-                        "rec": eval_rec_layer,
-                        "f1": eval_f1_layer
-                    })
+                eval_pre_rec_f1_per_layer = dh.get_per_layer_pre_rec_f1_scores(scores=predicted_onehot_labels,labels=true_onehot_labels,num_classes_list=self.num_classes_list)
+                
+                # Calculate PCP Precision & Recall & F1 per Hierarchy-Layer
+                eval_pcp_pre_rec_f1_per_layer = dh.get_per_layer_pre_rec_f1_scores(scores=predicted_pcp_onehot_labels,labels=true_onehot_labels,num_classes_list=self.num_classes_list)
+                
                         
                 auroc = AUROC(task="binary")
                 eval_pcp_auc = auroc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
@@ -346,8 +334,8 @@ class HmcNetTrainer():
                 
                 eval_auc = auroc(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
                 eval_auprc = auprc(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
-                self.tb_writer.add_scalar('Validation/AveragePCPAUC',eval_pcp_auc,epoch_index)
-                self.tb_writer.add_scalar('Validation/AveragePCPPrecision',eval_pcp_auprc,epoch_index)
+                self.tb_writer.add_scalar('Validation/PCPAverageAUC',eval_pcp_auc,epoch_index)
+                self.tb_writer.add_scalar('Validation/PCPAveragePrecision',eval_pcp_auprc,epoch_index)
                 self.tb_writer.add_scalar('Validation/PCPPrecision',eval_pre_pcp_ts,epoch_index)
                 self.tb_writer.add_scalar('Validation/PCPRecall',eval_rec_pcp_ts,epoch_index)
                 self.tb_writer.add_scalar('Validation/PCPF1',eval_F1_pcp_ts,epoch_index)
@@ -375,12 +363,18 @@ class HmcNetTrainer():
                     eval_layer_pre = eval_pre_rec_f1_per_layer[i]['pre']
                     eval_layer_rec = eval_pre_rec_f1_per_layer[i]['rec']
                     eval_layer_f1 = eval_pre_rec_f1_per_layer[i]['f1']
+                    eval_layer_pcp_pre = eval_pcp_pre_rec_f1_per_layer[i]['pre']
+                    eval_layer_pcp_rec = eval_pcp_pre_rec_f1_per_layer[i]['rec']
+                    eval_layer_pcp_f1 = eval_pcp_pre_rec_f1_per_layer[i]['f1']
                     self.tb_writer.add_scalar(f'Validation/{i+1}-LayerPrecision',eval_layer_pre,epoch_index)
                     self.tb_writer.add_scalar(f'Validation/{i+1}-LayerRecall',eval_layer_rec,epoch_index)
                     self.tb_writer.add_scalar(f'Validation/{i+1}-LayerF1',eval_layer_f1,epoch_index)
+                    self.tb_writer.add_scalar(f'Validation/{i+1}-LayerPCPPrecision',eval_layer_pcp_pre,epoch_index)
+                    self.tb_writer.add_scalar(f'Validation/{i+1}-LayerPCPRecall',eval_layer_pcp_rec,epoch_index)
+                    self.tb_writer.add_scalar(f'Validation/{i+1}-LayerPCPF1',eval_layer_pcp_f1,epoch_index)
                 
                 # Show metrics
-                print("All Validation set: Loss {0:g}".format(eval_loss))
+                print("All Validation set: Loss {0:g}".format(last_vglobal_loss+last_vlocal_loss+last_vhierarchy_loss))
                 # Predict by pcp
                 print("Predict by PCP thresholding: PCP-Precision {0:g}, PCP-Recall {1:g}, PCP-F1 {2:g}, PCP-AUC {3:g} , PCP-AUPRC {4:g}".format(eval_pre_pcp_ts, eval_rec_pcp_ts, eval_F1_pcp_ts,eval_pcp_auc,eval_pcp_auprc))
                 # Predict by PCP-topK
@@ -395,10 +389,13 @@ class HmcNetTrainer():
                 for top_num in range(self.args.topK):
                     print("Top{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}".format(top_num+1, eval_pre_tk[top_num], eval_rec_tk[top_num], eval_F1_tk[top_num]))  
                 # Predict by threshold per layer
-                print("Predict by Layer:")
+                print("Thresholding Prediction by Layer:")
                 for i in range(len(eval_pre_rec_f1_per_layer)):
                     print("Layer{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}".format(i+1, eval_pre_rec_f1_per_layer[i]['pre'], eval_pre_rec_f1_per_layer[i]['rec'], eval_pre_rec_f1_per_layer[i]['f1']))  
-                
+                # Predict by PCP-tresholding per layer
+                print("PCP-Thresholding Prediction by Layer:")
+                for i in range(len(eval_pcp_pre_rec_f1_per_layer)):
+                    print("Layer{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}".format(i+1, eval_pcp_pre_rec_f1_per_layer[i]['pre'], eval_pcp_pre_rec_f1_per_layer[i]['rec'], eval_pcp_pre_rec_f1_per_layer[i]['f1']))  
             return last_vglobal_loss+last_vlocal_loss+last_vhierarchy_loss
         
     def unfreeze_backbone(self):
