@@ -214,16 +214,45 @@ class HighwayLayer(nn.Module):
         transform_params = sum(p.numel() for p in self.transform_gate.parameters())
         carry_params = sum(p.numel() for p in self.carry_gate.parameters())
         return f'HighwayLayer(input_size={self.transform_gate[0].weight.size(1)}, num_layers={self.num_layers}, transform_params={transform_params}, carry_params={carry_params})'
+
+class BackboneEmbedding(nn.Module):
+    """A Backbone for image feature extraction."""
+    def __init__(self,feature_dim,backbone_fc_hidden_size,dropout_keep_prob):
+        super(BackboneEmbedding,self).__init__()
+        self.backbone_fc_layer = nn.Linear(in_features=feature_dim[0],out_features=backbone_fc_hidden_size)
+        self.backbone_activation = nn.ReLU()
+        self.backbone_batchnorm = nn.BatchNorm1d(backbone_fc_hidden_size)
+        self.backbone_dropout =  nn.Dropout1d(p=dropout_keep_prob)
+    
+    def forward(self,x):
+        num_channels,spatial_dim1, spatial_dim2 = x.shape[1:]
+        feature_extractor_out = x.view(-1, num_channels, spatial_dim1 * spatial_dim2)
+        feature_extractor_out = torch.squeeze(feature_extractor_out,dim=2)
+        fc_feature_out = self.backbone_fc_layer(feature_extractor_out)
+        fc_feature_out = self.backbone_activation(fc_feature_out)
+        if fc_feature_out.shape[0] != 1:
+            fc_feature_out = self.backbone_batchnorm(fc_feature_out)
+        fc_feature_out = self.backbone_dropout(fc_feature_out)
+        fc_feature_out = torch.unsqueeze(fc_feature_out,dim=2)
+        return fc_feature_out
+    
+class Backbone(nn.Module):
+    """A Backbone for image feature extraction."""
+    def __init__(self):
+        super(Backbone,self).__init__()
+        resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
+        self.backbone_feature_ext = nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
         
+    def forward(self,x):
+        feature_extractor_out = self.backbone_feature_ext(x)
+        return feature_extractor_out
+    
 class HmcNet(nn.Module):
     """A HARNN for image classification."""
     def __init__(self,feature_dim,attention_unit_size,backbone_fc_hidden_size,highway_fc_hidden_size,highway_num_layers,fc_hidden_size, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
         super(HmcNet,self).__init__()
-        resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
-        self.backbone = nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
-        self.backbone_fc_layer = nn.Linear(in_features=feature_dim[0],out_features=backbone_fc_hidden_size)
-        self.backbone_activation = nn.ReLU()
-        #self.entity_representation_module = EntityRepresentationModule(backbone_hidden_size=backbone_hidden_size,input_size=feature_dim[0])
+        self.backbone = Backbone()
+        self.backbone_embedding = BackboneEmbedding(feature_dim=feature_dim,backbone_fc_hidden_size=backbone_fc_hidden_size,dropout_keep_prob=dropout_keep_prob)
         self.ham_modules = nn.ModuleList()
         self.feature_dim = feature_dim
         self.attention_unit_size = attention_unit_size
@@ -248,13 +277,8 @@ class HmcNet(nn.Module):
         self.hybrid_predicting_module = HybridPredictingModuleHighway(fc_hidden_size=fc_hidden_size,highway_fc_hidden_size=highway_fc_hidden_size,num_layers=len(num_classes_list),highway_num_layers=highway_num_layers,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha)
         
     def forward(self,x):
-        feature_extractor_out = self.backbone(x)
-        num_channels,spatial_dim1, spatial_dim2 = feature_extractor_out.shape[1:]
-        feature_extractor_out = feature_extractor_out.view(-1, num_channels, spatial_dim1 * spatial_dim2)
-        feature_extractor_out = torch.squeeze(feature_extractor_out,dim=2)
-        fc_feature_out = self.backbone_fc_layer(feature_extractor_out)
-        fc_feature_out = self.backbone_activation(fc_feature_out)
-        fc_feature_out = torch.unsqueeze(fc_feature_out,dim=2)
+        fc_feature_out = self.backbone(x)
+        fc_feature_out = self.backbone_embedding(fc_feature_out)
         feature_extractor_out_transposed = torch.permute(fc_feature_out,(0,2,1))
         omega_h = torch.ones(self.num_classes_list[0],self.attention_unit_size).to(self.device)
         local_score_list = []

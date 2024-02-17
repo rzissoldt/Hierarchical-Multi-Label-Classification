@@ -10,6 +10,7 @@ from torchmetrics import AUROC, AveragePrecision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from HARNN.model.chmcnn_model import get_constr_out
+from sklearn.metrics import average_precision_score
 class CHMCNNTrainer():
     def __init__(self,model,criterion,optimizer,scheduler,training_dataset,explicit_hierarchy,total_class_num,path_to_model,args,device=None):
         self.model = model
@@ -207,6 +208,8 @@ class CHMCNNTrainer():
         self.model.eval()
         eval_counter, eval_loss = 0, 0.0
         num_of_val_batches = len(data_loader)
+        scores_list = []
+        labels_list = []
         # Disable gradient computation and reduce memory consumption.
         with torch.no_grad():
             for i, vdata in enumerate(data_loader):
@@ -218,97 +221,22 @@ class CHMCNNTrainer():
 
                 # Make predictions for this batch
                 output = self.model(inputs)
-
-                # Compute the loss and its gradients
-                constr_output = get_constr_out(output, self.explicit_hierarchy)
-                train_output = labels*output.double()
-                train_output = get_constr_out(train_output, self.explicit_hierarchy)
-                train_output = (1-labels)*constr_output.double() + labels*train_output
-                vloss = self.criterion(train_output,labels.double())
-                predicted = constr_output.data > 0.5
-
-                # Total number of labels
-                total_train = labels.size(0) * labels.size(1)
-                # Total correct predictions
-                correct_train = (predicted == labels.byte()).sum()
-
-
-                # Clip gradients by global norm
-                #torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
-
-                # Gather data and report
-                running_vloss += vloss.item()
-
+                vloss = self.criterion(output,labels.double())
+                
+                scores_list.extend(output)
+                labels_list.extend(labels)
+                running_vloss+=vloss.item()
                 eval_loss = running_vloss/(i+1)
-                #progress_info = f'Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}'
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}"
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {eval_loss}"
                 print(progress_info, end='\r')
-                if not calc_metrics:
-                    tb_x = epoch_index * num_of_val_batches + eval_counter + 1
-                    self.tb_writer.add_scalar('Validation/Loss',eval_loss,tb_x)
-                eval_counter+=1
-            print('\n')
-            return eval_loss
-            #if calc_metrics:
-            #    # Predict classes by threshold or topk ('ts': threshold; 'tk': topk)
-            #    eval_pre_pcp_tk = [0.0] * self.args.topK
-            #    eval_rec_pcp_tk = [0.0] * self.args.topK
-            #    eval_F1_pcp_tk = [0.0] * self.args.topK
-            #    predicted_pcp_onehot_labels_ts = []
-            #    predicted_pcp_onehot_labels_tk = [[] for _ in range(self.args.topK)]
-            #    
-            #    scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in scores_list],dim=0)
-            #    
-            #    # Predict by pcp-threshold
-            #    batch_predicted_onehot_labels_ts = dh.get_pcp_onehot_label_threshold(scores=scores,explicit_hierarchy=self.explicit_hierarchy,num_classes_list=self.num_classes_list, pcp_threshold=self.args.pcp_threshold)
-            #    for k in batch_predicted_onehot_labels_ts:
-            #        predicted_pcp_onehot_labels_ts.append(k)
-            #    
-            #    # Predict by pcp-topK
-            #    for top_num in range(self.args.topK):
-            #        batch_predicted_pcp_onehot_labels_tk = dh.get_pcp_onehot_label_topk(scores=scores,explicit_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list, top_num=top_num+1)
-            #        for i in batch_predicted_pcp_onehot_labels_tk:
-            #            predicted_pcp_onehot_labels_tk[top_num].append(i)
-            #            
-            #    # Calculate Precision & Recall & F1
-            #    predicted_pcp_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_pcp_onehot_labels_ts],dim=0).to(self.device)
-#
-            #    true_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in true_onehot_labels_list],dim=0).to(self.device)
-#
-            #    eval_pre_pcp_ts,eval_rec_pcp_ts,eval_F1_pcp_ts = dh.precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels, average='micro')
-#
-#
-            #    for top_num in range(self.args.topK):
-            #        predicted_pcp_onehot_labels_topk = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_pcp_onehot_labels_tk[top_num]],dim=0).to(self.device)
-            #        eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num],eval_F1_pcp_tk[top_num] = dh.precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels_topk, average='micro')
-#
-            #    num_total_classes = predicted_pcp_onehot_labels.shape[1]
-            #    auroc = AUROC(task="binary")
-            #    eval_auc = auroc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
-            #    auprc = AveragePrecision(task="binary")
-            #    eval_auprc = auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
-            #    eval_loss = running_vloss/(eval_counter+1)
-            #    
-            #    self.tb_writer.add_scalar('Validation/AverageAUC',eval_auc,epoch_index)
-            #    self.tb_writer.add_scalar('Validation/AveragePrecision',eval_auprc,epoch_index)
-            #    self.tb_writer.add_scalar('Validation/PCPPrecision',eval_pre_pcp_ts,epoch_index)
-            #    self.tb_writer.add_scalar('Validation/PCPRecall',eval_rec_pcp_ts,epoch_index)
-            #    self.tb_writer.add_scalar('Validation/PCPF1',eval_F1_pcp_ts,epoch_index)
-            #    for i, precision in enumerate(eval_pre_pcp_tk):
-            #        self.tb_writer.add_scalar(f'Validation/PCPPrecisionTopK/{i}', precision, global_step=epoch_index)
-            #    for i, recall in enumerate(eval_rec_pcp_tk):
-            #        self.tb_writer.add_scalar(f'Validation/PCPRecallTopK/{i}', recall, global_step=epoch_index)
-            #    for i, f1 in enumerate(eval_F1_pcp_tk):
-            #        self.tb_writer.add_scalar(f'Validation/PCPF1TopK/{i}', f1, global_step=epoch_index)
-#
-            #    print("All Validation set: Loss {0:g} | AUC {1:g} | AUPRC {2:g}".format(eval_loss, eval_auc, eval_auprc))
-            #    # Predict by pcp
-            #    print("Predict by PCP thresholding: PCP-Precision {0:g}, PCP-Recall {1:g}, PCP-F1 {2:g}".format(eval_pre_pcp_ts, eval_rec_pcp_ts, eval_F1_pcp_ts))
-            #    # Predict by PCP-topK
-            #    print("Predict by PCP-topK:")
-            #    for top_num in range(self.args.topK):
-            #        print("Top{0}: PCP-Precision {1:g}, PCP-Recall {2:g}, PCP-F1 {3:g}".format(top_num+1, eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num], eval_F1_pcp_tk[top_num]))  
-            #return last_vglobal_loss+last_vlocal_loss+last_vhierarchy_loss
+                tb_x = epoch_index * num_of_val_batches + i + 1
+            self.tb_writer.add_scalar('Validation/Loss', eval_loss, tb_x)
+            scores = torch.stack([tensor for tensor in scores_list],dim=0).to('cpu')
+            labels = torch.stack([tensor for tensor in labels_list],dim=0).to('cpu')
+            eval_auprc = average_precision_score(labels.numpy(), scores.numpy(), average='micro')           
+            self.tb_writer.add_scalar('Validation/AveragePrecision',eval_auprc,epoch_index)
+            print(f"Validation: Epoch [{epoch_index+1}], Average Precision {eval_auprc}")  
+        return running_vloss
         
     def unfreeze_backbone(self):
         """
