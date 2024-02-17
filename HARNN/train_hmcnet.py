@@ -56,7 +56,7 @@ def train_hmcnet(args):
     hierarchy = xtree.load_xtree_json(args.hierarchy_file)
     hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
     num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
-    explicit_hierarchy = generate_hierarchy_matrix_from_tree(hierarchy)
+    explicit_hierarchy = dh.generate_hierarchy_matrix_from_tree_hmcnet(hierarchy)
     
     image_dir = args.image_dir
     total_classes = sum(num_classes_list)

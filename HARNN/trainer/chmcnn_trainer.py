@@ -154,7 +154,8 @@ class CHMCNNTrainer():
         torch.save(self.model.state_dict(), model_path)
     def train(self,epoch_index,data_loader):
         current_loss = 0.
-        
+        current_global_loss = 0.
+        current_l2_loss = 0.
         last_loss = 0.
         self.model.train(True)
         num_of_train_batches = len(data_loader)
@@ -175,7 +176,8 @@ class CHMCNNTrainer():
             train_output = labels*output.double()
             train_output = get_constr_out(train_output, self.explicit_hierarchy)
             train_output = (1-labels)*constr_output.double() + labels*train_output
-            loss = self.criterion(train_output,labels.double())
+            x = train_output,labels.double(),self.model
+            loss,global_loss,l2_loss = self.criterion(x)
             predicted = constr_output.data > 0.5
             
             # Total number of labels
@@ -183,26 +185,32 @@ class CHMCNNTrainer():
             # Total correct predictions
             correct_train = (predicted == labels.byte()).sum()
 
+            # Clip gradients by global norm
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             loss.backward()
             self.optimizer.step()
             
-            # Clip gradients by global norm
-            #torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
-            
             # Gather data and report
             current_loss += loss.item()
-            
+            current_global_loss += global_loss.item()
+            current_l2_loss += l2_loss.item()
             last_loss = current_loss/(i+1)
-            
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"
+            last_global_loss = current_global_loss/(i+1)
+            last_l2_loss = current_l2_loss/(i+1)
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_global_loss}, L2-Loss: {last_l2_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
+            self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
+            self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
         print('\n')
         return last_loss
     
     def validate(self,epoch_index,data_loader,calc_metrics=False):
         running_vloss = 0.0
+        current_vloss = 0.
+        current_vl2_loss = 0.
+        current_vglobal_loss = 0.
         if calc_metrics:
             self.model = copy.deepcopy(self.best_model)
         # Set the model to evaluation mode, disabling dropout and using population
@@ -228,19 +236,26 @@ class CHMCNNTrainer():
                 val_output = labels*voutput.double()
                 val_output = get_constr_out(val_output, self.explicit_hierarchy)
                 val_output = (1-labels)*constr_output.double() + labels*val_output
-                vloss = self.criterion(val_output,labels.double())
+                x = val_output,labels.double(),self.model
+                vloss,vglobal_loss,vl2_loss = self.criterion(x)
                 
-                # Clip gradients by global norm
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
                 
                 scores_list.extend(constr_output)
                 labels_list.extend(labels)
-                running_vloss+=vloss.item()
-                eval_loss = running_vloss/(i+1)
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {eval_loss}"
+                # Gather data and report
+                current_vloss += vloss.item()
+                current_vglobal_loss += vglobal_loss.item()
+                current_vl2_loss += vl2_loss.item()
+                last_vloss = current_vloss/(i+1)
+                last_vglobal_loss = current_vglobal_loss/(i+1)
+                last_vl2_loss = current_vl2_loss/(i+1)
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {last_vglobal_loss}, L2-Loss: {last_vl2_loss}"
                 print(progress_info, end='\r')
-                tb_x = epoch_index * num_of_val_batches + i + 1
-                self.tb_writer.add_scalar('Validation/Loss', eval_loss, tb_x)
+                if not calc_metrics:
+                    tb_x = epoch_index * num_of_val_batches + eval_counter + 1
+                    self.tb_writer.add_scalar('Validation/Loss',last_vloss,tb_x)
+                    self.tb_writer.add_scalar('Validation/GlobalLoss',last_vglobal_loss,tb_x)
+                    self.tb_writer.add_scalar('Validation/L2Loss',last_vl2_loss,tb_x)
             
             
             if calc_metrics:

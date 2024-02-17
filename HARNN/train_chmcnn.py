@@ -20,7 +20,7 @@ sys.path.append('../')
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
 from utils import param_parser as parser
-from HARNN.model.chmcnn_model import ConstrainedFFNNModel
+from HARNN.model.chmcnn_model import ConstrainedFFNNModel,ConstrainedFFNNModelLoss
 from HARNN.dataset.chmcnn_dataset import CHMCNNDataset
 from HARNN.trainer.chmcnn_trainer import CHMCNNTrainer
 
@@ -79,7 +79,7 @@ def train_chmcnn(args):
     model.eval().to(device)
     
     # Define Loss for CHMCNN
-    criterion = nn.BCELoss()
+    criterion = ConstrainedFFNNModelLoss(l2_lambda=args.l2_lambda,device=device)
     
     # Create Training and Validation Dataset
     training_dataset = CHMCNNDataset(args.train_file, args.hierarchy_file,image_dir)
