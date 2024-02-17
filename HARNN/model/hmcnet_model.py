@@ -173,8 +173,6 @@ class HybridPredictingModuleHighway(nn.Module):
             fc_out = self.ham_out_batchnorm(fc_out)
         fc_out = self.ham_out_dropout(fc_out)
         highway = self.highway(fc_out)
-        if highway.shape[0] != 1:
-            highway = self.ham_out_batchnorm(highway)
         highway_drop_out = self.highway_drop(highway)
         global_logits = F.linear(highway_drop_out,self.W_global_pred,self.b_global_pred)
         global_scores = F.sigmoid(global_logits)
