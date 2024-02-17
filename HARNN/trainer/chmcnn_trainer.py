@@ -19,7 +19,7 @@ class CHMCNNTrainer():
         self.optimizer = optimizer
         self.device = device
         self.best_model = copy.deepcopy(model)
-        self.explicit_hierarchy= explicit_hierarchy
+        self.explicit_hierarchy = explicit_hierarchy
         self.pcp_hierarchy = pcp_hierarchy
         self.args = args
         self.path_to_model = path_to_model
@@ -72,7 +72,6 @@ class CHMCNNTrainer():
                 self.best_model = copy.deepcopy(self.model)
                 best_vloss = avg_val_loss
                 counter = 0
-                
             else:
                 counter += 1
                 if counter >= self.args.early_stopping_patience and not is_fine_tuning:
@@ -152,6 +151,7 @@ class CHMCNNTrainer():
         model_path = os.path.join(self.path_to_model, 'models', f'hmcnet_{best_epoch}')
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
         torch.save(self.model.state_dict(), model_path)
+        
     def train(self,epoch_index,data_loader):
         current_loss = 0.
         current_global_loss = 0.

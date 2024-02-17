@@ -157,7 +157,7 @@ def create_prediction_file(output_file, data_id, true_labels, predict_labels, pr
                 ('predict_scores', [round(i, 4) for i in predict_scores[i]])
             ])
             fout.write(json.dumps(data_record, ensure_ascii=False) + '\n')
-def generate_hierarchy_matrix_from_tree_hmcnet(hierarchy_tree):
+def generate_hierarchy_matrix_from_tree(hierarchy_tree):
     hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy_tree)
     total_hierarchy_dict =  {}
     counter = 0 
@@ -175,24 +175,7 @@ def generate_hierarchy_matrix_from_tree_hmcnet(hierarchy_tree):
                 hierarchy_matrix[total_hierarchy_dict[key_parent],total_hierarchy_dict[key_child]] = 1
     
     return hierarchy_matrix   
-def generate_hierarchy_matrix_from_tree_chmcnn(hierarchy_tree):
-    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy_tree)
-    total_hierarchy_dict =  {}
-    counter = 0 
-    for hierarchy_dict in hierarchy_dicts:
-        for key in hierarchy_dict.keys():
-            total_hierarchy_dict[key] = counter
-            counter+=1   
 
-    hierarchy_matrix = np.zeros((len(total_hierarchy_dict),len(total_hierarchy_dict)))
-    for key_parent,value_parent in total_hierarchy_dict.items():
-        for key_child,value_child in total_hierarchy_dict.items():
-            if key_parent == key_child:
-                hierarchy_matrix[total_hierarchy_dict[key_parent],total_hierarchy_dict[key_parent]] = 1
-            elif key_child.startswith(key_parent):
-                hierarchy_matrix[total_hierarchy_dict[key_child],total_hierarchy_dict[key_parent]] = 1
-    
-    return hierarchy_matrix   
 
 def get_onehot_label_threshold(scores, threshold=0.5):
     """
