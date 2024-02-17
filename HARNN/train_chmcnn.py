@@ -58,7 +58,7 @@ def train_chmcnn(args):
     chmcnn_hierarchy = chmcnn_hierarchy.unsqueeze(0).to(device)
     
     image_dir = args.image_dir
-    total_class_num = chmcnn_hierarchy.shape[0]
+    total_class_num = sum(num_classes_list)
     
     
     # Define Model
