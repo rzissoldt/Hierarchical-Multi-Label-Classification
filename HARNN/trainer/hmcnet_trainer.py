@@ -274,7 +274,7 @@ class HmcNetTrainer():
                 predicted_pcp_onehot_labels_tk = [[] for _ in range(self.args.topK)]
                 
                 scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in scores_list],dim=0)
-                scores_np = scores=scores.to('cpu').numpy()
+                scores_np = scores.to('cpu').numpy()
                 # Predict by threshold
                 batch_predicted_onehot_labels = dh.get_onehot_label_threshold(scores=scores_np,threshold=0.5)
                 for k in batch_predicted_onehot_labels:
