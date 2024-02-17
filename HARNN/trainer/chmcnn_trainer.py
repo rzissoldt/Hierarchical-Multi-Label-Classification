@@ -204,7 +204,7 @@ class CHMCNNTrainer():
             self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
             self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
         print('\n')
-        return last_loss
+        return last_global_loss
     
     def validate(self,epoch_index,data_loader,calc_metrics=False):
         running_vloss = 0.0
@@ -395,7 +395,7 @@ class CHMCNNTrainer():
                 print("PCP-Thresholding Prediction by Layer:")
                 for i in range(len(eval_pcp_pre_rec_f1_per_layer)):
                     print("Layer{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}".format(i+1, eval_pcp_pre_rec_f1_per_layer[i]['pre'], eval_pcp_pre_rec_f1_per_layer[i]['rec'], eval_pcp_pre_rec_f1_per_layer[i]['f1']))  
-        return eval_loss
+        return last_vglobal_loss
         
     def unfreeze_backbone(self):
         """
