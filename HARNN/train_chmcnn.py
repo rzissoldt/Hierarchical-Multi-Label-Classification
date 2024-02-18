@@ -95,6 +95,7 @@ def train_chmcnn(args):
     
     # Save Model ConfigParameters
     args_dict = vars(args)
+    os.makedirs(path_to_model, exist_ok=True)
     with open(os.path.join(path_to_model,'model_config.json'),'w') as json_file:
         json.dump(args_dict, json_file,indent=4)
     

@@ -230,7 +230,6 @@ class CHMCNNTrainer():
 
 
                 # Make predictions for this batch
-                 # Make predictions for this batch
                 voutput = self.model(inputs.float())
                 constr_output = get_constr_out(voutput, self.explicit_hierarchy)
                 val_output = labels*voutput.double()

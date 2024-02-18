@@ -14,6 +14,7 @@ import torch.multiprocessing
 from torchvision import transforms
 class CHMCNNDataset(Dataset):
     def __init__(self, annotation_file_path, hierarchy_file_path, image_dir):
+        super(CHMCNNDataset, self).__init__()
         #self.lock = threading.Lock()
         with open(annotation_file_path,'r') as infile:
             self.image_dict = json.load(infile)

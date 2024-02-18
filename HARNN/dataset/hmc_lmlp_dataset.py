@@ -12,16 +12,16 @@ import cv2
 import torch.multiprocessing
 #torch.multiprocessing.set_sharing_strategy('file_system')
 from torchvision import transforms
-
-     
-class HmcNetDataset(Dataset):
-    def __init__(self, annotation_file_path, hierarchy_file_path, image_dir):
-        super(HmcNetDataset, self).__init__()
-        #self.lock = threading.Lock()
+import utils.data_helpers as dh
+class HmcLMLPDataset(Dataset):
+    def __init__(self, annotation_file_path, hierarchy_file_path, image_dir,level):
+        super(HmcLMLPDataset, self).__init__()
         with open(annotation_file_path,'r') as infile:
             self.image_dict = json.load(infile)
-        self.hierarchy_dicts = xtree.generate_dicts_per_level(xtree.load_xtree_json(hierarchy_file_path))
+        hierarchy = xtree.load_xtree_json(hierarchy_file_path)
+        self.hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
         self.image_dir = image_dir
+        self.level = level
         # Define the transformation pipeline for image preprocessing.
         self.train_transform = transforms.Compose([
             transforms.Resize((256, 256)),                    
@@ -41,6 +41,8 @@ class HmcNetDataset(Dataset):
             transforms.Normalize(mean=[0.485, 0.456, 0.406],  
                              std=[0.229, 0.224, 0.225])
         ])
+        num_classes_list = dh.get_num_classes_from_hierarchy(self.hierarchy_dicts)
+        min_level = sum(num_classes_list[:level-1])
         self.is_training = True
         self.image_label_tuple_list = []
         for file_name in self.image_dict.keys():
@@ -51,14 +53,11 @@ class HmcNetDataset(Dataset):
             total_class_num = self._calc_total_classes()
             if len(total_class_labels) == 0:
                 continue
-            
+            if max(total_class_labels) < min_level:
+                # Skip datapoint, if max-label is not higher than min level.
+                continue
             data_tuple.append(os.path.join(image_dir,file_name))
             data_tuple.append(torch.tensor(self._create_onehot_labels(total_class_labels, total_class_num),dtype=torch.float32))
-            level = 0
-            for key,labels in label_dict.items():
-                data_tuple.append(torch.tensor(self._create_onehot_labels(labels,len(self.hierarchy_dicts[level])),dtype=torch.float32))
-                    
-                level+=1
             self.image_label_tuple_list.append(data_tuple)
         
 
@@ -79,7 +78,7 @@ class HmcNetDataset(Dataset):
             pil_image = self.train_transform(image)
         else:
             pil_image = self.validation_transform(image)
-        labels = self.image_label_tuple_list[idx][1:]
+        labels = self.image_label_tuple_list[idx][1]
         image.close()
         return pil_image, labels
 

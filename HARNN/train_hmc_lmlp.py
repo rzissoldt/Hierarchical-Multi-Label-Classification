@@ -23,9 +23,9 @@ sys.path.append('../')
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
 from utils import param_parser as parser
-from HARNN.model.hmcnet_model import HmcNet, HmcNetLoss
-from HARNN.dataset.hmcnet_dataset import HmcNetDataset
-from HARNN.trainer.hmcnet_trainer import HmcNetTrainer
+from HARNN.model.hmc_lmlp_model import HmcLMLP, HmcLMLPLoss
+from HARNN.dataset.hmc_lmlp_dataset import HmcLMLPDataset
+from HARNN.trainer.hmc_lmlp_trainer import HmcLMLPTrainer
 import torch.nn as nn
 from utils.xtree_utils import generate_dicts_per_level
 import warnings
@@ -36,7 +36,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 
-def train_hmcnet(args):        
+def train_hmc_lmlp(args):        
     # Check if CUDA is available
     if torch.cuda.is_available():
         print("CUDA is available!")
@@ -57,15 +57,14 @@ def train_hmcnet(args):
     hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
     num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
     explicit_hierarchy = dh.generate_hierarchy_matrix_from_tree(hierarchy)
-    
     image_dir = args.image_dir
-    total_classes = sum(num_classes_list)
+    
 
     # Define Model 
-    model = HmcNet(feature_dim=args.feature_dim_backbone,backbone_fc_hidden_size=args.backbone_fc_dim,highway_num_layers=args.highway_num_layers,attention_unit_size=args.attention_dim,highway_fc_hidden_size=args.highway_fc_dim,fc_hidden_size=args.fc_dim,num_classes_list=num_classes_list,total_classes=total_classes,freeze_backbone=args.freeze_backbone,device=device).to(device)
+    model = HmcLMLP(feature_dim=args.feature_dim_backbone,backbone_fc_hidden_size=args.backbone_dim,fc_hidden_size=args.fc_dim,num_classes_list=num_classes_list,freeze_backbone=args.freeze_backbone,device=device).to(device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
-    
+    print(f'Num Classes List {num_classes_list}')
     # Define Optimzer and Scheduler
     if args.optimizer == 'adam':    
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
@@ -78,22 +77,25 @@ def train_hmcnet(args):
     model.eval().to(device)
     
     # Define Loss for HmcNet.
-    criterion = HmcNetLoss(l2_lambda=args.l2_lambda,beta=args.beta,explicit_hierarchy=explicit_hierarchy,device=device)
+    criterion = HmcLMLPLoss(l2_lambda=args.l2_lambda,device=device)
               
     
     
     # Create Training and Validation Dataset
-    training_dataset = HmcNetDataset(args.train_file, args.hierarchy_file, image_dir)
+    datasets = []
+    for i in range(len(num_classes_list)):  
+        training_dataset = HmcLMLPDataset(args.train_file, args.hierarchy_file, image_dir,level=i+1)
+        datasets.append(training_dataset)
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
-        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}/hmc_net_{timestamp}'
+        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}/hmc_lmlp_{timestamp}'
     else:
-        path_to_model = f'runs/hmc_net_{args.dataset_name}_{timestamp}'
+        path_to_model = f'runs/hmc_lmlp_{args.dataset_name}_{timestamp}'
     
     
     # Define Trainer for HmcNet
-    trainer = HmcNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,explicit_hierarchy=explicit_hierarchy,args=args,device=device,num_classes_list=num_classes_list)
+    trainer = HmcLMLPTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_datasets=datasets,pcp_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,path_to_model=path_to_model,args=args,device=device)
     
     # Save Model ConfigParameters
     args_dict = vars(args)
@@ -139,13 +141,11 @@ def get_random_hyperparameter(base_args):
 
 
 if __name__ == '__main__':
-    args = parser.hmcnet_parameter_parser()
+    args = parser.hmc_lmlp_parameter_parser()
     if not args.hyperparameter_search:
         # Normal Trainingloop with specific args.
-        train_hmcnet(args=args)
+        train_hmc_lmlp(args=args)
     else:
         # Hyperparameter search Trainingloop with specific base args.
         for i in range(args.num_hyperparameter_search):
-            train_hmcnet(args=get_random_hyperparameter(args))
-    
-    
+            train_hmc_lmlp(args=get_random_hyperparameter(args))
