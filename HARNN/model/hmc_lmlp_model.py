@@ -38,8 +38,8 @@ class HmcLMLP(nn.Module):
         
         self.fc_layers = nn.ModuleList(fc_layers)
         self.score_layers = nn.ModuleList(score_layers)
-        
-        
+        self.dropout = nn.Dropout1d(p=dropout_keep_prob)
+        self.batchnorm = nn.BatchNorm1d(num_features=fc_hidden_size)
     def forward(self,x):
         input, level = x
         feature_out = self.backbone(input)
@@ -53,7 +53,10 @@ class HmcLMLP(nn.Module):
                 input = torch.cat([scores_list[i-1],feature_out_embedded],dim=1)
                 fc = self.fc_layers[i](input)
             fc_out = self.fc_activation(fc)
-            logits = self.score_layers[i](fc_out)
+            if fc_out.shape[0] != 1:
+                fc_out = self.batchnorm(fc_out)
+            fc_out_drop = self.dropout(fc_out)
+            logits = self.score_layers[i](fc_out_drop)
             scores = self.score_activation(logits)
             logits_list.append(logits_list)
             scores_list.append(scores)
