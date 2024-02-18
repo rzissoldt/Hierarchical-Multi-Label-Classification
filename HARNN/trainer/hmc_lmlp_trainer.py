@@ -91,7 +91,7 @@ class HmcLMLPTrainer():
                         print(f'Early stopping triggered and validate best Epoch {best_epoch+1}.')
                         best_vloss = 1_000_000.
                         counter = 0
-                        continue
+                        break
                     
     def train(self,epoch_index,data_loader,level):
         current_loss = 0.
