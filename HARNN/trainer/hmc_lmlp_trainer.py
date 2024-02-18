@@ -89,7 +89,6 @@ class HmcLMLPTrainer():
                     counter += 1
                     if counter >= self.args.early_stopping_patience:
                         print(f'Early stopping triggered and validate best Epoch {best_epoch+1}.')
-                        avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=True)
                         best_vloss = 1_000_000.
                         counter = 0
                         continue
