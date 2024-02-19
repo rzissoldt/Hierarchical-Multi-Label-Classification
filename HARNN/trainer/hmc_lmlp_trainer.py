@@ -101,6 +101,17 @@ class HmcLMLPTrainer():
                         best_vloss = 1_000_000.
                         counter = 0
                         break
+        val_loader = None
+        X = [image_tuple[0] for image_tuple in self.data_loaders[0].dataset.image_label_tuple_list] 
+        y = np.stack([image_tuple[1].numpy() for image_tuple in self.data_loaders[0].dataset.image_label_tuple_list])
+        for train_index, val_index in msss.split(X, y):
+            val_dataset = torch.utils.data.Subset(self.data_loaders[level].dataset, val_index)
+            val_dataset.dataset.is_training = False
+            def set_worker_sharing_strategy(worker_id: int):
+                torch.multiprocessing.set_sharing_strategy("file_system")
+            # Create Dataloader for Training and Validation Dataset
+            kwargs = {'num_workers': self.args.num_workers_dataloader, 'pin_memory': self.args.pin_memory} if self.args.gpu else {}
+            val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
         self.test(epoch_index=best_epoch,data_loader=val_loader)
         model_path = os.path.join(self.path_to_model,'models',f'hmc_lmlp_{best_epoch}')
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
@@ -213,7 +224,7 @@ class HmcLMLPTrainer():
                 labels = labels.to(self.device)
                 
                 # Make predictions for this batch
-                inputs = inputs, len(self.num_classes_list)
+                inputs = inputs, len(self.num_classes_list)-1
                 _, output_scores_list = self.best_model(inputs)
                 
 
