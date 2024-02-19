@@ -280,8 +280,7 @@ class CHMCNNTrainer():
 
                # Make predictions for this batch
                 constr_output = self.model(inputs.float())
-                predicted = constr_output > 0.5
-                scores_list.extend(predicted.to(dtype=torch.float32))
+                scores_list.extend(constr_output)
                 labels_list.extend(labels) 
         metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.pcp_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device)
         # Save Metrics in Summarywriter.
