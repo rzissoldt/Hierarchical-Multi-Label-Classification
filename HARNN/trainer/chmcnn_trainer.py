@@ -158,7 +158,6 @@ class CHMCNNTrainer():
                         is_finished = True
                         break
         # Test and save Best Model
-        self.model = copy.deepcopy(self.best_model)
         self.test(epoch_index=best_epoch,data_loader=val_loader)
         model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{best_epoch}')
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
@@ -269,7 +268,7 @@ class CHMCNNTrainer():
     
     def test(self,epoch_index,data_loader):
         print(f"Evaluating best model of epoch {epoch_index}.")
-        self.model.eval()
+        self.best_model.eval()
         scores_list = []
         labels_list = []
         # Disable gradient computation and reduce memory consumption.
@@ -281,7 +280,7 @@ class CHMCNNTrainer():
                 labels = labels.to(self.device)
 
                # Make predictions for this batch
-                constr_output = self.model(inputs.float())
+                constr_output = self.best_model(inputs.float())
                 scores_list.extend(constr_output)
                 labels_list.extend(labels) 
         metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.pcp_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device)

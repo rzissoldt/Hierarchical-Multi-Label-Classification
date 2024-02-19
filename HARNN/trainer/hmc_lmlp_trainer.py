@@ -101,7 +101,6 @@ class HmcLMLPTrainer():
                         best_vloss = 1_000_000.
                         counter = 0
                         break
-        self.model = copy.deepcopy(self.best_model)
         self.test(epoch_index=best_epoch,data_loader=val_loader)
         model_path = os.path.join(self.path_to_model,'models',f'hmc_lmlp_{best_epoch}')
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
@@ -202,7 +201,7 @@ class HmcLMLPTrainer():
     def test(self,epoch_index,data_loader):
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
-        self.model.eval()
+        self.best_model.eval()
         eval_counter, eval_loss = 0, 0.0
         num_of_val_batches = len(data_loader)
         scores_list = []
@@ -218,7 +217,7 @@ class HmcLMLPTrainer():
                 
                 # Make predictions for this batch
                 inputs = inputs, len(self.num_classes_list)
-                _, output_scores_list = self.model(inputs)
+                _, output_scores_list = self.best_model(inputs)
                 
 
                 # Stack the batch tensors along a new dimension (dimension 0)
