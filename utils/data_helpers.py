@@ -280,13 +280,13 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_cl
             predicted_onehot_labels_tk[top_num].append(i)
     
     # Predict by pcp-threshold
-    batch_predicted_pcp_onehot_labels_ts = get_pcp_onehot_label_threshold(scores=scores_np,explicit_hierarchy=pcp_hierarchy,num_classes_list=num_classes_list, pcp_threshold=pcp_threshold)
+    batch_predicted_pcp_onehot_labels_ts = get_pcp_onehot_label_threshold(scores=scores,explicit_hierarchy=pcp_hierarchy,num_classes_list=num_classes_list, pcp_threshold=pcp_threshold)
     for k in batch_predicted_pcp_onehot_labels_ts:
         predicted_pcp_onehot_labels_ts.append(k)
     
     # Predict by pcp-topK
     for top_num in range(topK):
-        batch_predicted_pcp_onehot_labels_tk = get_pcp_onehot_label_topk(scores=scores_np,explicit_hierarchy=pcp_hierarchy,pcp_threshold=pcp_threshold,num_classes_list=num_classes_list, top_num=top_num+1)
+        batch_predicted_pcp_onehot_labels_tk = get_pcp_onehot_label_topk(scores=scores,explicit_hierarchy=pcp_hierarchy,pcp_threshold=pcp_threshold,num_classes_list=num_classes_list, top_num=top_num+1)
         for i in batch_predicted_pcp_onehot_labels_tk:
             predicted_pcp_onehot_labels_tk[top_num].append(i)
             

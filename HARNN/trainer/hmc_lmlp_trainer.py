@@ -59,7 +59,8 @@ class HmcLMLPTrainer():
             msss = MultilabelStratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=0)
             X = [image_tuple[0] for image_tuple in self.data_loaders[level].dataset.image_label_tuple_list] 
             y = np.stack([image_tuple[1].numpy() for image_tuple in self.data_loaders[level].dataset.image_label_tuple_list])
-            self.optimizer.learning_rate = self.argslearning_rate
+            # Reset learning rate if new level is learned.
+            self.optimizer.learning_rate = self.args.learning_rate
             for train_index, val_index in msss.split(X, y):
                 train_dataset = torch.utils.data.Subset(self.data_loaders[level].dataset, train_index)
                 val_dataset = torch.utils.data.Subset(self.data_loaders[level].dataset, val_index)
@@ -100,6 +101,7 @@ class HmcLMLPTrainer():
                         best_vloss = 1_000_000.
                         counter = 0
                         break
+        self.test(epoch_index=best_epoch,data_loader=val_loader)
         model_path = os.path.join(self.path_to_model,'models',f'hmc_lmlp_{best_epoch}')
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
         torch.save(self.best_model.state_dict(), model_path)
@@ -215,8 +217,16 @@ class HmcLMLPTrainer():
                 
                 # Make predictions for this batch
                 inputs = inputs, len(self.num_classes_list)
-                _, scores_list = self.model(inputs)
+                _, output_scores_list = self.model(inputs)
                 
-                      
-                scores_list.extend(voutput)
+
+                # Stack the batch tensors along a new dimension (dimension 0)
+                
+                scores = torch.cat([batch for batch in output_scores_list],dim=1)
+                scores_list.extend([score.to(dtype=torch.float64) for score in scores])
                 labels_list.extend(labels)
+            
+        metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.pcp_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device)
+        # Save Metrics in Summarywriter.
+        for key,value in metrics_dict.items():
+            self.tb_writer.add_scalar(key,value,epoch_index)

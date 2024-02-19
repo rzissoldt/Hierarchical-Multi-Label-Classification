@@ -125,7 +125,7 @@ class CHMCNNTrainer():
                 print(f"Epoch {epoch + 1}/{self.args.epochs}, Fold {fold + 1}/{k_folds}:")
                 avg_train_loss = self.train(epoch_index=epoch, data_loader=train_loader)
                 calc_metrics = epoch == self.args.epochs - 1
-                avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=calc_metrics)
+                avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader)
                 self.tb_writer.flush()
                 print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
                 epoch+=1
@@ -278,7 +278,8 @@ class CHMCNNTrainer():
 
                # Make predictions for this batch
                 constr_output = self.model(inputs.float())
-                scores_list.extend(constr_output)
+                predicted = constr_output > 0.5
+                scores_list.extend(predicted.to(dtype=torch.float32))
                 labels_list.extend(labels) 
         metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.pcp_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device)
         # Save Metrics in Summarywriter.
