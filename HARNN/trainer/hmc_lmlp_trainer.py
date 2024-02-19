@@ -202,11 +202,8 @@ class HmcLMLPTrainer():
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
         self.best_model.eval()
-        eval_counter, eval_loss = 0, 0.0
-        num_of_val_batches = len(data_loader)
         scores_list = []
         labels_list = []
-        #begin, end= get_local_class_range(self.num_classes_list,level)
         # Disable gradient computation and reduce memory consumption.
         with torch.no_grad():
             for i, vdata in enumerate(data_loader):

@@ -180,7 +180,6 @@ def generate_hierarchy_matrix_from_tree(hierarchy_tree):
 def get_onehot_label_threshold(scores, threshold=0.5):
     """
     Get the predicted one-hot labels based on the threshold.
-    If there is no predict score greater than threshold, then choose the label which has the max predict score.
 
     Args:
         scores: The all classes predicted scores provided by network.
@@ -197,11 +196,34 @@ def get_onehot_label_threshold(scores, threshold=0.5):
             if predict_score >= threshold:
                 onehot_labels_list[index] = 1
                 count += 1
-        if count == 0:
-            max_score_index = score.index(max(score))
-            onehot_labels_list[max_score_index] = 1
         predicted_onehot_labels.append(onehot_labels_list)
     return predicted_onehot_labels
+
+#def get_onehot_label_threshold(scores, threshold=0.5):
+#    """
+#    Get the predicted one-hot labels based on the threshold.
+#    If there is no predict score greater than threshold, then choose the label which has the max predict score.
+#
+#    Args:
+#        scores: The all classes predicted scores provided by network.
+#        threshold: The threshold (default: 0.5).
+#    Returns:
+#        predicted_onehot_labels: The predicted labels (one-hot).
+#    """
+#    predicted_onehot_labels = []
+#    scores = np.ndarray.tolist(scores)
+#    for score in scores:
+#        count = 0
+#        onehot_labels_list = [0] * len(score)
+#        for index, predict_score in enumerate(score):
+#            if predict_score >= threshold:
+#                onehot_labels_list[index] = 1
+#                count += 1
+#        if count == 0:
+#            max_score_index = score.index(max(score))
+#            onehot_labels_list[max_score_index] = 1
+#        predicted_onehot_labels.append(onehot_labels_list)
+#    return predicted_onehot_labels
 
 def get_pcp_onehot_label_threshold(scores,explicit_hierarchy,num_classes_list, pcp_threshold=-1.0):
     """
