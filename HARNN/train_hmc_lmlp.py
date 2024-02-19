@@ -64,7 +64,9 @@ def train_hmc_lmlp(args):
     model = HmcLMLP(feature_dim=args.feature_dim_backbone,backbone_fc_hidden_size=args.backbone_dim,fc_hidden_size=args.fc_dim,num_classes_list=num_classes_list,freeze_backbone=args.freeze_backbone,device=device).to(device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
-    print(f'Num Classes List {num_classes_list}')
+    print(f'Total Classes: {sum(num_classes_list)}')
+    print(f'Num Classes List: {num_classes_list}')
+    
     # Define Optimzer and Scheduler
     if args.optimizer == 'adam':    
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)

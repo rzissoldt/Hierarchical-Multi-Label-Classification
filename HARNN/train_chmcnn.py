@@ -65,6 +65,8 @@ def train_chmcnn(args):
     model = ConstrainedFFNNModel(output_dim=total_class_num,R=chmcnn_hierarchy, args=args)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
+    print(f'Total Classes: {sum(num_classes_list)}')
+    print(f'Num Classes List: {num_classes_list}')
     
     # Define Optimzer and Scheduler
     if args.optimizer == 'adam':    

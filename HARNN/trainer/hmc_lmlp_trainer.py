@@ -44,7 +44,7 @@ class HmcLMLPTrainer():
         self.data_loaders = []
         for i in range(len(training_datasets)):
             self.data_loaders.append(DataLoader(training_datasets[i],batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs))  
-        print(f'Num Classes List: {num_classes_list}')
+        
         
     def train_and_validate(self):        
         for level in range(len(self.num_classes_list)):

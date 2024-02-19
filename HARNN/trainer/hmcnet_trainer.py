@@ -28,8 +28,7 @@ class HmcNetTrainer():
         # Create Dataloader for Training and Validation Dataset
         kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': args.pin_memory} if self.args.gpu else {}
         self.data_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)  
-        print(f'Total Classes: {sum(num_classes_list)}')
-        print(f'Num Classes List: {num_classes_list}')
+        
     
     def train_and_validate(self):
         counter = 0
