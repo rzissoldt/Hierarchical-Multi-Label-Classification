@@ -146,7 +146,6 @@ class CHMCNNTrainer():
                     if counter >= self.args.early_stopping_patience and not is_fine_tuning:
                         print(f'Early stopping triggered and validate best Epoch {best_epoch + 1}.')
                         print(f'Begin fine-tuning model.')
-                        avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=True)
                         self.unfreeze_backbone()
                         best_vloss = 1_000_000.
                         is_fine_tuning = True
@@ -155,12 +154,14 @@ class CHMCNNTrainer():
                     if counter >= self.args.early_stopping_patience and is_fine_tuning:
                         print(f'Early stopping triggered in fine-tuning Phase. {best_epoch + 1} was the best Epoch.')
                         print(f'Validate fine-tuned Model.')
-                        avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=True)
                         is_finished = True
                         break
-        model_path = os.path.join(self.path_to_model, 'models', f'hmcnet_{best_epoch}')
+        # Test and save Best Model
+        self.test(epoch_index=best_epoch,data_loader=val_loader)
+        model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{best_epoch}')
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
         torch.save(self.model.state_dict(), model_path)
+        self.tb_writer.flush()
         
     def train(self,epoch_index,data_loader):
         current_loss = 0.
@@ -217,7 +218,6 @@ class CHMCNNTrainer():
         return last_global_loss
     
     def validate(self,epoch_index,data_loader):
-        running_vloss = 0.0
         current_vloss = 0.
         current_vl2_loss = 0.
         current_vglobal_loss = 0.
@@ -226,7 +226,7 @@ class CHMCNNTrainer():
         self.model.eval()
         eval_counter, eval_loss = 0, 0.0
         num_of_val_batches = len(data_loader)
-        scores_list = []
+        predicted_list = []
         labels_list = []
         # Disable gradient computation and reduce memory consumption.
         with torch.no_grad():
@@ -240,29 +240,20 @@ class CHMCNNTrainer():
                 # Make predictions for this batch
                 voutput = self.model(inputs.float())
                 constr_output = get_constr_out(voutput, self.explicit_hierarchy)
-                val_output = labels*voutput.double()
-                val_output = get_constr_out(val_output, self.explicit_hierarchy)
-                val_output = (1-labels)*constr_output.double() + labels*val_output
-                x = val_output,labels.double(),self.model
-                vloss,vglobal_loss,vl2_loss = self.criterion(x)
-                
-                
-                scores_list.extend(constr_output)
+                predicted = constr_output > 0.5
+                predicted_list.extend(predicted)
                 labels_list.extend(labels)
-                # Gather data and report
-                current_vloss += vloss.item()
-                current_vglobal_loss += vglobal_loss.item()
-                current_vl2_loss += vl2_loss.item()
-                last_vloss = current_vloss/(i+1)
-                last_vglobal_loss = current_vglobal_loss/(i+1)
-                last_vl2_loss = current_vl2_loss/(i+1)
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {last_vglobal_loss}, L2-Loss: {last_vl2_loss}"
-                print(progress_info, end='\r')
-                tb_x = epoch_index * num_of_val_batches + eval_counter + 1
-                self.tb_writer.add_scalar('Validation/Loss',last_vloss,tb_x)
-                self.tb_writer.add_scalar('Validation/GlobalLoss',last_vglobal_loss,tb_x)
-                self.tb_writer.add_scalar('Validation/L2Loss',last_vl2_loss,tb_x)
-        return last_vglobal_loss
+            # Gather data and report
+            auprc = AveragePrecision(task="binary")
+            predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
+            labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
+            eval_auprc = auprc(predicted_onehot_labels.to(dtype=torch.float32),labels.to(dtype=torch.long))
+            progress_info = f"Validation: Epoch [{epoch_index+1}], AUPRC: {eval_auprc}"
+            print(progress_info, end='\r')
+            tb_x = epoch_index * num_of_val_batches + eval_counter + 1
+            self.tb_writer.add_scalar('Validation/AUPRC',eval_auprc,tb_x)
+                
+        return eval_auprc
     
     def test(self,epoch_index,data_loader):
         print(f"Evaluating best model of epoch {epoch_index}.")
