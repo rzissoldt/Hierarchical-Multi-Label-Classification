@@ -38,7 +38,7 @@ class CHMCNNTrainer():
     def train_and_validate(self):
         counter = 0
         best_epoch = 0
-        best_vloss = 1_000_000.
+        best_vauprc = 1_000_000.
         is_fine_tuning = False
         
         # Generate one MultiLabelStratifiedShuffleSplit for normal Training.
@@ -58,27 +58,27 @@ class CHMCNNTrainer():
             train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
         for epoch in range(self.args.epochs):
-            avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
-            avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader)
+            avg_train_auprc = self.train(epoch_index=epoch,data_loader=train_loader)
+            avg_val_aurpc = self.validate(epoch_index=epoch,data_loader=val_loader)
             self.tb_writer.flush()
-            print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
+            print(f'Epoch {epoch+1}: Train AUPRC {avg_train_auprc}, Validation AUPRC {avg_val_aurpc}')
             
             # End Training if Max Epoch is reached
             if epoch == self.args.epochs-1:
-                if avg_val_loss < best_vloss:
+                if avg_val_aurpc < best_vauprc:
                     best_epoch = epoch+1
                     self.best_model = copy.deepcopy(self.model)
-                    best_vloss = avg_val_loss
+                    best_vauprc = avg_val_aurpc
                 print(f"Max Epoch count is reached. Best model was reached in {best_epoch}.")
                 break
             # Decay Learningrate if Step Count is reached
             if epoch % self.args.decay_steps == self.args.decay_steps-1:
                 self.scheduler.step()
             # Track best performance, and save the model's state
-            if avg_val_loss < best_vloss:
+            if avg_val_aurpc < best_vauprc:
                 best_epoch = epoch+1
                 self.best_model = copy.deepcopy(self.model)
-                best_vloss = avg_val_loss
+                best_vauprc = avg_val_aurpc
                 counter = 0
             else:
                 counter += 1
@@ -86,7 +86,7 @@ class CHMCNNTrainer():
                     print(f'Early stopping triggered and validate best Epoch {best_epoch}.')
                     print(f'Begin fine tuning model.')
                     self.unfreeze_backbone()
-                    best_vloss = 1_000_000.
+                    best_vauprc = 1_000_000.
                     is_fine_tuning = True
                     counter = 0
                     continue
@@ -169,6 +169,8 @@ class CHMCNNTrainer():
         current_l2_loss = 0.
         last_loss = 0.
         self.model.train(True)
+        predicted_list = []
+        labels_list = []
         num_of_train_batches = len(data_loader)
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
@@ -200,7 +202,8 @@ class CHMCNNTrainer():
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             loss.backward()
             self.optimizer.step()
-            
+            predicted_list.extend(predicted)
+            labels_list.extend(labels)
             # Gather data and report
             current_loss += loss.item()
             current_global_loss += global_loss.item()
@@ -214,8 +217,17 @@ class CHMCNNTrainer():
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
             self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
             self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
+        # Gather data and report
+        auprc = AveragePrecision(task="binary")
+        predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
+        labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
+        eval_auprc = auprc(predicted_onehot_labels.to(dtype=torch.float32),labels.to(dtype=torch.long))
+        progress_info = f"Training: Epoch [{epoch_index+1}], AUPRC: {eval_auprc}"
+        
+        
+        self.tb_writer.add_scalar('Training/AUPRC',eval_auprc,epoch_index)
         print('\n')
-        return last_global_loss
+        return eval_auprc
     
     def validate(self,epoch_index,data_loader):
         current_vloss = 0.
