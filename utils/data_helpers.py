@@ -387,23 +387,27 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_cl
     
     # Show metrics
     
-    # Predict by pcp
-    print("Predict by PCP thresholding: PCP-Precision {0:g}, PCP-Recall {1:g}, PCP-F1 {2:g}, PCP-AUC {3:g} , PCP-AUPRC {4:g}, PCP-EMR {5:g}".format(eval_pre_pcp_ts, eval_rec_pcp_ts, eval_F1_pcp_ts,eval_pcp_auc,eval_pcp_auprc,eval_emr_pcp_ts))
-    # Predict by PCP-topK
-    print("Predict by PCP-topK:")
-    for top_num in range(topK):
-        print("Top{0}: PCP-Precision {1:g}, PCP-Recall {2:g}, PCP-F1 {3:g}, PCP-EMR {4:g}".format(top_num+1, eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num], eval_F1_pcp_tk[top_num],eval_emr_pcp_tk[top_num]))
-    
     # Predict by threshold
     print("Predict by thresholding: Precision {0:g}, Recall {1:g}, F1 {2:g}, AUC {3:g} , AUPRC {4:g}, EMR {5:g}".format(eval_pre_ts, eval_rec_ts, eval_F1_ts,eval_auc,eval_auprc,eval_emr_ts))
+    print("\n")
     # Predict by topK
     print("Predict by topK:")
     for top_num in range(topK):
         print("Top{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}, EMR {4:g}".format(top_num+1, eval_pre_tk[top_num], eval_rec_tk[top_num], eval_F1_tk[top_num],eval_emr_tk[top_num]))  
+    print("\n")
     # Predict by threshold per layer
     print("Thresholding Prediction by Layer:")
     for i in range(len(eval_metrics_per_layer)):
         print("Layer{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}, AUC {4:g}, AUPRC {5:g}, EMR {6:g}".format(i+1, eval_metrics_per_layer[i]['pre'], eval_metrics_per_layer[i]['rec'], eval_metrics_per_layer[i]['f1'],eval_metrics_per_layer[i]['auc'],eval_metrics_per_layer[i]['auprc'],eval_metrics_per_layer[i]['emr']))  
+    print("\n")
+    # Predict by pcp
+    print("Predict by PCP thresholding: PCP-Precision {0:g}, PCP-Recall {1:g}, PCP-F1 {2:g}, PCP-AUC {3:g} , PCP-AUPRC {4:g}, PCP-EMR {5:g}".format(eval_pre_pcp_ts, eval_rec_pcp_ts, eval_F1_pcp_ts,eval_pcp_auc,eval_pcp_auprc,eval_emr_pcp_ts))
+    print("\n")
+    # Predict by PCP-topK
+    print("Predict by PCP-topK:")
+    for top_num in range(topK):
+        print("Top{0}: PCP-Precision {1:g}, PCP-Recall {2:g}, PCP-F1 {3:g}, PCP-EMR {4:g}".format(top_num+1, eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num], eval_F1_pcp_tk[top_num],eval_emr_pcp_tk[top_num]))
+    print("\n")
     # Predict by PCP-tresholding per layer
     print("PCP-Thresholding Prediction by Layer:")
     for i in range(len(eval_pcp_metrics_per_layer)):
