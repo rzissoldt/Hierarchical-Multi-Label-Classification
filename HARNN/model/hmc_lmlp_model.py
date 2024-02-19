@@ -61,7 +61,7 @@ class HmcLMLP(nn.Module):
             logits_list.append(logits_list)
             scores_list.append(scores)
         
-        return scores
+        return scores, scores_list
         
 class HmcLMLPLoss(nn.Module):
     def __init__(self,l2_lambda,device=None):

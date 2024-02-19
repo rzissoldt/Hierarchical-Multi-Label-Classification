@@ -38,7 +38,7 @@ class CHMCNNTrainer():
     def train_and_validate(self):
         counter = 0
         best_epoch = 0
-        best_vauprc = 1_000_000.
+        best_vauprc = 0.
         is_fine_tuning = False
         
         # Generate one MultiLabelStratifiedShuffleSplit for normal Training.
@@ -86,7 +86,7 @@ class CHMCNNTrainer():
                     print(f'Early stopping triggered and validate best Epoch {best_epoch}.')
                     print(f'Begin fine tuning model.')
                     self.unfreeze_backbone()
-                    best_vauprc = 1_000_000.
+                    best_vauprc = 0.
                     is_fine_tuning = True
                     counter = 0
                     continue

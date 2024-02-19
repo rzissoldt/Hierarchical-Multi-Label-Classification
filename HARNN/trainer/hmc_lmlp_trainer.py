@@ -75,7 +75,7 @@ class HmcLMLPTrainer():
                 avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader,level=level)
                 avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,level=level)
                 self.tb_writer.flush()
-                print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
+                print(f'Epoch {epoch+1}, Level {level+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
                 # End Learning if Epoch is reached.
                 if epoch == self.args.epochs-1:
                     if avg_val_loss < best_vloss:
@@ -86,7 +86,6 @@ class HmcLMLPTrainer():
                     break
                 # Decay Learningrate if Step Count is reached
                 if epoch % self.args.decay_steps == self.args.decay_steps-1:
-                    
                     self.scheduler.step()
                 # Track best performance, and save the model's state
                 if avg_val_loss < best_vloss:
@@ -123,7 +122,7 @@ class HmcLMLPTrainer():
             self.optimizer.zero_grad()
             inputs = inputs,level
             # Make predictions for this batch
-            output = self.model(inputs)
+            output,_ = self.model(inputs)
 
             # Compute the loss and its gradients
             x =output,labels,self.model
@@ -173,7 +172,7 @@ class HmcLMLPTrainer():
 
                 # Make predictions for this batch
                 inputs = inputs, level
-                voutput = self.model(inputs)
+                voutput,_ = self.model(inputs)
                 
                 x =voutput,labels,self.model
                 vloss,vlocal_loss,vl2_loss = self.criterion(x)
@@ -197,5 +196,27 @@ class HmcLMLPTrainer():
                 self.tb_writer.add_scalar(f'Validation/Level{level+1}/L2Loss',last_vl2_loss,tb_x)            
         return last_vlocal_loss
     
-    def test(self):
-        pass
+    def test(self,epoch_index,data_loader):
+        # Set the model to evaluation mode, disabling dropout and using population
+        # statistics for batch normalization.
+        self.model.eval()
+        eval_counter, eval_loss = 0, 0.0
+        num_of_val_batches = len(data_loader)
+        scores_list = []
+        labels_list = []
+        #begin, end= get_local_class_range(self.num_classes_list,level)
+        # Disable gradient computation and reduce memory consumption.
+        with torch.no_grad():
+            for i, vdata in enumerate(data_loader):
+                # Every data instance is an input + label pair
+                inputs, labels = copy.deepcopy(vdata)
+                inputs = inputs.to(self.device)
+                labels = labels.to(self.device)
+                
+                # Make predictions for this batch
+                inputs = inputs, len(self.num_classes_list)
+                _, scores_list = self.model(inputs)
+                
+                      
+                scores_list.extend(voutput)
+                labels_list.extend(labels)
