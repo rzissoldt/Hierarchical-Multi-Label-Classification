@@ -61,7 +61,20 @@ class HmcLMLP(nn.Module):
             scores_list.append(scores)
         
         return scores, scores_list
+    
+    def activate_learning_level(self,level):
+        for param in self.parameters():
+            param.requires_grad = False
         
+        for param in self.fc_layers[level].parameters():
+            param.requires_grad = True
+            
+        for param in self.score_layers[level].parameters():
+            param.requires_grad = True
+        
+        for param in self.batchnorm_layers[level].parameters():
+            param.requires_grad = True
+            
 class HmcLMLPLoss(nn.Module):
     def __init__(self,l2_lambda,device=None):
         super(HmcLMLPLoss, self).__init__()
@@ -83,17 +96,6 @@ class HmcLMLPLoss(nn.Module):
         loss = torch.sum(torch.stack([local_loss,l2_loss]))
         return loss,local_loss,l2_loss
     
-def activate_learning_level(model,level):
-    for param in model.parameters():
-        param.requires_grad = False
     
-    for param in model.fc_layers[level].parameters():
-        param.requires_grad = True
-        
-    for param in model.score_layers[level].parameters():
-        param.requires_grad = True
     
-    for param in model.batchnorm_layers[level].parameters():
-        param.requires_grad = True
-    return model
     

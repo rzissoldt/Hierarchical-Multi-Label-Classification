@@ -9,7 +9,7 @@ from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit,Multilabel
 from torchmetrics import AUROC, AveragePrecision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from HARNN.model.hmc_lmlp_model import activate_learning_level
+
 
 def get_local_class_range(num_classes_list,level):
     begin = 0
@@ -22,7 +22,15 @@ def get_local_class_range(num_classes_list,level):
             begin += num_classes_list[i-1]
             end += num_classes_list[i]
     return begin, end
-
+def print_model_with_frozen_layers(model):
+    print("Model architecture:")
+    print(model)
+    print("\nFrozen layers:")
+    for name, param in model.named_parameters():
+        if not param.requires_grad:
+            print(f"Layer {name} is frozen")
+        else:
+            print(f"Layer {name} is not frozen")
 class HmcLMLPTrainer():
     def __init__(self,model,criterion,optimizer,scheduler,training_datasets,num_classes_list,path_to_model,pcp_hierarchy,args,device=None):
         self.model = model
@@ -71,8 +79,10 @@ class HmcLMLPTrainer():
                 kwargs = {'num_workers': self.args.num_workers_dataloader, 'pin_memory': self.args.pin_memory} if self.args.gpu else {}
                 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
                 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
+            self.model.activate_learning_level(level=level)
+            model_param_count = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+            print(f'Model Parameter Count:{model_param_count}')
             for epoch in range(self.args.epochs):
-                self.model = activate_learning_level(self.model,level=level)
                 avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader,level=level)
                 avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,level=level)
                 self.tb_writer.flush()
