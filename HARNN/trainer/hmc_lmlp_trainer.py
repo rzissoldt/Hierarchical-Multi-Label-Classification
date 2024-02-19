@@ -101,6 +101,7 @@ class HmcLMLPTrainer():
                         best_vloss = 1_000_000.
                         counter = 0
                         break
+        self.model = copy.deepcopy(self.best_model)
         self.test(epoch_index=best_epoch,data_loader=val_loader)
         model_path = os.path.join(self.path_to_model,'models',f'hmc_lmlp_{best_epoch}')
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
