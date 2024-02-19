@@ -230,9 +230,6 @@ class CHMCNNTrainer():
         return eval_auprc
     
     def validate(self,epoch_index,data_loader):
-        current_vloss = 0.
-        current_vl2_loss = 0.
-        current_vglobal_loss = 0.
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
         self.model.eval()
@@ -250,8 +247,7 @@ class CHMCNNTrainer():
 
 
                 # Make predictions for this batch
-                voutput = self.model(inputs.float())
-                constr_output = get_constr_out(voutput, self.explicit_hierarchy)
+                constr_output = self.model(inputs.float())
                 predicted = constr_output > 0.5
                 predicted_list.extend(predicted)
                 labels_list.extend(labels)
@@ -280,9 +276,8 @@ class CHMCNNTrainer():
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
 
-                # Make predictions for this batch
-                voutput = self.model(inputs.float())
-                constr_output = get_constr_out(voutput, self.explicit_hierarchy)
+               # Make predictions for this batch
+                constr_output = self.model(inputs.float())
                 scores_list.extend(constr_output)
                 labels_list.extend(labels) 
         metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.pcp_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device)

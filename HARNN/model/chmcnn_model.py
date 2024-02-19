@@ -62,8 +62,12 @@ class ConstrainedFFNNModel(nn.Module):
                     if x.shape[0] != 1:
                         x = self.batchnorm[i](x)
                 x = self.drop(x)
+        if self.training:
+            constrained_out = x
+        else:
+            constrained_out = get_constr_out(x, self.R)
+        return constrained_out
         
-        return x
     
 class ConstrainedFFNNModelLoss(nn.Module):
     def __init__(self,l2_lambda,device):
