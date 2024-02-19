@@ -351,7 +351,7 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_cl
     
     auprc = AveragePrecision(task="binary")
     eval_pcp_auprc = auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
-    print(predicted_onehot_labels.to(dtype=torch.float32)[:10])
+    
     eval_auc = auroc(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
     eval_auprc = auprc(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
     metric_dict['Validation/PCPAverageAUC'] = eval_pcp_auc

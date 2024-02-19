@@ -256,7 +256,6 @@ class CHMCNNTrainer():
             
             auprc = AveragePrecision(task="binary")
             predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
-            print(predicted_onehot_labels.to(dtype=torch.float32)[:10])
             labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
             eval_auprc = auprc(predicted_onehot_labels.to(dtype=torch.float32),labels.to(dtype=torch.long))
             progress_info = f"Validation: Epoch [{epoch_index+1}], AUPRC: {eval_auprc}"
