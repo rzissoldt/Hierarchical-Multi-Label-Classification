@@ -53,9 +53,13 @@ class HmcLMLPTrainer():
             best_vloss = 1_000_000.
             # Generate one MultiLabelStratifiedShuffleSplit for normal Training.
             train_loader,val_loader = None,None
+            
+            # Start with best_model in every level.
+            self.model = copy.deepcopy(self.best_model)
             msss = MultilabelStratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=0)
             X = [image_tuple[0] for image_tuple in self.data_loaders[level].dataset.image_label_tuple_list] 
             y = np.stack([image_tuple[1].numpy() for image_tuple in self.data_loaders[level].dataset.image_label_tuple_list])
+            self.optimizer.learning_rate = self.argslearning_rate
             for train_index, val_index in msss.split(X, y):
                 train_dataset = torch.utils.data.Subset(self.data_loaders[level].dataset, train_index)
                 val_dataset = torch.utils.data.Subset(self.data_loaders[level].dataset, val_index)
@@ -69,29 +73,37 @@ class HmcLMLPTrainer():
             for epoch in range(self.args.epochs):
                 self.model = activate_learning_level(self.model,level=level)
                 avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader,level=level)
-                calc_metrics = epoch == self.args.epochs-1
-                avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,calc_metrics=calc_metrics,level=level)
+                avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader,level=level)
                 self.tb_writer.flush()
                 print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
+                # End Learning if Epoch is reached.
+                if epoch == self.args.epochs-1:
+                    if avg_val_loss < best_vloss:
+                        best_epoch = epoch+1
+                        self.best_model = copy.deepcopy(self.model)
+                        best_vloss = avg_val_loss
+                    print(f"Max Epoch count is reached. Best model was reached in {best_epoch}.")
+                    break
                 # Decay Learningrate if Step Count is reached
                 if epoch % self.args.decay_steps == self.args.decay_steps-1:
+                    
                     self.scheduler.step()
                 # Track best performance, and save the model's state
                 if avg_val_loss < best_vloss:
-                    best_epoch = epoch
+                    best_epoch = epoch+1
                     self.best_model = copy.deepcopy(self.model)
                     best_vloss = avg_val_loss
-                    model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{epoch+1}')
                     counter = 0
-                    os.makedirs(os.path.dirname(model_path), exist_ok=True)
-                    torch.save(self.model.state_dict(), model_path)
                 else:
                     counter += 1
                     if counter >= self.args.early_stopping_patience:
-                        print(f'Early stopping triggered and validate best Epoch {best_epoch+1}.')
+                        print(f'Early stopping triggered. Best Epoch: {best_epoch} Level: {level+1}.')
                         best_vloss = 1_000_000.
                         counter = 0
                         break
+        model_path = os.path.join(self.path_to_model,'models',f'hmc_lmlp_{best_epoch}')
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        torch.save(self.best_model.state_dict(), model_path)
                     
     def train(self,epoch_index,data_loader,level):
         current_loss = 0.
@@ -138,13 +150,10 @@ class HmcLMLPTrainer():
         print('\n')
         return last_local_loss
     
-    def validate(self,epoch_index,data_loader,level,calc_metrics=False):
-        running_vloss = 0.0
+    def validate(self,epoch_index,data_loader,level):
         current_vloss = 0.
         current_vl2_loss = 0.
         current_vlocal_loss = 0.
-        if calc_metrics:
-            self.model = copy.deepcopy(self.best_model)
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
         self.model.eval()
@@ -181,10 +190,12 @@ class HmcLMLPTrainer():
                 last_vl2_loss = current_vl2_loss/(i+1)
                 progress_info = f"Validation Level {level+1}: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {last_vlocal_loss}, L2-Loss: {last_vl2_loss}"
                 print(progress_info, end='\r')
-                if not calc_metrics:
-                    tb_x = epoch_index * num_of_val_batches + eval_counter + 1
-                    self.tb_writer.add_scalar(f'Validation/Level{level+1}/Loss',last_vloss,tb_x)
-                    self.tb_writer.add_scalar(f'Validation/Level{level+1}/GlobalLoss',last_vlocal_loss,tb_x)
-                    self.tb_writer.add_scalar(f'Validation/Level{level+1}/L2Loss',last_vl2_loss,tb_x)
-            
+                
+                tb_x = epoch_index * num_of_val_batches + eval_counter + 1
+                self.tb_writer.add_scalar(f'Validation/Level{level+1}/Loss',last_vloss,tb_x)
+                self.tb_writer.add_scalar(f'Validation/Level{level+1}/GlobalLoss',last_vlocal_loss,tb_x)
+                self.tb_writer.add_scalar(f'Validation/Level{level+1}/L2Loss',last_vl2_loss,tb_x)            
         return last_vlocal_loss
+    
+    def test(self):
+        pass
