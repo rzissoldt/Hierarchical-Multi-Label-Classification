@@ -62,18 +62,7 @@ class HmcLMLP(nn.Module):
         
         return scores, scores_list
     
-    def activate_learning_level(self,level):
-        for param in self.parameters():
-            param.requires_grad = False
-        
-        for param in self.fc_layers[level].parameters():
-            param.requires_grad = True
-            
-        for param in self.score_layers[level].parameters():
-            param.requires_grad = True
-        
-        for param in self.batchnorm_layers[level].parameters():
-            param.requires_grad = True
+    
             
 class HmcLMLPLoss(nn.Module):
     def __init__(self,l2_lambda,device=None):
@@ -96,6 +85,25 @@ class HmcLMLPLoss(nn.Module):
         loss = torch.sum(torch.stack([local_loss,l2_loss]))
         return loss,local_loss,l2_loss
     
+
+def activate_learning_level(model,optimizer,level):
+    for param in model.parameters():
+        param.requires_grad = False
     
+    for param in model.fc_layers[level].parameters():
+        param.requires_grad = True
+        
+    for param in model.score_layers[level].parameters():
+        param.requires_grad = True
     
+    for param in model.batchnorm_layers[level].parameters():
+        param.requires_grad = True
+    # Update optimizer to include parameters of the newly unfrozen layers
+    unfrozen_params = []
+    for layer in [model.fc_layers[level], model.score_layers[level],model.batchnorm_layers[level]]:
+        unfrozen_params += filter(lambda p: p.requires_grad, layer.parameters())
+
+    optimizer.param_groups[0]['params'] += unfrozen_params
+
+    return model, optimizer
     

@@ -9,7 +9,7 @@ from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit,Multilabel
 from torchmetrics import AUROC, AveragePrecision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-
+from HARNN.model.hmc_lmlp_model import activate_learning_level
 
 def get_local_class_range(num_classes_list,level):
     begin = 0
@@ -79,7 +79,8 @@ class HmcLMLPTrainer():
                 kwargs = {'num_workers': self.args.num_workers_dataloader, 'pin_memory': self.args.pin_memory} if self.args.gpu else {}
                 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
                 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
-            self.model.activate_learning_level(level=level)
+            # Unfreeze specific Level of model and update optimizer
+            self.model, self.optimizer= activate_learning_level(model=self.model,optimizer=self.optimizer,level=level)
             model_param_count = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
             print(f'Model Parameter Count:{model_param_count}')
             for epoch in range(self.args.epochs):
