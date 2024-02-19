@@ -57,7 +57,9 @@ class ConstrainedFFNNModel(nn.Module):
                 x = self.sigmoid(self.fc[i](x))
             else:
                 x = self.f(self.fc[i](x))
-                x = self.batchnorm[i](x)
+                if self.args.is_batchnorm_active:
+                    if x.shape[0] != 1:
+                        x = self.batchnorm[i](x)
                 x = self.drop(x)
         
         return x

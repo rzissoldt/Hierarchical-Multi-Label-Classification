@@ -135,7 +135,7 @@ def chmcnn_parameter_parser():
     parser.add_argument("--num-layers", type=int, default=2, help="Layer count of FC Layers.")
     parser.add_argument("--dropout-rate", type=float, default=0.2, help="Dropout keep probability.")
     parser.add_argument("--activation-func", default="tanh", help="If tanh should be used or ReLU.")
-    
+    parser.add_argument("--is-batchnorm-active", type=bool_argument, default=True, help="If batchnorm should be used.")
      # Training Parameters
     parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
     parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
