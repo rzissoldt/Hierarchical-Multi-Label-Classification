@@ -21,6 +21,7 @@ class ConstrainedFFNNModel(nn.Module):
         self.feature_dim = args.feature_dim_backbone[0]
         self.hidden_dim = args.fc_dim
         self.R = R
+        self.args = args
         if args.freeze_backbone:
             for param in self.backbone.parameters():
                 param.requires_grad = False
