@@ -51,18 +51,15 @@ def train_chmcnn(args):
     hierarchy = xtree.load_xtree_json(args.hierarchy_file)
     hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
     num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
-    chmcnn_hierarchy = dh.generate_hierarchy_matrix_from_tree(hierarchy)
-    hmcnet_hierarchy = dh.generate_hierarchy_matrix_from_tree(hierarchy)
-    chmcnn_hierarchy = torch.tensor(chmcnn_hierarchy)
-    chmcnn_hierarchy = chmcnn_hierarchy.transpose(1,0)
-    chmcnn_hierarchy = chmcnn_hierarchy.unsqueeze(0).to(device)
+    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy)).to(device=device)
+    
     
     image_dir = args.image_dir
     total_class_num = sum(num_classes_list)
     
     
     # Define Model
-    model = ConstrainedFFNNModel(output_dim=total_class_num,R=chmcnn_hierarchy, args=args)
+    model = ConstrainedFFNNModel(output_dim=total_class_num,R=explicit_hierarchy, args=args)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     print(f'Total Classes: {sum(num_classes_list)}')
@@ -93,7 +90,7 @@ def train_chmcnn(args):
         path_to_model = f'runs/chmcnn_{args.dataset_name}_{timestamp}'
     
     # Define Trainer for HmcNet
-    trainer = CHMCNNTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=chmcnn_hierarchy,pcp_hierarchy=hmcnet_hierarchy,args=args,device=device)
+    trainer = CHMCNNTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
     
     # Save Model ConfigParameters
     args_dict = vars(args)
@@ -108,7 +105,7 @@ def train_chmcnn(args):
         
 def get_random_hyperparameter(base_args):
     fc_dim = random.choice([256,512,1024,2048])
-    batch_size = random.choice([128])
+    batch_size = random.choice([64,128])
     learning_rate = random.choice([0.001])
     optimizer = random.choice(['adam','sgd'])
     num_layers = random.choice([1,2,3])

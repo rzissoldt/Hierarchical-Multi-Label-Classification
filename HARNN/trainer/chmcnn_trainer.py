@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 from HARNN.model.chmcnn_model import get_constr_out
 from sklearn.metrics import average_precision_score
 class CHMCNNTrainer():
-    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,num_classes_list,explicit_hierarchy,pcp_hierarchy,path_to_model,args,device=None):
+    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,num_classes_list,explicit_hierarchy,path_to_model,args,device=None):
         self.model = model
         self.criterion = criterion
         self.scheduler = scheduler
@@ -20,7 +20,6 @@ class CHMCNNTrainer():
         self.device = device
         self.best_model = copy.deepcopy(model)
         self.explicit_hierarchy = explicit_hierarchy
-        self.pcp_hierarchy = pcp_hierarchy
         self.args = args
         self.path_to_model = path_to_model
         self.total_class_num = sum(num_classes_list)
@@ -281,7 +280,7 @@ class CHMCNNTrainer():
                 constr_output = self.best_model(inputs.float())
                 scores_list.extend(constr_output)
                 labels_list.extend(labels) 
-        metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.pcp_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device)
+        metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy.to('cpu').numpy(),pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device)
         # Save Metrics in Summarywriter.
         for key,value in metrics_dict.items():
             self.tb_writer.add_scalar(key,value,epoch_index)
