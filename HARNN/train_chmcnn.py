@@ -105,38 +105,7 @@ def train_chmcnn(args):
         trainer.train_and_validate_k_crossfold(k_folds=args.k_folds)
     else:
         trainer.train_and_validate()
-
-def get_random_hyperparameter(base_args):
-    fc_dim = random.choice([128,256,512])
-    num_layers = random.choise([1,2,3,4])
-    batch_size = random.choice([128,256])
-    learning_rate = random.choice([0.001])
-    optimizer = random.choice(['adam'])
-    
-    print(f'FC-Dim: {fc_dim}\n'
-          f'Num of Hidden Layers: {num_layers}\n'
-          f'Batch-Size: {batch_size}\n'
-          f'Learning Rate: {learning_rate}\n'
-          f'Optimizer: {optimizer}\n')
-    
-    base_args.fc_dim = fc_dim
-    base_args.num_layers = num_layers
-    base_args.batch_size = batch_size
-    base_args.learning_rate = learning_rate
-    base_args.optimizer = optimizer
-    return base_args
-
-if __name__ == '__main__':
-    args = parser.chmcnn_parameter_parser()
-    if not args.hyperparameter_search:
-        # Normal Trainingloop with specific args.
-        train_chmcnn(args=args)
-    else:
-        # Hyperparameter search Trainingloop with specific base args.
-        for i in range(args.num_hyperparameter_search):
-            train_chmcnn(args=get_random_hyperparameter(args))
-            
-
+        
 def get_random_hyperparameter(base_args):
     fc_dim = random.choice([256,512,1024,2048])
     batch_size = random.choice([128])
@@ -163,3 +132,15 @@ def get_random_hyperparameter(base_args):
     base_args.learning_rate = learning_rate
     base_args.optimizer = optimizer
     return base_args
+
+if __name__ == '__main__':
+    args = parser.chmcnn_parameter_parser()
+    if not args.hyperparameter_search:
+        # Normal Trainingloop with specific args.
+        train_chmcnn(args=args)
+    else:
+        # Hyperparameter search Trainingloop with specific base args.
+        for i in range(args.num_hyperparameter_search):
+            train_chmcnn(args=get_random_hyperparameter(args))
+            
+
