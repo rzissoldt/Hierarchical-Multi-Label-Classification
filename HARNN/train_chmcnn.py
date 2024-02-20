@@ -113,8 +113,8 @@ def get_random_hyperparameter(base_args):
     optimizer = random.choice(['adam','sgd'])
     num_layers = random.choice([1,2,3])
     dropout_rate = random.choice([0.2,0.4,0.6])
-    is_batchnorm_active = random.choice(True,False)
-    activation_func = random.choice('tanh','relu')
+    is_batchnorm_active = random.choice([True,False])
+    activation_func = random.choice(['tanh','relu'])
     
     print(f'Num-Layers: {num_layers}\n'
           f'FC-Dim: {fc_dim}\n'
