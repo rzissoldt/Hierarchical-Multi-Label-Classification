@@ -29,7 +29,7 @@ class ConstrainedFFNNModel(nn.Module):
         fc = []
         batchnorm = []
         for i in range(self.nb_layers):
-            if self.nb_layers-1 == 1:
+            if self.nb_layers == 1:
                 fc.append(nn.Linear(self.feature_dim, output_dim))
             elif i == self.nb_layers-1:
                 fc.append(nn.Linear(self.hidden_dim, output_dim))

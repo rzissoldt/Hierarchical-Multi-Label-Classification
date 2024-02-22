@@ -1,22 +1,14 @@
 
 # -*- coding:utf-8 -*-
 __author__ = 'Ruben'
-import numpy as np
 import os,json,random
 import sys
-import time
-import logging
-import torch, copy
-import math
+import torch
 from torchsummary import summary
 import torch.optim as optim
 # PyTorch TensorBoard support
 
 from datetime import datetime
-from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
-from torchvision import transforms
-
-
 
 # Add the parent directory to the Python path
 sys.path.append('../')
@@ -26,8 +18,7 @@ from utils import param_parser as parser
 from HARNN.model.hmcnet_model import HmcNet, HmcNetLoss
 from HARNN.dataset.hmcnet_dataset import HmcNetDataset
 from HARNN.trainer.hmcnet_trainer import HmcNetTrainer
-import torch.nn as nn
-from utils.xtree_utils import generate_dicts_per_level
+
 import warnings
 
 # Ignore specific warning types

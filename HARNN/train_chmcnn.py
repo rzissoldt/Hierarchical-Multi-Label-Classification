@@ -1,20 +1,13 @@
 # -*- coding:utf-8 -*-
 __author__ = 'Ruben'
-import numpy as np
 import os,json,random
 import sys
-import time
-import logging
-import torch, copy
-import torch.nn as nn
-import math
-from torchsummary import summary
+import torch
 import torch.optim as optim
 # PyTorch TensorBoard support
 
 from datetime import datetime
-from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
-from torchvision import transforms
+
 # Add the parent directory to the Python path
 sys.path.append('../')
 from utils import xtree_utils as xtree

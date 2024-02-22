@@ -1,8 +1,12 @@
 from tensorboard.backend.event_processing.event_file_loader import EventFileLoader
 import numpy as np
 import matplotlib.pyplot as plt
-
+import sys
 import os, json
+# Add the parent directory to the Python path
+sys.path.append('../')
+from utils import xtree_utils as xtree
+from utils import data_helpers as dh
 
 def analyze_summarywriter_dir(dir):
     def get_subdirectories(directory):
@@ -12,23 +16,29 @@ def analyze_summarywriter_dir(dir):
     model_dirs = get_subdirectories(dir)
     
     best_model_index = 0
-    best_auc_score = 0.
+    best_auprc_score = 0.
     best_model_config= None
-    best_train_loss = None
-    best_val_loss = None
+    model_list = []
     for i in range(len(model_dirs)):
         model_dir = model_dirs[i]
-        model_config, model_metric, train_loss, val_loss = get_config_and_event_file_from_dir(model_dir=model_dir)
-        if model_metric['AverageAUC'] > best_auc_score:
-            best_auc_score = model_metric['AverageAUC']
-            best_model_index = i
-            best_model_config = model_config
-            best_train_loss = train_loss
-            best_val_loss = val_loss
-    
-    print(f'Model Config:{best_model_config} from {model_dirs[i]}')
-    print(f'Lowest Train Loss {min(best_train_loss)} and lowest Val Loss {min(best_val_loss)}')
-    
+        model_metric, model_config = get_metric_from_dir(model_dir)
+        if 'AveragePrecision' in model_metric:
+            if model_metric['AveragePrecision'] > best_auprc_score:
+                model_list.append(
+                    {
+                        'model_dir':model_dir,
+                        'average_precision':model_metric['AveragePrecision']
+                    }
+                )
+
+    # Sort the list of dictionaries based on the 'age' key in descending order
+    sorted_list = sorted(model_list, key=lambda x: x['average_precision'], reverse=True)
+
+    print("Top 5 Models:", sorted_list[:5])
+    print(f'Model Config:{best_model_config} from {model_dirs[best_model_index]}')
+    #print(f'Best Model File Path:{best_model_file_path}')
+    print(f'Best AveragePrecision Score was {best_auprc_score}')
+    return None
     
 def extract_file_with_prefix(directory, prefix):
     # Get the list of files in the directory
@@ -44,15 +54,21 @@ def get_config_and_event_file_from_dir(model_dir):
     model_config_file = 'model_config.json'
     matching_event_file = extract_file_with_prefix(model_dir,event_file_prefix)[0]
     event_file_path = os.path.join(model_dir, matching_event_file)
-    train_loss, val_loss = get_train_val_loss_from_event_file(event_file_path)
-    with open(os.path.join(model_dir, model_config_file)) as infile:
+    #train_loss, val_loss = get_train_val_loss_from_event_file(event_file_path)
+    model_config_file_path = os.path.join(model_dir, model_config_file)
+    
+    return event_file_path,model_config_file_path
+def get_metric_from_dir(model_dir):
+    event_file_path,model_config_file_path=get_config_and_event_file_from_dir(model_dir=model_dir)
+    
+    with open(model_config_file_path,'r') as infile:
         model_config = json.load(infile)
-    model_metrics = get_pcp_metrics_from_event_file(event_file=event_file_path)
-    return model_config,model_metrics, train_loss, val_loss
-
-def get_pcp_metrics_from_event_file(event_file):
+    hierarchy = xtree.load_xtree_json(model_config['hierarchy_file'])
+    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
+    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
     metric = {}
-    loader = EventFileLoader(event_file)
+    hierarchy_depth = len(num_classes_list)
+    loader = EventFileLoader(event_file_path)
     for event in loader.Load():
         summary_value = event.summary.value
         if len(summary_value) == 0:
@@ -69,6 +85,89 @@ def get_pcp_metrics_from_event_file(event_file):
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
                     metric['AveragePrecision'] = float_val
+            if summary_value.tag == 'Validation/Precision':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['Precision'] = float_val
+            if summary_value.tag == 'Validation/Recall':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['Recall'] = float_val
+            if summary_value.tag == 'Validation/F1':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['F1'] = float_val
+            if summary_value.tag == 'Validation/EMR':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['EMR'] = float_val
+            for i in range(5):
+                if summary_value.tag == f'Validation/PrecisionTopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'PrecisionTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/RecallTopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'RecallTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/F1TopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'F1TopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/EMRTopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'EMRTopK/{i+1}'] = float_val
+            for i in range(hierarchy_depth):
+                if summary_value.tag == f'Validation/{i+1}-LayerPrecision':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPrecision'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerRecall':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerRecall'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerF1':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerAUC'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerAUC':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerAUPRC'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerAUPRC':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerAUPRC'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPPrecision':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPPrecision'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPRecall':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPRecall'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPF1':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPF1'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPAUC':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPAUC'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPAUPRC':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPAUPRC'] = float_val
+                        
+            if summary_value.tag == 'Validation/PCPAverageAUC':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['PCPAverageAUC'] = float_val
+            if summary_value.tag == 'Validation/PCPAveragePrecision':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['PCPAveragePrecision'] = float_val
             if summary_value.tag == 'Validation/PCPPrecision':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
@@ -81,6 +180,10 @@ def get_pcp_metrics_from_event_file(event_file):
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
                     metric['PCPF1'] = float_val
+            if summary_value.tag == 'Validation/PCPEMR':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['PCPEMR'] = float_val
             for i in range(5):
                 if summary_value.tag == f'Validation/PCPPrecisionTopK/{i}':
                     if hasattr(summary_value, 'tensor'):
@@ -93,9 +196,13 @@ def get_pcp_metrics_from_event_file(event_file):
                 if summary_value.tag == f'Validation/PCPF1TopK/{i}':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'Validation/PCPF1TopK/{i+1}'] = float_val
+                        metric[f'PCPF1TopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/PCPEMRTopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'PCPEMRTopK/{i+1}'] = float_val
                         
-    return metric
+    return metric, model_config
                 
 def get_train_val_loss_from_event_file(event_file):
     train_loss = []
@@ -157,11 +264,11 @@ def plot_train_val_loss_from_event_file(event_file):
     plt.legend()
     
     plt.show()
-    
-event_file_path = 'E:/workspace/Hierarchical-Multi-Label-Text-Classification/HARNN/runs/test/events.out.tfevents.1707675776.ds3.1208334.0'
-model_dir = 'E:/workspace/Hierarchical-Multi-Label-Text-Classification/HARNN/runs/'
-  
-analyze_summarywriter_dir(model_dir)
+
+if __name__ == '__main__':
+    event_file_path = 'E:/workspace/Hierarchical-Multi-Label-Text-Classification/HARNN/runs/test/events.out.tfevents.1707675776.ds3.1208334.0'
+    model_dir = 'E:/workspace/Hierarchical-Multi-Label-Text-Classification/HARNN/runs/test/'
+    analyze_summarywriter_dir(model_dir)
         
         
     
