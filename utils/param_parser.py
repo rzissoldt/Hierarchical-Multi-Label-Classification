@@ -116,6 +116,58 @@ def hmc_lmlp_parameter_parser():
     parser.add_argument("--gpu-options-allow-growth", type=bool_argument, default=True, help="Allow gpu options growth.")
     
     return parser.parse_args()
+
+def baseline_parameter_parser():
+    """
+    A method to parse up command line parameters.
+    """
+    parser = argparse.ArgumentParser(description="Run Image Baseline Model.")
+
+    # Data Parameters
+    parser.add_argument("--dataset-name", nargs="?", default="einrichtungsgegenstand", help="Name of the Dataset.")
+    parser.add_argument("--train-file", nargs="?", default="../data/Train_sample.json", help="Training data.")
+    parser.add_argument("--test-file", nargs="?", default="../data/Test_sample.json", help="Testing data.")
+    parser.add_argument("--hierarchy-file", nargs="?", default="../data/image_harnn/bauwerke", help="Hierarchy data.")
+    parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
+    parser.add_argument("--num-workers-dataloader", type=int, default=4, help="Number of workers used for Dataloading.")
+    parser.add_argument("--pin-memory", type=bool_argument, default=True, help="Pin Memory in Dataloading activated or not.")
+    parser.add_argument("--hyperparameter-dir", nargs="?", default="../data/Train_sample.json", help="Hyperparameter directory.")
+    parser.add_argument("--path-to-results", nargs="?", default="../data/Train_sample.json", help="Path to results of best model on testset metrics.")
+    # Model Hyperparameter
+    parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
+    parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,1), help="Dimensionality of the Feature Output of backbone.")
+    parser.add_argument("--fc-dim", type=int, default=512, help="Dimensionality for FC neurons.")
+    parser.add_argument("--num-layers", type=int, default=2, help="Layer count of FC Layers.")
+    parser.add_argument("--dropout-rate", type=float, default=0.2, help="Dropout keep probability.")
+    parser.add_argument("--activation-func", default="tanh", help="If tanh should be used or ReLU.")
+    parser.add_argument("--is-batchnorm-active", type=bool_argument, default=True, help="If batchnorm should be used.")
+     # Training Parameters
+    parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
+    parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
+    parser.add_argument("--is-k-crossfold-val", type=bool_argument, default=True, help="Choose if Training should be k-crossfold-validation.")
+    parser.add_argument("--k-folds", type=int, default=5, help="Count of K-Folds for Stratified Crossvalidation.")
+    parser.add_argument("--optimizer",default="adam", help="Select between SGD or Adam.")
+    parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs.")
+    parser.add_argument("--early-stopping-patience", type=int, default=5, help="Number of patience, when to trigger early stopping.")
+    parser.add_argument("--batch-size", type=int, default=32, help="Batch Size.")
+    parser.add_argument("--learning-rate", type=float, default=0.001, help="Learning rate.")
+    parser.add_argument("--decay-rate", type=float, default=0.95, help="Rate of decay for learning rate.")
+    parser.add_argument("--decay-steps", type=int, default=5, help="After how many epochs, the learning rate should decay.")
+    parser.add_argument("--evaluate-steps", type=int, default=10, help="Evaluate model on val set after how many steps.")
+    parser.add_argument("--norm-ratio", type=float, default=1.25,
+                        help="The ratio of the sum of gradients norms of trainable variable.")
+    parser.add_argument("--l2-lambda", type=float, default=1e-5, help="L2 regularization lambda.")
+    parser.add_argument("--freeze-backbone",type=bool_argument, default=True, help="Freezes Backbone Feature Extractor if needed.")
+    parser.add_argument("--topK", type=int, default=5, help="Number of top K prediction classes.")
+    parser.add_argument("--threshold", type=float, default=0.5, help="Threshold for prediction classes.")
+    parser.add_argument("--pcp-threshold", type=float, default=-1.0, help="PCP-Threshold for path-pruned-coherent-prediction classes.")
+    # Misc Parameters
+    parser.add_argument("--gpu", type=bool_argument, default=True, help="GPU-Support active or not")
+    parser.add_argument("--allow-soft-placement", type=bool_argument, default=True, help="Allow device soft device placement.")
+    parser.add_argument("--gpu-options-allow-growth", type=bool_argument, default=True, help="Allow gpu options growth.")
+    
+    return parser.parse_args()
+
 def chmcnn_parameter_parser():
     """
     A method to parse up command line parameters.
