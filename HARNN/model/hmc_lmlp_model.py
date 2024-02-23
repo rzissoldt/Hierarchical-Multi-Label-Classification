@@ -5,14 +5,14 @@ from HARNN.model.backbone import Backbone, BackboneEmbedding
 class HmcLMLP(nn.Module):
     """A ANN for image classification."""
     
-    def __init__(self,feature_dim,backbone_fc_hidden_size,fc_hidden_size, num_classes_list, freeze_backbone,dropout_keep_prob=0.2,beta=0.2,device=None):
+    def __init__(self,feature_dim,backbone_fc_hidden_size,fc_hidden_size, num_classes_list, freeze_backbone,dropout_keep_prob=0.2,device=None):
         super(HmcLMLP,self).__init__()
         self.backbone = Backbone()
         self.backbone_embedding = BackboneEmbedding(feature_dim=feature_dim,backbone_fc_hidden_size=backbone_fc_hidden_size,dropout_keep_prob=dropout_keep_prob)
         self.feature_dim = feature_dim
         self.fc_hidden_size = fc_hidden_size
         self.num_classes_list = num_classes_list
-        self.beta = beta
+        self.device = device
         self.total_classes = sum(num_classes_list)
         if freeze_backbone:
             for param in self.backbone.parameters():

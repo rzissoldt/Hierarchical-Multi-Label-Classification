@@ -123,7 +123,6 @@ class CHMCNNTrainer():
 
                 print(f"Epoch {epoch + 1}/{self.args.epochs}, Fold {fold + 1}/{k_folds}:")
                 avg_train_loss = self.train(epoch_index=epoch, data_loader=train_loader)
-                calc_metrics = epoch == self.args.epochs - 1
                 avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader)
                 self.tb_writer.flush()
                 print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')

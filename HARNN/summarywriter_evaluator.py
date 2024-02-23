@@ -3,11 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import os, json
+from types import SimpleNamespace
 # Add the parent directory to the Python path
 sys.path.append('../')
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
-
+from utils import param_parser as parser
 def analyze_summarywriter_dir(dir):
     def get_subdirectories(directory):
         subdirectories = [os.path.join(directory, name) for name in os.listdir(directory) if os.path.isdir(os.path.join(directory, name))]
@@ -24,6 +25,7 @@ def analyze_summarywriter_dir(dir):
         model_metric, model_config = get_metric_from_dir(model_dir)
         if 'AveragePrecision' in model_metric:
             if model_metric['AveragePrecision'] > best_auprc_score:
+                best_auprc_score = model_metric['AveragePrecision']
                 model_list.append(
                     {
                         'model_dir':model_dir,
@@ -33,13 +35,17 @@ def analyze_summarywriter_dir(dir):
 
     # Sort the list of dictionaries based on the 'age' key in descending order
     sorted_list = sorted(model_list, key=lambda x: x['average_precision'], reverse=True)
-
+    best_model_dir = model_dirs[best_model_index]
+    with open(os.path.join(best_model_dir,'model_config.json')) as infile:
+        best_model_config = SimpleNamespace(**json.load(infile))
     print("Top 5 Models:", sorted_list[:5])
-    print(f'Model Config:{best_model_config} from {model_dirs[best_model_index]}')
-    #print(f'Best Model File Path:{best_model_file_path}')
+    print(f'Model Config:{best_model_config} from {best_model_dir}')
     print(f'Best AveragePrecision Score was {best_auprc_score}')
-    return None
-    
+    best_model_file_path = os.path.join(best_model_dir,'models',os.listdir(os.path.join(best_model_dir,'models'))[0])
+    return best_model_file_path, best_model_config
+
+
+
 def extract_file_with_prefix(directory, prefix):
     # Get the list of files in the directory
     files = os.listdir(directory)
@@ -266,8 +272,7 @@ def plot_train_val_loss_from_event_file(event_file):
     plt.show()
 
 if __name__ == '__main__':
-    event_file_path = 'E:/workspace/Hierarchical-Multi-Label-Text-Classification/HARNN/runs/test/events.out.tfevents.1707675776.ds3.1208334.0'
-    model_dir = 'E:/workspace/Hierarchical-Multi-Label-Text-Classification/HARNN/runs/test/'
+    args = parser.evaluator_parser()
     analyze_summarywriter_dir(model_dir)
         
         

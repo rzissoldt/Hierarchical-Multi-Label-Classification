@@ -11,6 +11,8 @@ def bool_argument(b):
         return b.lower() == 'true'
     except Exception as e:
         raise argparse.ArgumentTypeError(f"Invalid bool value: {b}")
+
+    
 def parameter_parser():
     """
     A method to parse up command line parameters.
@@ -79,7 +81,8 @@ def hmc_lmlp_parameter_parser():
     parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
     parser.add_argument("--num-workers-dataloader", type=int, default=4, help="Number of workers used for Dataloading.")
     parser.add_argument("--pin-memory", type=bool_argument, default=True, help="Pin Memory in Dataloading activated or not.")
-    
+    parser.add_argument("--hyperparameter-dir", nargs="?", default="../data/Train_sample.json", help="Hyperparameter directory.")
+    parser.add_argument("--path-to-results", nargs="?", default="../data/Train_sample.json", help="Path to results of best model on testset metrics.")
     # Model Hyperparameter
     parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
     parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,1), help="Dimensionality of the Feature Output of backbone.")
@@ -127,7 +130,8 @@ def chmcnn_parameter_parser():
     parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
     parser.add_argument("--num-workers-dataloader", type=int, default=4, help="Number of workers used for Dataloading.")
     parser.add_argument("--pin-memory", type=bool_argument, default=True, help="Pin Memory in Dataloading activated or not.")
-    
+    parser.add_argument("--hyperparameter-dir", nargs="?", default="../data/Train_sample.json", help="Hyperparameter directory.")
+    parser.add_argument("--path-to-results", nargs="?", default="../data/Train_sample.json", help="Path to results of best model on testset metrics.")
     # Model Hyperparameter
     parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
     parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,1), help="Dimensionality of the Feature Output of backbone.")
@@ -176,6 +180,8 @@ def hmcnet_parameter_parser():
     parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
     parser.add_argument("--num-workers-dataloader", type=int, default=4, help="Number of workers used for Dataloading.")
     parser.add_argument("--pin-memory", type=bool_argument, default=True, help="Pin Memory in Dataloading activated or not.")
+    parser.add_argument("--hyperparameter-dir", nargs="?", default="../data/Train_sample.json", help="Hyperparameter directory.")
+    parser.add_argument("--path-to-results", nargs="?", default="../data/Train_sample.json", help="Path to results of best model on testset metrics.")
     
     parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
     parser.add_argument("--backbone-dim", type=int, default=256, help="Dimensionality of Backbone neurons.")
@@ -232,6 +238,7 @@ def image_parameter_parser():
     parser.add_argument("--test-file", nargs="?", default="../data/Test_sample.json", help="Testing data.")
     parser.add_argument("--hierarchy-file", nargs="?", default="../data/image_harnn/bauwerke", help="Hierarchy data.")
     parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
+    parser.add_argument("--hyperparameter-dir", nargs="?", default="../data/Train_sample.json", help="Hyperparameter directory.")
     
     parser.add_argument("--input-size", type=tuple, default=(224,224,3), help="Dimensionality of the Input.")
     parser.add_argument("--attention-dim", type=int, default=200, help="Dimensionality of Attention neurons.")

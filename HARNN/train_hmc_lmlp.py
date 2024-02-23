@@ -1,13 +1,10 @@
 
 # -*- coding:utf-8 -*-
 __author__ = 'Ruben'
-import numpy as np
 import os,json,random
 import sys
-import time
-import logging
-import torch, copy
-import math
+
+import torch
 from torchsummary import summary
 import torch.optim as optim
 # PyTorch TensorBoard support
@@ -26,8 +23,6 @@ from utils import param_parser as parser
 from HARNN.model.hmc_lmlp_model import HmcLMLP, HmcLMLPLoss
 from HARNN.dataset.hmc_lmlp_dataset import HmcLMLPDataset
 from HARNN.trainer.hmc_lmlp_trainer import HmcLMLPTrainer
-import torch.nn as nn
-from utils.xtree_utils import generate_dicts_per_level
 import warnings
 
 # Ignore specific warning types
