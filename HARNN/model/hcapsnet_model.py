@@ -89,7 +89,7 @@ class Encoder(nn.Module):
         self.batchnorm1 = nn.BatchNorm2d(num_features=64)
         self.conv2 = nn.Conv2d(in_channels=64,out_channels=64,kernel_size=(3,3),stride=(1,1),padding=1)
         self.batchnorm2 = nn.BatchNorm2d(num_features=64)
-        
+        self.maxpool = nn.MaxPool2d(kernel_size=(2,2),stride=(2,2))
     
     def forward(self,x):
         x = self.conv1(x)
@@ -98,6 +98,7 @@ class Encoder(nn.Module):
         x = self.conv2(x)
         x = F.relu(x)
         x = self.batchnorm2(x)
+        x = self.maxpool(x)
         return x
 
 class PrimaryCapsule(nn.Module):
@@ -112,6 +113,7 @@ class PrimaryCapsule(nn.Module):
                     module_list.append(nn.Conv2d(in_channels=filter_count_list[i-1],out_channels=filter_count_list[i],kernel_size=(3,3),padding=1))
                 module_list.append(nn.ReLU())
                 module_list.append(nn.BatchNorm2d(num_features=filter_count_list[i]))
+                
                 module_list.append(nn.Conv2d(in_channels=filter_count_list[i],out_channels=filter_count_list[i],kernel_size=(3,3),padding=1))
                 module_list.append(nn.ReLU())
                 module_list.append(nn.BatchNorm2d(num_features=filter_count_list[i]))
