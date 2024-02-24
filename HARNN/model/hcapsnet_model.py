@@ -276,7 +276,7 @@ class HCapsNet(nn.Module):
             secondary_capsules.append(SecondaryCapsule(in_channels=secondary_capsule_input_dim,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[i],n_dims=scap_n_dims))
             length_layers.append(LengthLayer())
             #masks.append(Mask(input_shape=feature_dim))
-            decoders.append(Decoder(input_shape=self.scap_n_dims*num_classes_list[i],fc_hidden_size=fc_hidden_size, num_layers=num_layers,output_dim=n_output))
+            #decoders.append(Decoder(input_shape=self.scap_n_dims*num_classes_list[i],fc_hidden_size=fc_hidden_size, num_layers=num_layers,output_dim=n_output))
         self.secondary_capsules_modules = nn.ModuleList(secondary_capsules)
         #self.length_layers = nn.ModuleList(length_layers)
         #self.masks = nn.ModuleList(masks)
