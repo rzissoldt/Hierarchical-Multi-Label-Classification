@@ -89,8 +89,12 @@ class Encoder(nn.Module):
         self.batchnorm1 = nn.BatchNorm2d(num_features=64)
         self.conv2 = nn.Conv2d(in_channels=64,out_channels=64,kernel_size=(3,3),stride=(1,1),padding=1)
         self.batchnorm2 = nn.BatchNorm2d(num_features=64)
-        self.maxpool = nn.MaxPool2d(kernel_size=(2,2),stride=(2,2))
-    
+        self.maxpool1 = nn.MaxPool2d(kernel_size=(2,2),stride=(2,2))
+        self.conv3 = nn.Conv2d(in_channels=64,out_channels=128,kernel_size=(3,3),stride=(1,1),padding=1)
+        self.batchnorm3 = nn.BatchNorm2d(num_features=128)
+        self.conv4 = nn.Conv2d(in_channels=128,out_channels=128,kernel_size=(3,3),stride=(1,1),padding=1)
+        self.batchnorm4 = nn.BatchNorm2d(num_features=128)
+        self.maxpool2 = nn.MaxPool2d(kernel_size=(2,2),stride=(2,2))
     def forward(self,x):
         x = self.conv1(x)
         x = F.relu(x)
@@ -98,7 +102,14 @@ class Encoder(nn.Module):
         x = self.conv2(x)
         x = F.relu(x)
         x = self.batchnorm2(x)
-        x = self.maxpool(x)
+        x = self.maxpool1(x)
+        x = self.conv3(x)
+        x = F.relu(x)
+        x = self.batchnorm3(x)
+        x = self.conv4(x)
+        x = F.relu(x)
+        x = self.batchnorm4(x)
+        x = self.maxpool2(x)
         return x
 
 class PrimaryCapsule(nn.Module):
@@ -279,7 +290,7 @@ class HCapsNet(nn.Module):
             length_layers.append(LengthLayer())
             #masks.append(Mask(input_shape=feature_dim))
             #decoders.append(Decoder(input_shape=self.scap_n_dims*num_classes_list[i],fc_hidden_size=fc_hidden_size, num_layers=num_layers,output_dim=n_output))
-        self.secondary_capsules_modules = nn.ModuleList(secondary_capsules)
+        #self.secondary_capsules_modules = nn.ModuleList(secondary_capsules)
         #self.length_layers = nn.ModuleList(length_layers)
         #self.masks = nn.ModuleList(masks)
         #self.decoders = nn.ModuleList(decoders)
