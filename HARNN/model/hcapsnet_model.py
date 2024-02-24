@@ -16,10 +16,10 @@ def calculate_filter_pow(num_layers):
     for i in range(num_layers):
         temp_filter = []
         if i == 0:
-            temp_filter.append(512)
+            temp_filter.append(128)
         elif i == 1:
+            temp_filter.append(128)
             temp_filter.append(256)
-            temp_filter.append(512)
         else:
             temp_filter.append(128)
             temp_filter.append(256)
@@ -133,12 +133,13 @@ class PrimaryCapsule(nn.Module):
         
         squashed_outputs = []
         for output in outputs:
-            # Calculate the new shape for the reshaped tensor
-            new_shape = (-1, int(torch.prod(torch.tensor(output.shape[1:])).item() / self.pcap_n_dims), self.pcap_n_dims)
-
+           
+            total_elements = np.prod(output.shape[1:])
+            # Calculate the size of the second dimension
+            second_dim_size = total_elements // 8
             # Reshape the tensor
-            reshaped_output = output.view(new_shape)
-            
+            reshaped_output = output.view(-1,8, second_dim_size)  # -1 lets PyTorch calculate the size automatically
+
             squash_output = squash(reshaped_output)
 
             squashed_outputs.append(squash_output)
@@ -266,17 +267,17 @@ class HCapsNet(nn.Module):
         secondary_capsule_input_dim = None
         for i in range(len(num_classes_list)):
             if i == 0:
-                secondary_capsule_input_dim = int(512*((input_shape[0]/2)**2)/pcap_n_dims)
+                secondary_capsule_input_dim = int(128*((input_shape[0]/2)**2)/pcap_n_dims)
             elif i == 1:
-                secondary_capsule_input_dim = int(512*((input_shape[0]/4)**2)/pcap_n_dims)
+                secondary_capsule_input_dim = int(256*((input_shape[0]/4)**2)/pcap_n_dims)
             else:
                 secondary_capsule_input_dim = int(512*((input_shape[0]/8)**2)/pcap_n_dims)
             
             secondary_capsules.append(SecondaryCapsule(in_channels=secondary_capsule_input_dim,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[i],n_dims=scap_n_dims))
             length_layers.append(LengthLayer())
-        #    masks.append(Mask(input_shape=feature_dim))
-        #    decoders.append(Decoder(input_shape=self.scap_n_dims*num_classes_list[i],fc_hidden_size=fc_hidden_size, num_layers=num_layers,output_dim=n_output))
-        #self.secondary_capsules_modules = nn.ModuleList(secondary_capsules)
+            masks.append(Mask(input_shape=feature_dim))
+            decoders.append(Decoder(input_shape=self.scap_n_dims*num_classes_list[i],fc_hidden_size=fc_hidden_size, num_layers=num_layers,output_dim=n_output))
+        self.secondary_capsules_modules = nn.ModuleList(secondary_capsules)
         #self.length_layers = nn.ModuleList(length_layers)
         #self.masks = nn.ModuleList(masks)
         #self.decoders = nn.ModuleList(decoders)
