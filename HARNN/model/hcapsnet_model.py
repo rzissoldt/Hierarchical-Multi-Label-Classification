@@ -276,8 +276,8 @@ class HCapsNet(nn.Module):
             length_layers.append(LengthLayer())
         #    masks.append(Mask(input_shape=feature_dim))
         #    decoders.append(Decoder(input_shape=self.scap_n_dims*num_classes_list[i],fc_hidden_size=fc_hidden_size, num_layers=num_layers,output_dim=n_output))
-        self.secondary_capsules_modules = nn.ModuleList(secondary_capsules)
-        self.length_layers = nn.ModuleList(length_layers)
+        #self.secondary_capsules_modules = nn.ModuleList(secondary_capsules)
+        #self.length_layers = nn.ModuleList(length_layers)
         #self.masks = nn.ModuleList(masks)
         #self.decoders = nn.ModuleList(decoders)
         #self.concatenated = nn.Sequential(
