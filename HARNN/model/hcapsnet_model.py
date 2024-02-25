@@ -269,7 +269,7 @@ class HCapsNetLoss(nn.Module):
         super(HCapsNetLoss, self).__init__()
         self.margin_loss = MarginLoss(m_plus = m_plus,m_minus = m_minus,lambda_ = lambda_)
         self.reconstruction_loss =ReconstructionLoss() 
-        self.l2_loss = L2Loss(l2_reg_lambda=l2_reg_lambda)
+        self.l2_loss = L2Loss(l2_reg_lambda=l2_reg_lambda,device=device)
         self.device = device
         self.tau = tau
     def forward(self,x):
