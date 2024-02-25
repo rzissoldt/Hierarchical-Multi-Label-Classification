@@ -157,6 +157,7 @@ class HCapsNetTrainer():
         current_loss = 0.
         last_loss = 0.
         self.model.train(True)
+        self.model.set_training(True)
         num_of_train_batches = len(data_loader)
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
@@ -198,6 +199,7 @@ class HCapsNetTrainer():
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
         self.model.eval()
+        self.model.set_training(False)
         eval_counter, eval_loss = 0, 0.0
         num_of_val_batches = len(data_loader)
         
@@ -235,6 +237,7 @@ class HCapsNetTrainer():
         scores_list = []
         true_onehot_labels_list = []
         self.best_model.eval()
+        self.best_model.set_training(False)
         with torch.no_grad():
             for i, vdata in enumerate(data_loader):
                 vinputs, vlabels = copy.deepcopy(vdata)

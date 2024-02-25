@@ -212,7 +212,7 @@ class Mask(nn.Module):
       y_pred shape = [None, num_capsule]
     output shape = [None, num_capsule * dim_vector]
     """
-    def __init__(self,n_caps,n_dims, is_training=None):
+    def __init__(self,n_caps,n_dims, is_training=True):
         super(Mask, self).__init__()
         self.n_caps = n_caps
         self.n_dims = n_dims
@@ -230,6 +230,9 @@ class Mask(nn.Module):
         caps2_output_masked = torch.mul(x,reconstruction_mask_reshaped)
         decoder_input = caps2_output_masked.view(-1, self.n_caps * self.n_dims)
         return decoder_input
+    
+    def set_training(self,is_training):
+        self.is_training = is_training
     
 class MarginLoss(nn.Module):
     """
@@ -262,12 +265,12 @@ class ReconstructionLoss(nn.Module):
         return torch.mean(l2_norm_squared)
     
 class HCapsNetLoss(nn.Module):
-    def __init__(self, m_plus=0.9, m_minus=0.1, lambda_=0.5,device=None):
+    def __init__(self,tau=0.5, m_plus=0.9, m_minus=0.1, lambda_=0.5,device=None):
         super(HCapsNetLoss, self).__init__()
         self.margin_loss = MarginLoss(m_plus = m_plus,m_minus = m_minus,lambda_ = lambda_)
         self.reconstruction_loss =ReconstructionLoss() 
         self.device = device
-    
+        self.tau = tau
     def forward(self,x):
         y_pred,y_true,x_real,x_reconstructed = x
         x_recon_loss = x_real,x_reconstructed
@@ -279,7 +282,7 @@ class HCapsNetLoss(nn.Module):
             margin_losses[i] = margin_loss
         
         margin_loss_sum = torch.sum(margin_losses)
-        return torch.add(reconstructions_loss,margin_loss_sum)
+        return torch.add((1-self.tau)*reconstructions_loss,self.tau*margin_loss_sum)
 class HCapsNet(nn.Module):
     def __init__(self,feature_dim,input_shape,num_classes_list,pcap_n_dims,scap_n_dims,fc_hidden_size,num_layers,device=None):
         super(HCapsNet,self).__init__()
@@ -315,9 +318,9 @@ class HCapsNet(nn.Module):
         self.concatenated = nn.Sequential(
             nn.Conv2d(in_channels=len(num_classes_list)*3, out_channels=64, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(in_channels=32, out_channels=3, kernel_size=3, padding=1)
+            nn.Conv2d(in_channels=64, out_channels=3, kernel_size=3, padding=1)
         )
     def forward(self,x):
         image, y_true = x
@@ -344,5 +347,9 @@ class HCapsNet(nn.Module):
         final_output = final_output.transpose(3,1)
         return length_layer_outputs, final_output
 
+    def set_training(self,is_training):
+        for mask in self.masks:
+            mask.set_training(is_training)
+        
 
 
