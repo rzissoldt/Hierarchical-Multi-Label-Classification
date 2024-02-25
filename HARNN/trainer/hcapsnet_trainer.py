@@ -191,7 +191,7 @@ class HCapsNetTrainer():
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
             
         print('\n')
-        return last_loss
+        return  last_margin_loss+last_reconstruction_loss
     
     def validate(self,epoch_index,data_loader):
         current_global_loss = 0.
@@ -238,7 +238,7 @@ class HCapsNetTrainer():
                 self.tb_writer.add_scalar('Validation/Loss',eval_loss,tb_x)
                 eval_counter+=1
             print('\n')                
-            return eval_loss
+            return last_vmargin_loss+last_vreconstruction_loss
     
     def test(self,epoch_index,data_loader):
         print(f"Evaluating best model of epoch {epoch_index}.")
