@@ -85,7 +85,7 @@ def train_hcapsnet(args):
     
     
     # Define Trainer for HmcNet
-    trainer = HCapsNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,explicit_hierarchy=explicit_hierarchy,args=args,device=device,num_classes_list=num_classes_list)
+    trainer = HCapsNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,explicit_hierarchy=explicit_hierarchy,args=args,device=device,num_classes_list=num_classes_list,device=device)
     
     # Save Model ConfigParameters
     args_dict = vars(args)

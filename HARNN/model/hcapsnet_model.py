@@ -156,13 +156,14 @@ class SecondaryCapsule(nn.Module):
     :param n_caps: number of capsules in this layer
     :param n_dims: dimension of the output vectors of the capsules in this layer
     """
-    def __init__(self, in_channels,pcap_n_dims, n_caps, n_dims, routings=2):
+    def __init__(self, in_channels,pcap_n_dims, n_caps, n_dims, routings=2,device=None):
         super(SecondaryCapsule, self).__init__()
         self.n_caps = n_caps
         self.n_dims = n_dims
         self.routings = routings
         self.in_channels = in_channels
         self.pcap_n_dims = pcap_n_dims
+        self.device = device
         # Initialize transformation matrix
         self.W = nn.Parameter(torch.randn(1, in_channels, self.n_caps, self.n_dims, pcap_n_dims))
 
@@ -174,7 +175,7 @@ class SecondaryCapsule(nn.Module):
         caps1_output_tile = caps1_output_expanded.unsqueeze(2)
         caps1_output_tiled = caps1_output_tile.repeat(1, 1, self.n_caps, 1, 1)
         caps2_predicted = torch.matmul(W_tiled, caps1_output_tiled)
-        raw_weights = torch.zeros(batch_size, caps1_n_caps, self.n_caps, 1, 1)
+        raw_weights = torch.zeros(batch_size, caps1_n_caps, self.n_caps, 1, 1).to(self.device)
         for i in range(self.routings):
             routing_weights = F.softmax(raw_weights, dim=2)
             weighted_predictions = routing_weights * caps2_predicted
@@ -280,9 +281,9 @@ class HCapsNetLoss(nn.Module):
         margin_loss_sum = torch.sum(margin_losses)
         return torch.add(reconstructions_loss,margin_loss_sum)
 class HCapsNet(nn.Module):
-    def __init__(self,feature_dim,input_shape,num_classes_list,pcap_n_dims,scap_n_dims,fc_hidden_size,num_layers):
+    def __init__(self,feature_dim,input_shape,num_classes_list,pcap_n_dims,scap_n_dims,fc_hidden_size,num_layers,device=None):
         super(HCapsNet,self).__init__()
-        
+        self.device = device
         self.encoder = Encoder(in_channels=input_shape[2])
         self.feature_dim = feature_dim
         self.pcap_n_dims = pcap_n_dims
@@ -303,7 +304,7 @@ class HCapsNet(nn.Module):
             else:
                 secondary_capsule_input_dim = 1152
             
-            secondary_capsules.append(SecondaryCapsule(in_channels=secondary_capsule_input_dim,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[i],n_dims=scap_n_dims))
+            secondary_capsules.append(SecondaryCapsule(in_channels=secondary_capsule_input_dim,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[i],n_dims=scap_n_dims,device=device))
             length_layers.append(LengthLayer())
             masks.append(Mask(n_caps=num_classes_list[i],n_dims=scap_n_dims))
             decoders.append(Decoder(input_dim=self.scap_n_dims*num_classes_list[i],target_shape=input_shape,fc_hidden_size=fc_hidden_size, num_layers=num_layers,output_dim=n_output))
