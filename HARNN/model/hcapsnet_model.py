@@ -19,11 +19,13 @@ def calculate_filter_pow(num_layers):
             temp_filter.append(128)
         elif i == 1:
             temp_filter.append(128)
-            temp_filter.append(256)
+            temp_filter.append(128)
+
         else:
             temp_filter.append(128)
+            temp_filter.append(128)
             temp_filter.append(256)
-            temp_filter.append(512)
+
         filters.append(temp_filter)
         
     return filters
@@ -80,7 +82,7 @@ class Decoder(nn.Module):
             x = self.hidden_layers[i](x)
             x = F.relu(x)
         x = F.sigmoid(self.output_layer(x))
-        return x.view(*self.target_shape)
+        return x.view(-1,*self.target_shape)
         
 class Encoder(nn.Module):
     def __init__(self, in_channels):
@@ -90,11 +92,7 @@ class Encoder(nn.Module):
         self.conv2 = nn.Conv2d(in_channels=64,out_channels=64,kernel_size=(3,3),stride=(1,1),padding=1)
         self.batchnorm2 = nn.BatchNorm2d(num_features=64)
         self.maxpool1 = nn.MaxPool2d(kernel_size=(2,2),stride=(2,2))
-        self.conv3 = nn.Conv2d(in_channels=64,out_channels=128,kernel_size=(3,3),stride=(1,1),padding=1)
-        self.batchnorm3 = nn.BatchNorm2d(num_features=128)
-        self.conv4 = nn.Conv2d(in_channels=128,out_channels=128,kernel_size=(3,3),stride=(1,1),padding=1)
-        self.batchnorm4 = nn.BatchNorm2d(num_features=128)
-        self.maxpool2 = nn.MaxPool2d(kernel_size=(2,2),stride=(2,2))
+        
     def forward(self,x):
         x = self.conv1(x)
         x = F.relu(x)
@@ -103,13 +101,6 @@ class Encoder(nn.Module):
         x = F.relu(x)
         x = self.batchnorm2(x)
         x = self.maxpool1(x)
-        x = self.conv3(x)
-        x = F.relu(x)
-        x = self.batchnorm3(x)
-        x = self.conv4(x)
-        x = F.relu(x)
-        x = self.batchnorm4(x)
-        x = self.maxpool2(x)
         return x
 
 class PrimaryCapsule(nn.Module):
@@ -119,16 +110,15 @@ class PrimaryCapsule(nn.Module):
             module_list = []
             for i in range(len(filter_count_list)):
                 if i == 0:
-                    module_list.append(nn.Conv2d(in_channels=in_channels,out_channels=filter_count_list[i],kernel_size=(3,3),padding=1))
+                    module_list.append(nn.Conv2d(in_channels=in_channels,out_channels=filter_count_list[i],kernel_size=(5,5),stride=2,padding=1))
                 else:
-                    module_list.append(nn.Conv2d(in_channels=filter_count_list[i-1],out_channels=filter_count_list[i],kernel_size=(3,3),padding=1))
+                    module_list.append(nn.Conv2d(in_channels=filter_count_list[i-1],out_channels=filter_count_list[i],kernel_size=(5,5),stride=2,padding=1))
                 module_list.append(nn.ReLU())
                 module_list.append(nn.BatchNorm2d(num_features=filter_count_list[i]))
-                
-                module_list.append(nn.Conv2d(in_channels=filter_count_list[i],out_channels=filter_count_list[i],kernel_size=(3,3),padding=1))
+                module_list.append(nn.Conv2d(in_channels=filter_count_list[i],out_channels=filter_count_list[i],kernel_size=(3,3),stride=1,padding=1))
                 module_list.append(nn.ReLU())
                 module_list.append(nn.BatchNorm2d(num_features=filter_count_list[i]))
-                module_list.append(nn.MaxPool2d(kernel_size=(2,2),stride=(2,2)))
+            module_list.append(nn.MaxPool2d(kernel_size=(2,2),stride=(2,2)))
             
             block = nn.Sequential(*module_list)
             return block
@@ -155,7 +145,7 @@ class PrimaryCapsule(nn.Module):
 
             squash_output = squash(reshaped_output)
 
-            squashed_outputs.append(squash_output)
+            squashed_outputs.append(squash_output.permute(0,2,1))
             
         return squashed_outputs           
 class SecondaryCapsule(nn.Module):
@@ -177,7 +167,6 @@ class SecondaryCapsule(nn.Module):
         self.W = nn.Parameter(torch.randn(1, in_channels, self.n_caps, self.n_dims, pcap_n_dims))
 
     def forward(self, x):
-        # Predict output vector
         batch_size = x.size(0)
         caps1_n_caps = x.size(1)
         W_tiled = self.W.repeat(batch_size, 1, 1, 1, 1)
@@ -185,22 +174,19 @@ class SecondaryCapsule(nn.Module):
         caps1_output_tile = caps1_output_expanded.unsqueeze(2)
         caps1_output_tiled = caps1_output_tile.repeat(1, 1, self.n_caps, 1, 1)
         caps2_predicted = torch.matmul(W_tiled, caps1_output_tiled)
-
-        # Routing by agreement
-        # Initialize routing weights
-        raw_weights = torch.zeros(batch_size, caps1_n_caps, self.n_caps, 1, 1, dtype=torch.float32)
+        raw_weights = torch.zeros(batch_size, caps1_n_caps, self.n_caps, 1, 1)
         for i in range(self.routings):
             routing_weights = F.softmax(raw_weights, dim=2)
             weighted_predictions = routing_weights * caps2_predicted
-            weighted_sum = weighted_predictions.sum(dim=1, keepdim=True)
-            caps2_output_round_1 = squash(weighted_sum, axis=-2)
+            weighted_sum = torch.sum(weighted_predictions, dim=1, keepdim=True)
+            caps2_output_round_1 = squash(weighted_sum,axis=-2)
             caps2_output_squeezed = caps2_output_round_1.squeeze(dim=[1, 4])
             if i < self.routings - 1:
                 caps2_output_round_1_tiled = caps2_output_round_1.repeat(1, caps1_n_caps, 1, 1, 1)
-                agreement = torch.matmul(caps2_predicted, caps2_output_round_1_tiled.transpose(1, 0))
-                raw_weights_round_2 = raw_weights + agreement
-                raw_weights = raw_weights_round_2
+                agreement = torch.matmul(caps2_predicted.transpose(3,4), caps2_output_round_1_tiled)
+                raw_weights = torch.add(raw_weights, agreement)
         return caps2_output_squeezed
+
 
 class LengthLayer(nn.Module):
     """
@@ -225,10 +211,10 @@ class Mask(nn.Module):
       y_pred shape = [None, num_capsule]
     output shape = [None, num_capsule * dim_vector]
     """
-    def __init__(self,input_shape, is_training=None):
+    def __init__(self,n_caps,n_dims, is_training=None):
         super(Mask, self).__init__()
-        self.n_caps = input_shape[0][1]
-        self.n_dims = input_shape[0][2]
+        self.n_caps = n_caps
+        self.n_dims = n_dims
         self.is_training = is_training
     def forward(self, input):
         x, y_true, y_proba = input
@@ -239,8 +225,8 @@ class Mask(nn.Module):
             y_pred = F.one_hot(y_proba_argmax, num_classes=self.n_caps).float()
             reconstruction_mask = y_pred
 
-        reconstruction_mask_reshaped = reconstruction_mask.unsqueeze(-1)
-        caps2_output_masked = x * reconstruction_mask_reshaped
+        reconstruction_mask_reshaped = reconstruction_mask.unsqueeze(2)
+        caps2_output_masked = torch.mul(x,reconstruction_mask_reshaped)
         decoder_input = caps2_output_masked.view(-1, self.n_caps * self.n_dims)
         return decoder_input
     
@@ -256,12 +242,43 @@ class MarginLoss(nn.Module):
         self.m_minus = m_minus
         self.lambda_ = lambda_
 
-    def forward(self, y_pred, y_true):
+    def forward(self,x):
+        y_pred, y_true = x
         present_error_raw = torch.square(F.relu(self.m_plus - y_pred))
         absent_error_raw = torch.square(F.relu(y_pred - self.m_minus))
-        L = torch.add(y_true * present_error_raw,self.lambda_ * (1.0 - y_true) * absent_error_raw)
+        L = torch.add(torch.mul(y_true,present_error_raw),self.lambda_ * torch.mul((1.0 - y_true), absent_error_raw))
         total_marginloss = torch.mean(torch.sum(L, dim=1))
         return total_marginloss
+
+class ReconstructionLoss(nn.Module):
+    def __init__(self):
+        super(ReconstructionLoss, self).__init__()
+        
+    def forward(self,x):
+        x_real,x_reconstructed = x
+        x_real_flatten, x_reconstructed_flatten = torch.flatten(x_real,start_dim=1),torch.flatten(x_reconstructed,start_dim=1)
+        l2_norm_squared = torch.norm(x_real_flatten-x_reconstructed_flatten,p=2,dim=1)**2
+        return torch.mean(l2_norm_squared)
+    
+class HCapsNetLoss(nn.Module):
+    def __init__(self, m_plus=0.9, m_minus=0.1, lambda_=0.5,device=None):
+        super(HCapsNetLoss, self).__init__()
+        self.margin_loss = MarginLoss(m_plus = m_plus,m_minus = m_minus,lambda_ = lambda_)
+        self.reconstruction_loss =ReconstructionLoss() 
+        self.device = device
+    
+    def forward(self,x):
+        y_pred,y_true,x_real,x_reconstructed = x
+        x_recon_loss = x_real,x_reconstructed
+        reconstructions_loss = self.reconstruction_loss(x_recon_loss)
+        margin_losses = torch.zeros(len(y_pred)).to(self.device)
+        for i in range(len(y_pred)):
+            x_margin_loss = y_pred[i],y_true[i]
+            margin_loss = self.margin_loss(x_margin_loss)
+            margin_losses[i] = margin_loss
+        
+        margin_loss_sum = torch.sum(margin_losses)
+        return torch.add(reconstructions_loss,margin_loss_sum)
 class HCapsNet(nn.Module):
     def __init__(self,feature_dim,input_shape,num_classes_list,pcap_n_dims,scap_n_dims,fc_hidden_size,num_layers):
         super(HCapsNet,self).__init__()
@@ -271,7 +288,7 @@ class HCapsNet(nn.Module):
         self.pcap_n_dims = pcap_n_dims
         self.scap_n_dims = scap_n_dims
         self.primary_capsule = PrimaryCapsule(in_channels=64,pcap_n_dims=pcap_n_dims,num_classes_list=num_classes_list)
-        
+        self.input_shape = input_shape
         secondary_capsules = []
         length_layers = []
         masks = []
@@ -280,25 +297,27 @@ class HCapsNet(nn.Module):
         secondary_capsule_input_dim = None
         for i in range(len(num_classes_list)):
             if i == 0:
-                secondary_capsule_input_dim = int(128*((input_shape[0]/2)**2)/pcap_n_dims)
+                secondary_capsule_input_dim = 11664#int(128*((input_shape[0]/2)**2)/pcap_n_dims)
             elif i == 1:
-                secondary_capsule_input_dim = int(256*((input_shape[0]/4)**2)/pcap_n_dims)
+                secondary_capsule_input_dim = 2704#int(128*((input_shape[0]/4)**2)/pcap_n_dims)
             else:
-                secondary_capsule_input_dim = int(512*((input_shape[0]/8)**2)/pcap_n_dims)
+                secondary_capsule_input_dim = 1152#int(256*((input_shape[0]/8)**2)/pcap_n_dims)
             
             secondary_capsules.append(SecondaryCapsule(in_channels=secondary_capsule_input_dim,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[i],n_dims=scap_n_dims))
             length_layers.append(LengthLayer())
-            #masks.append(Mask(input_shape=feature_dim))
-            #decoders.append(Decoder(input_shape=self.scap_n_dims*num_classes_list[i],fc_hidden_size=fc_hidden_size, num_layers=num_layers,output_dim=n_output))
+            masks.append(Mask(n_caps=num_classes_list[i],n_dims=scap_n_dims))
+            decoders.append(Decoder(input_dim=self.scap_n_dims*num_classes_list[i],target_shape=input_shape,fc_hidden_size=fc_hidden_size, num_layers=num_layers,output_dim=n_output))
         self.secondary_capsules_modules = nn.ModuleList(secondary_capsules)
-        #self.length_layers = nn.ModuleList(length_layers)
-        #self.masks = nn.ModuleList(masks)
-        #self.decoders = nn.ModuleList(decoders)
-        #self.concatenated = nn.Sequential(
-        #    nn.Linear(3 * n_output, 4),
-        #    nn.ReLU(),
-        #    nn.Linear(4, 3)
-        #)
+        self.length_layers = nn.ModuleList(length_layers)
+        self.masks = nn.ModuleList(masks)
+        self.decoders = nn.ModuleList(decoders)
+        self.concatenated = nn.Sequential(
+            nn.Conv2d(in_channels=len(num_classes_list)*3, out_channels=64, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=32, out_channels=3, kernel_size=3, padding=1)
+        )
     def forward(self,x):
         image, y_true = x
         
@@ -314,13 +333,15 @@ class HCapsNet(nn.Module):
             secondary_capsule_outputs.append(secondary_capsule_output)
             length_layer_outputs.append(length_layer_output)
             x = secondary_capsule_output, y_true[i], length_layer_output
-            decoder_input = self.mask_layers[i](x)
+            decoder_input = self.masks[i](x)
             decoder_inputs.append(decoder_input)
             decoder_output = self.decoders[i](decoder_input)
             decoder_outputs.append(decoder_output)
-        cat_decoder_output = torch.cat(decoder_outputs)
-        final_output = self.concatenated(cat_decoder_output)
-        return length_layer_output, final_output
+        cat_decoder_output = torch.cat(decoder_outputs,dim=3)
+        permuted_cat_decoder_output = cat_decoder_output.transpose(1,3)
+        final_output = self.concatenated(permuted_cat_decoder_output)
+        final_output = final_output.transpose(3,1)
+        return length_layer_outputs, final_output
 
 
 

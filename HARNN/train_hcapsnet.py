@@ -15,7 +15,7 @@ sys.path.append('../')
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
 from utils import param_parser as parser
-from HARNN.model.hcapsnet_model import HCapsNet, MarginLoss
+from HARNN.model.hcapsnet_model import HCapsNet, HCapsNetLoss
 from HARNN.dataset.hcapsnet_dataset import HCapsNetDataset
 from HARNN.trainer.hcapsnet_trainer import HCapsNetTrainer
 
@@ -70,7 +70,7 @@ def train_hcapsnet(args):
     model.eval().to(device)
     
     # Define Loss for HmcNet.
-    criterion = MarginLoss()
+    criterion = HCapsNetLoss()
               
     
     

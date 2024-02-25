@@ -165,14 +165,14 @@ class HCapsNetTrainer():
             y_local_onehots = [label.to(self.device) for label in labels]
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
-            inputs = inputs, y_local_onehots
+            model_inputs = inputs, y_local_onehots
             # Make predictions for this batch
-            local_scores, final_score = self.model(inputs)
-
+            local_scores, final_outputs = self.model(model_inputs)
+            
             # Compute the loss and its gradients            
-            x = (local_scores,y_local_onehots)
-            margin_loss = self.criterion(x)
-            margin_loss.backward()
+            x = (local_scores,y_local_onehots,inputs.transpose(1,3),final_outputs)
+            loss = self.criterion(x)
+            loss.backward()
             
             # Clip gradients by global norm
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
@@ -180,7 +180,7 @@ class HCapsNetTrainer():
             # Adjust learning weights
             self.optimizer.step()
             # Gather data and report
-            current_loss += margin_loss.item()
+            current_loss += loss.item()
             
             last_loss = current_loss/(i+1)
             
@@ -207,18 +207,20 @@ class HCapsNetTrainer():
                 vinputs, vlabels = copy.deepcopy(vdata)
                 vinputs = vinputs.to(self.device)
                 y_local_onehots = [label.to(self.device) for label in vlabels]
+                # Zero your gradients for every batch!
+                self.optimizer.zero_grad()
+                model_inputs = vinputs, y_local_onehots
                 # Make predictions for this batch
-                local_scores, final_score = self.model(vinputs)
+                local_scores, final_outputs = self.model(model_inputs)
 
                 # Compute the loss and its gradients            
-                x = (local_scores,y_local_onehots)
-                margin_loss = self.criterion(x)
+                x = (local_scores,y_local_onehots,vinputs.transpose(1,3),final_outputs)
+                loss = self.criterion(x)
             
                 
-                running_vloss += margin_loss.item()
+                running_vloss += loss.item()
                               
                 eval_loss = running_vloss/(eval_counter+1)
-                #progress_info = f'Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}'
                 progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}"
                 print(progress_info, end='\r')
                 
