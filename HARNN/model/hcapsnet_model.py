@@ -261,7 +261,7 @@ class ReconstructionLoss(nn.Module):
     def forward(self,x):
         x_real,x_reconstructed = x
         x_real_flatten, x_reconstructed_flatten = torch.flatten(x_real,start_dim=1),torch.flatten(x_reconstructed,start_dim=1)
-        l2_norm_squared = torch.norm(x_real_flatten-x_reconstructed_flatten,p=2,dim=1)**2
+        l2_norm_squared = torch.mean(torch.norm(x_real_flatten-x_reconstructed_flatten,p=2,dim=1)**2,dim=1)
         return torch.mean(l2_norm_squared)
     
 class HCapsNetLoss(nn.Module):
