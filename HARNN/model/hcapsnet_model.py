@@ -297,11 +297,11 @@ class HCapsNet(nn.Module):
         secondary_capsule_input_dim = None
         for i in range(len(num_classes_list)):
             if i == 0:
-                secondary_capsule_input_dim = 11664#int(128*((input_shape[0]/2)**2)/pcap_n_dims)
+                secondary_capsule_input_dim = 11664
             elif i == 1:
-                secondary_capsule_input_dim = 2704#int(128*((input_shape[0]/4)**2)/pcap_n_dims)
+                secondary_capsule_input_dim = 2704
             else:
-                secondary_capsule_input_dim = 1152#int(256*((input_shape[0]/8)**2)/pcap_n_dims)
+                secondary_capsule_input_dim = 1152
             
             secondary_capsules.append(SecondaryCapsule(in_channels=secondary_capsule_input_dim,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[i],n_dims=scap_n_dims))
             length_layers.append(LengthLayer())
