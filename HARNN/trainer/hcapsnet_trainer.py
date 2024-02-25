@@ -146,7 +146,10 @@ class HCapsNetTrainer():
             self.test(data_loader=val_loader)  
                       
     def train(self,epoch_index,data_loader):
-        current_loss = 0.
+        current_global_loss = 0.
+        current_margin_loss = 0.
+        current_reconstruction_loss = 0.
+        current_l2_loss = 0.
         last_loss = 0.
         self.model.train(True)
         self.model.set_training(True)
@@ -163,9 +166,9 @@ class HCapsNetTrainer():
             local_scores, final_outputs = self.model(model_inputs)
             
             # Compute the loss and its gradients            
-            x = (local_scores,y_local_onehots,inputs.transpose(1,3),final_outputs)
-            loss = self.criterion(x)
-            loss.backward()
+            x = (local_scores,y_local_onehots,inputs.transpose(1,3),final_outputs,self.model)
+            global_loss,margin_loss,reconstruction_loss,l2_loss = self.criterion(x)
+            global_loss.backward()
             
             # Clip gradients by global norm
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
@@ -173,11 +176,16 @@ class HCapsNetTrainer():
             # Adjust learning weights
             self.optimizer.step()
             # Gather data and report
-            current_loss += loss.item()
+            current_global_loss += global_loss.item()
+            current_margin_loss += margin_loss.item()
+            current_reconstruction_loss += reconstruction_loss.item()
+            current_l2_loss += l2_loss.item()
             
-            last_loss = current_loss/(i+1)
-            
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"
+            last_global_loss = current_global_loss/(i+1)
+            last_margin_loss = current_margin_loss/(i+1)
+            last_reconstruction_loss = current_reconstruction_loss/(i+1)
+            last_l2_loss = current_l2_loss/(i+1)
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGMarginLoss: {last_margin_loss}, AVGReconLoss: {last_reconstruction_loss}, AVGL2Loss: {last_l2_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
@@ -186,7 +194,10 @@ class HCapsNetTrainer():
         return last_loss
     
     def validate(self,epoch_index,data_loader):
-        running_vloss = 0.0
+        current_global_loss = 0.
+        current_margin_loss = 0.
+        current_reconstruction_loss = 0.
+        current_l2_loss = 0.
         
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
@@ -208,14 +219,19 @@ class HCapsNetTrainer():
                 local_scores, final_outputs = self.model(model_inputs)
 
                 # Compute the loss and its gradients            
-                x = (local_scores,y_local_onehots,vinputs.transpose(1,3),final_outputs)
-                loss = self.criterion(x)
+                x = (local_scores,y_local_onehots,vinputs.transpose(1,3),final_outputs,self.model)
+                vglobal_loss,vmargin_loss,vreconstruction_loss,vl2_loss = self.criterion(x)
             
                 
-                running_vloss += loss.item()
-                              
-                eval_loss = running_vloss/(eval_counter+1)
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}"
+                current_global_loss += vglobal_loss.item()
+                current_margin_loss += vmargin_loss.item()
+                current_reconstruction_loss += vreconstruction_loss.item()
+                current_l2_loss += vl2_loss.item()
+                last_vglobal_loss = current_global_loss/(i+1)
+                last_vmargin_loss = current_margin_loss/(i+1)
+                last_vreconstruction_loss = current_reconstruction_loss/(i+1)
+                last_vl2_loss = current_l2_loss/(i+1)       
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGMarginLoss: {last_vmargin_loss}, AVGReconLoss: {last_vreconstruction_loss}, AVGL2Loss: {last_vl2_loss}"
                 print(progress_info, end='\r')
                 
                 tb_x = epoch_index * num_of_val_batches + eval_counter + 1
