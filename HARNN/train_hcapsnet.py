@@ -70,7 +70,7 @@ def train_hcapsnet(args):
     model.eval().to(device)
     
     # Define Loss for HmcNet.
-    criterion = HCapsNetLoss(device=device)
+    criterion = HCapsNetLoss(device=device,tau=args.tau)
               
     
     
