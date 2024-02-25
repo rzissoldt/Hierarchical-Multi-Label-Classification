@@ -97,7 +97,7 @@ class HCapsNetTrainer():
         best_epoch = 0
         best_vloss = 1_000_000.
         epoch = 0
-        is_fine_tuning = False
+       
         is_finished = False
         mskf = MultilabelStratifiedKFold(n_splits=k_folds,shuffle=True,random_state=42)
         X = [image_tuple[0] for image_tuple in self.data_loader.dataset.image_label_tuple_list]
@@ -135,18 +135,10 @@ class HCapsNetTrainer():
                     torch.save(self.model.state_dict(), model_path)
                 else:
                     counter += 1
-                    if counter >= self.args.early_stopping_patience and not is_fine_tuning:
-                        print(f'Early stopping triggered and validate best Epoch {best_epoch + 1}.')
-                        print(f'Begin fine-tuning model.')
-                        avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=True)
-                        self.unfreeze_backbone()
-                        best_vloss = 1_000_000.
-                        is_fine_tuning = True
-                        counter = 0
-                        continue
-                    if counter >= self.args.early_stopping_patience and is_fine_tuning:
-                        print(f'Early stopping triggered in fine-tuning Phase. {best_epoch + 1} was the best Epoch.')
-                        print(f'Validate fine-tuned Model.')
+                    
+                    if counter >= self.args.early_stopping_patience:
+                        print(f'Early stopping {best_epoch + 1} was the best Epoch.')
+                        print(f'Validate Model.')
                         avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader, calc_metrics=True)
                         is_finished = True
                         break
@@ -242,14 +234,18 @@ class HCapsNetTrainer():
             for i, vdata in enumerate(data_loader):
                 vinputs, vlabels = copy.deepcopy(vdata)
                 vinputs = vinputs.to(self.device)
-                y_total_onehot = vlabels[0].to(self.device)
-                y_local_onehots = [label.to(self.device) for label in vlabels[1:]]
+                y_local_onehots = [label.to(self.device) for label in vlabels]
+                y_global_onehots = torch.cat(y_local_onehots,dim=1)
+                # Zero your gradients for every batch!
+                self.optimizer.zero_grad()
+                model_inputs = vinputs, y_local_onehots
                 # Make predictions for this batch
-                scores, local_scores_list, global_logits = self.best_model(vinputs)
-                for j in scores:
+                local_scores, final_outputs = self.model(model_inputs)
+                global_scores = torch.cat(local_scores,dim=1)
+                for j in global_scores:
                     scores_list.append(j)
                 # Convert each tensor to a list of lists
-                for i in y_total_onehot:
+                for i in y_global_onehots:
                     true_onehot_labels_list.append(i)                
         metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=true_onehot_labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device)
         # Save Metrics in Summarywriter.
