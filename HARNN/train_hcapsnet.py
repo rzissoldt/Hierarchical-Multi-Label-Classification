@@ -58,9 +58,7 @@ def train_hcapsnet(args):
     print(f'Model Parameter Count:{model_param_count}')
     print(f'Total Classes: {sum(num_classes_list)}')
     print(f'Num Classes List: {num_classes_list}')
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            print(name, param.numel())
+    
     # Define Optimzer and Scheduler
     if args.optimizer == 'adam':    
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
