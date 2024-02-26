@@ -74,16 +74,10 @@ class HCapsNetTrainer():
                 best_vloss = avg_val_loss
             else:
                 counter += 1
-                if counter >= self.args.early_stopping_patience and not is_fine_tuning:
-                    print(f'Early stopping triggered and validate best Epoch {best_epoch}.')
-                    print(f'Begin fine tuning model.')
-                    self.unfreeze_backbone()
-                    best_vloss = 1_000_000.
-                    is_fine_tuning = True
-                    counter = 0
-                    continue
-                if counter >= self.args.early_stopping_patience and is_fine_tuning:
-                    print(f'Early stopping triggered in fine tuning Phase. {best_epoch} was the best Epoch.')
+                if counter >= self.args.early_stopping_patience:
+                    print(f'Early stopping {best_epoch + 1} was the best Epoch.')
+                    print(f'Validate Model.')
+                    #avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader)
                     break
         # Test and save Best Model
         self.test(epoch_index=best_epoch,data_loader=val_loader)
@@ -271,40 +265,4 @@ class HCapsNetTrainer():
         
 
     
-    #def unfreeze_backbone(self):
-    #    """
-    #    Unfreezes the backbone of the model and splits the learning rate into three different parts.
-#
-#
-    #    Returns:
-    #    - None
-    #    """
-    #    # Set the requires_grad attribute of the backbone parameters to True
-    #    for param in self.model.backbone.parameters():
-    #        param.requires_grad = True
-    #    
-    #    optimizer_dict = self.optimizer.param_groups[0]
-    #    
-    #    param_groups = [copy.deepcopy(optimizer_dict) for i in range(5)]
-    #    # Get the parameters of the model
-    #    backbone_model_params = list(self.model.backbone.parameters())
-#
-    #    # Calculate the number of parameters for each section
-    #    first_backbone_params = int(0.2 * len(backbone_model_params))
-#
-    #    # Assign learning rates to each parameter group
-    #    base_lr = optimizer_dict['lr']
-    #    param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
-    #    param_groups[0]['lr'] = base_lr * 1e-4
-    #    param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
-    #    param_groups[1]['lr'] = base_lr * 1e-2
-    #    param_groups[2]['params'] = self.model.ham_modules.parameters()
-    #    param_groups[2]['lr'] = base_lr
-    #    param_groups[3]['params'] = self.model.hybrid_predicting_module.parameters()
-    #    param_groups[3]['lr'] = base_lr
-    #    param_groups[4]['params'] = self.model.backbone_embedding.parameters()
-    #    param_groups[4]['lr'] = base_lr
-    #    
-
-        # Update the optimizer with the new parameter groups
-        self.optimizer.param_groups = param_groups
+    
