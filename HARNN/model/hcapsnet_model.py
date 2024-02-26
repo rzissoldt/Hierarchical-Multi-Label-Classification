@@ -363,7 +363,7 @@ class HCapsNet(nn.Module):
         permuted_cat_decoder_output = cat_decoder_output.transpose(1,3)
         final_output = self.concatenated(permuted_cat_decoder_output)
         
-        final_output = torch.view(final_output,(-1,224,224,3))
+        final_output = final_output.view(-1,*self.target_shape)
         #final_output = final_output.transpose(3,1)
         return length_layer_outputs, final_output
 

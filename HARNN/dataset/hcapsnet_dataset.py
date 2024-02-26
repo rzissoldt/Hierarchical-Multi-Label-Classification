@@ -15,7 +15,7 @@ from torchvision import transforms
 
      
 class HCapsNetDataset(Dataset):
-    def __init__(self, annotation_file_path, hierarchy_file_path, image_dir):
+    def __init__(self, annotation_file_path, hierarchy_file_path, image_dir,target_shape):
         super(HCapsNetDataset, self).__init__()
         #self.lock = threading.Lock()
         with open(annotation_file_path,'r') as infile:
@@ -34,6 +34,13 @@ class HCapsNetDataset(Dataset):
             transforms.Normalize(mean=[0.485, 0.456, 0.406],   
                          std=[0.229, 0.224, 0.225])
         ])
+        self.recon_transform = transforms.Compose([
+            transforms.Resize((64, 64)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225])
+        ])
+        
         self.validation_transform = transforms.Compose([
             transforms.Resize((256, 256)),                    
             transforms.CenterCrop(224),                       
@@ -79,9 +86,10 @@ class HCapsNetDataset(Dataset):
             pil_image = self.train_transform(image)
         else:
             pil_image = self.validation_transform(image)
+        recon_image = self.recon_transform(pil_image)
         labels = self.image_label_tuple_list[idx][1:]
         image.close()
-        return pil_image, labels
+        return pil_image,recon_image, labels
 
     
     def _find_labels_in_hierarchy_dicts(self,labels):

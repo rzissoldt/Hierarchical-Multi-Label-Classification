@@ -151,7 +151,7 @@ class HCapsNetTrainer():
         num_of_train_batches = len(data_loader)
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
-            inputs, labels = copy.deepcopy(data)
+            inputs, recon_inputs, labels = copy.deepcopy(data)
             inputs = inputs.to(self.device)
             y_local_onehots = [label.to(self.device) for label in labels]
             # Zero your gradients for every batch!
@@ -161,7 +161,7 @@ class HCapsNetTrainer():
             local_scores, final_outputs = self.model(model_inputs)
             
             # Compute the loss and its gradients            
-            x = (local_scores,y_local_onehots,inputs.transpose(1,3),final_outputs,self.model)
+            x = (local_scores,y_local_onehots,recon_inputs.transpose(1,3),final_outputs,self.model)
             global_loss,margin_loss,reconstruction_loss,l2_loss = self.criterion(x)
             global_loss.backward()
             
@@ -204,7 +204,7 @@ class HCapsNetTrainer():
         # Disable gradient computation and reduce memory consumption.
         with torch.no_grad():
             for i, vdata in enumerate(data_loader):
-                vinputs, vlabels = copy.deepcopy(vdata)
+                vinputs, vrecon_inputs, vlabels = copy.deepcopy(vdata)
                 vinputs = vinputs.to(self.device)
                 y_local_onehots = [label.to(self.device) for label in vlabels]
                 # Zero your gradients for every batch!
@@ -214,7 +214,7 @@ class HCapsNetTrainer():
                 local_scores, final_outputs = self.model(model_inputs)
 
                 # Compute the loss and its gradients            
-                x = (local_scores,y_local_onehots,vinputs.transpose(1,3),final_outputs,self.model)
+                x = (local_scores,y_local_onehots,vrecon_inputs.transpose(1,3),final_outputs,self.model)
                 vglobal_loss,vmargin_loss,vreconstruction_loss,vl2_loss = self.criterion(x)
             
                 
