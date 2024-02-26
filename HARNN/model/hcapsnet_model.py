@@ -335,9 +335,9 @@ class HCapsNet(nn.Module):
         #)
         self.concatenated = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(in_features=len(num_classes_list)*n_output,out_features=len(num_classes_list)*input_shape[1]*input_shape[2]*4),
+            nn.Linear(in_features=len(num_classes_list)*224*224*3,out_features=224*224*4),
             nn.ReLU(),
-            nn.Linear(in_features=len(num_classes_list)*input_shape[1]*input_shape[2]*4,out_features=len(num_classes_list)*input_shape[1]*input_shape[2]*3),
+            nn.Linear(in_features=224*224*4,out_features=224*224*3),
         )
     def forward(self,x):
         image, y_true = x
