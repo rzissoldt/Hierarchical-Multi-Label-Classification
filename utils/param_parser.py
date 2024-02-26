@@ -242,6 +242,7 @@ def hcapsnet_parameter_parser():
     parser.add_argument("--num-layers", type=int, default=2, help="Layer count of FC Layers.")
     parser.add_argument("--dropout-rate", type=float, default=0.2, help="Dropout keep probability.")
     parser.add_argument("--tau", type=float, default=0.5, help="Weight of Margin Loss in loss cal.")
+    parser.add_argument("--alpha", type=float, default=0.0005, help="Weight of Reconstruction Loss in loss cal.")
     # Training Parameters
     parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
     parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
