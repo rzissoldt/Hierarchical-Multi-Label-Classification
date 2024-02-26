@@ -86,8 +86,9 @@ class HCapsNetDataset(Dataset):
             pil_image = self.train_transform(image)
         else:
             pil_image = self.validation_transform(image)
-            
-        recon_image = self.recon_transform(transforms.ToPILImage(pil_image))
+        
+        pil_image_transform = transforms.ToPILImage()
+        recon_image = self.recon_transform(pil_image_transform(pil_image))
         labels = self.image_label_tuple_list[idx][1:]
         image.close()
         return pil_image,recon_image, labels
