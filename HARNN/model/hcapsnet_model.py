@@ -335,9 +335,9 @@ class HCapsNet(nn.Module):
         #)
         self.concatenated = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(in_features=len(num_classes_list)*n_output,out_features=4),
+            nn.Linear(in_features=len(num_classes_list)*n_output,out_features=len(num_classes_list)*input_shape[1]*input_shape[2]*4),
             nn.ReLU(),
-            nn.Linear(in_features=len(num_classes_list)*n_output,out_features=3),
+            nn.Linear(in_features=len(num_classes_list)*input_shape[1]*input_shape[2]*4,out_features=len(num_classes_list)*input_shape[1]*input_shape[2]*3),
         )
     def forward(self,x):
         image, y_true = x
@@ -361,7 +361,9 @@ class HCapsNet(nn.Module):
         cat_decoder_output = torch.cat(decoder_outputs,dim=3)
         permuted_cat_decoder_output = cat_decoder_output.transpose(1,3)
         final_output = self.concatenated(permuted_cat_decoder_output)
-        final_output = final_output.transpose(3,1)
+        
+        final_output = torch.view(final_output,(-1,224,224,3))
+        #final_output = final_output.transpose(3,1)
         return length_layer_outputs, final_output
 
     def set_training(self,is_training):
