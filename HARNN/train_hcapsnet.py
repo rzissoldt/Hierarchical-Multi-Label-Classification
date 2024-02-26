@@ -76,7 +76,7 @@ def train_hcapsnet(args):
     
     
     # Create Training and Validation Dataset
-    training_dataset = HCapsNetDataset(args.train_file, args.hierarchy_file, image_dir)
+    training_dataset = HCapsNetDataset(args.train_file, args.hierarchy_file, image_dir,target_shape=args.target_shape)
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
