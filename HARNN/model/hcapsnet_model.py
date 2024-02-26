@@ -316,6 +316,7 @@ class HCapsNet(nn.Module):
         decoders = []
         n_output = np.prod(input_shape)
         target_output = np.prod(target_shape)
+        self.target_shape = target_shape
         secondary_capsule_input_dim = None
         for i in range(len(num_classes_list)):
             secondary_capsule_input_dim = 4608            

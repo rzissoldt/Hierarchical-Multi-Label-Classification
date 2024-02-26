@@ -22,6 +22,7 @@ class HCapsNetDataset(Dataset):
             self.image_dict = json.load(infile)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(xtree.load_xtree_json(hierarchy_file_path))
         self.image_dir = image_dir
+        self.pil_image_transform = transforms.ToPILImage()
         # Define the transformation pipeline for image preprocessing.
         self.train_transform = transforms.Compose([
             transforms.Resize((256, 256)),                    
@@ -35,7 +36,7 @@ class HCapsNetDataset(Dataset):
                          std=[0.229, 0.224, 0.225])
         ])
         self.recon_transform = transforms.Compose([
-            transforms.Resize((64, 64)),
+            transforms.Resize((target_shape[0], target_shape[0])),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                          std=[0.229, 0.224, 0.225])
@@ -87,8 +88,8 @@ class HCapsNetDataset(Dataset):
         else:
             pil_image = self.validation_transform(image)
         
-        pil_image_transform = transforms.ToPILImage()
-        recon_image = self.recon_transform(pil_image_transform(pil_image))
+        
+        recon_image = self.recon_transform(self.pil_image_transform(pil_image))
         labels = self.image_label_tuple_list[idx][1:]
         image.close()
         return pil_image,recon_image, labels
