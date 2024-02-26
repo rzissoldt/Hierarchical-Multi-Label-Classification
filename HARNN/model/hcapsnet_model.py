@@ -110,22 +110,22 @@ class PrimaryCapsule(nn.Module):
             module_list = []
             for i in range(len(filter_count_list)):
                 if i == 0:
-                    module_list.append(nn.Conv2d(in_channels=in_channels,out_channels=filter_count_list[i],kernel_size=(5,5),stride=2,padding=1))
+                    module_list.append(nn.Conv2d(in_channels=in_channels,out_channels=filter_count_list[i],kernel_size=(5,5),stride=1,padding=1))
                 else:
-                    module_list.append(nn.Conv2d(in_channels=filter_count_list[i-1],out_channels=filter_count_list[i],kernel_size=(5,5),stride=2,padding=1))
+                    module_list.append(nn.Conv2d(in_channels=filter_count_list[i-1],out_channels=filter_count_list[i],kernel_size=(5,5),stride=1,padding=1))
                 module_list.append(nn.ReLU())
                 module_list.append(nn.BatchNorm2d(num_features=filter_count_list[i]))
-                module_list.append(nn.Conv2d(in_channels=filter_count_list[i],out_channels=filter_count_list[i],kernel_size=(3,3),stride=1,padding=1))
-                module_list.append(nn.ReLU())
-                module_list.append(nn.BatchNorm2d(num_features=filter_count_list[i]))
-            module_list.append(nn.MaxPool2d(kernel_size=(2,2),stride=(2,2)))
+                module_list.append(nn.MaxPool2d(kernel_size=(2,2),stride=(2,2)))
+                
+            
             
             block = nn.Sequential(*module_list)
             return block
-        filter_list = calculate_filter_pow(len(num_classes_list))
+        #filter_list = calculate_filter_pow(len(num_classes_list))
+        filter_list = [64,128,256]
         conv_block_list = []
-        for i in range(len(filter_list)):
-            conv_block_list.append(conv_block(in_channels=in_channels,filter_count_list=filter_list[i]))
+        for i in range(len(num_classes_list)):
+            conv_block_list.append(conv_block(in_channels=in_channels,filter_count_list=filter_list))
         self.conv_blocks = nn.ModuleList(conv_block_list)
         self.pcap_n_dims = pcap_n_dims
     def forward(self,x):
@@ -317,13 +317,7 @@ class HCapsNet(nn.Module):
         n_output = np.prod(input_shape)
         secondary_capsule_input_dim = None
         for i in range(len(num_classes_list)):
-            if i == 0:
-                secondary_capsule_input_dim = 11664
-            elif i == 1:
-                secondary_capsule_input_dim = 2704
-            else:
-                secondary_capsule_input_dim = 1152
-            
+            secondary_capsule_input_dim = 4608            
             secondary_capsules.append(SecondaryCapsule(in_channels=secondary_capsule_input_dim,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[i],n_dims=scap_n_dims,device=device))
             length_layers.append(LengthLayer())
             masks.append(Mask(n_caps=num_classes_list[i],n_dims=scap_n_dims))
@@ -332,12 +326,18 @@ class HCapsNet(nn.Module):
         self.length_layers = nn.ModuleList(length_layers)
         self.masks = nn.ModuleList(masks)
         self.decoders = nn.ModuleList(decoders)
+        #self.concatenated = nn.Sequential(
+        #    nn.Conv2d(in_channels=len(num_classes_list)*3, out_channels=64, kernel_size=3, padding=1),
+        #    nn.ReLU(),
+        #    nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+        #    nn.ReLU(),
+        #    nn.Conv2d(in_channels=64, out_channels=3, kernel_size=3, padding=1)
+        #)
         self.concatenated = nn.Sequential(
-            nn.Conv2d(in_channels=len(num_classes_list)*3, out_channels=64, kernel_size=3, padding=1),
+            nn.Flatten(),
+            nn.Linear(in_features=len(num_classes_list)*n_output,out_features=4),
             nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=3, kernel_size=3, padding=1)
+            nn.Linear(in_features=len(num_classes_list)*n_output,out_features=3),
         )
     def forward(self,x):
         image, y_true = x

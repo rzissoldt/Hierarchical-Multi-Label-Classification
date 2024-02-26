@@ -18,7 +18,7 @@ from utils import param_parser as parser
 from HARNN.model.hcapsnet_model import HCapsNet, HCapsNetLoss
 from HARNN.dataset.hcapsnet_dataset import HCapsNetDataset
 from HARNN.trainer.hcapsnet_trainer import HCapsNetTrainer
-
+from torchsummary import summary
 import warnings
 
 # Ignore specific warning types
@@ -50,7 +50,7 @@ def train_hcapsnet(args):
     explicit_hierarchy = dh.generate_hierarchy_matrix_from_tree(hierarchy)
     
     image_dir = args.image_dir
-    total_classes = sum(num_classes_list)
+    
 
     # Define Model 
     model = HCapsNet(feature_dim=None,input_shape=args.input_size,num_classes_list=num_classes_list,pcap_n_dims=8,scap_n_dims=16,fc_hidden_size=512,num_layers=2,device=device).to(device)
@@ -58,6 +58,9 @@ def train_hcapsnet(args):
     print(f'Model Parameter Count:{model_param_count}')
     print(f'Total Classes: {sum(num_classes_list)}')
     print(f'Num Classes List: {num_classes_list}')
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(name, param.numel())
     # Define Optimzer and Scheduler
     if args.optimizer == 'adam':    
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
