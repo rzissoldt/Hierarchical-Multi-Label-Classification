@@ -72,10 +72,11 @@ class HCapsNetTrainer():
                 best_epoch = epoch+1
                 self.best_model = copy.deepcopy(self.model)
                 best_vloss = avg_val_loss
+                counter = 0
             else:
                 counter += 1
                 if counter >= self.args.early_stopping_patience:
-                    print(f'Early stopping {best_epoch + 1} was the best Epoch.')
+                    print(f'Early stopping {best_epoch} was the best Epoch.')
                     print(f'Validate Model.')
                     #avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader)
                     break
