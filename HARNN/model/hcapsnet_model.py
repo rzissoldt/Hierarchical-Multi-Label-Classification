@@ -301,7 +301,7 @@ class L2Loss(nn.Module):
                 l2_loss += torch.norm(param,p=2)**2
         return torch.tensor(l2_loss*self.l2_reg_lambda,dtype=torch.float32)
 class HCapsNet(nn.Module):
-    def __init__(self,feature_dim,input_shape,num_classes_list,pcap_n_dims,scap_n_dims,fc_hidden_size,num_layers,device=None):
+    def __init__(self,feature_dim,input_shape,num_classes_list,pcap_n_dims,scap_n_dims,fc_hidden_size,num_layers,target_shape,device=None):
         super(HCapsNet,self).__init__()
         self.device = device
         self.encoder = Encoder(in_channels=input_shape[2])
@@ -315,13 +315,14 @@ class HCapsNet(nn.Module):
         masks = []
         decoders = []
         n_output = np.prod(input_shape)
+        target_output = np.prod(target_shape)
         secondary_capsule_input_dim = None
         for i in range(len(num_classes_list)):
             secondary_capsule_input_dim = 4608            
             secondary_capsules.append(SecondaryCapsule(in_channels=secondary_capsule_input_dim,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[i],n_dims=scap_n_dims,device=device))
             length_layers.append(LengthLayer())
             masks.append(Mask(n_caps=num_classes_list[i],n_dims=scap_n_dims))
-            decoders.append(Decoder(input_dim=self.scap_n_dims*num_classes_list[i],target_shape=input_shape,fc_hidden_size=fc_hidden_size, num_layers=num_layers,output_dim=n_output))
+            decoders.append(Decoder(input_dim=self.scap_n_dims*num_classes_list[i],target_shape=target_shape,fc_hidden_size=fc_hidden_size, num_layers=num_layers,output_dim=target_output))
         self.secondary_capsules_modules = nn.ModuleList(secondary_capsules)
         self.length_layers = nn.ModuleList(length_layers)
         self.masks = nn.ModuleList(masks)
@@ -335,9 +336,9 @@ class HCapsNet(nn.Module):
         #)
         self.concatenated = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(in_features=len(num_classes_list)*224*224*3,out_features=224*224*4),
+            nn.Linear(in_features=len(num_classes_list)*target_output,out_features=target_shape[0]*target_shape[1]*4),
             nn.ReLU(),
-            nn.Linear(in_features=224*224*4,out_features=224*224*3),
+            nn.Linear(in_features=target_shape[0]*target_shape[1]*4,out_features=target_output),
         )
     def forward(self,x):
         image, y_true = x

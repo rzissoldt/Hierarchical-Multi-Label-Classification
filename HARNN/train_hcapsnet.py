@@ -53,7 +53,7 @@ def train_hcapsnet(args):
     
 
     # Define Model 
-    model = HCapsNet(feature_dim=None,input_shape=args.input_size,num_classes_list=num_classes_list,pcap_n_dims=8,scap_n_dims=16,fc_hidden_size=512,num_layers=2,device=device).to(device)
+    model = HCapsNet(feature_dim=None,input_shape=args.input_size,num_classes_list=num_classes_list,pcap_n_dims=8,scap_n_dims=16,fc_hidden_size=512,num_layers=2,target_shape=args.target_shape,device=device).to(device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     print(f'Total Classes: {sum(num_classes_list)}')
