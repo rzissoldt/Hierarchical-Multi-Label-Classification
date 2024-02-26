@@ -152,7 +152,7 @@ class HCapsNetTrainer():
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
             inputs, recon_inputs, labels = copy.deepcopy(data)
-            inputs = inputs.to(self.device)
+            inputs, recon_inputs = inputs.to(self.device),recon_inputs.to(self.device)
             y_local_onehots = [label.to(self.device) for label in labels]
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
@@ -205,7 +205,7 @@ class HCapsNetTrainer():
         with torch.no_grad():
             for i, vdata in enumerate(data_loader):
                 vinputs, vrecon_inputs, vlabels = copy.deepcopy(vdata)
-                vinputs = vinputs.to(self.device)
+                vinputs, vrecon_inputs = vinputs.to(self.device),vrecon_inputs.to(self.device)
                 y_local_onehots = [label.to(self.device) for label in vlabels]
                 # Zero your gradients for every batch!
                 self.optimizer.zero_grad()
