@@ -36,6 +36,7 @@ def analyze_summarywriter_dir(dir):
     # Sort the list of dictionaries based on the 'age' key in descending order
     sorted_list = sorted(model_list, key=lambda x: x['average_precision'], reverse=True)
     best_model_dir = model_dirs[best_model_index]
+    print('Best model dir:',best_model_dir)
     with open(os.path.join(best_model_dir,'model_config.json')) as infile:
         best_model_config = SimpleNamespace(**json.load(infile))
     print("Top 5 Models:", sorted_list[:5])
