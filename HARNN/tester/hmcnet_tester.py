@@ -28,7 +28,7 @@ class HmcNetTester():
     def test(self):
         print(f"Evaluating best model with test dataset.")
         scores_list = []
-        true_onehot_labels_list = []
+        labels_list = []
         self.best_model.eval()
         with torch.no_grad():
             for i, vdata in enumerate(self.test_loader):
@@ -38,12 +38,9 @@ class HmcNetTester():
                 y_local_onehots = [label.to(self.device) for label in vlabels[1:]]
                 # Make predictions for this batch
                 scores, local_scores_list, global_logits = self.best_model(vinputs)
-                for j in scores:
-                    scores_list.append(j)
-                # Convert each tensor to a list of lists
-                for i in y_total_onehot:
-                    true_onehot_labels_list.append(i)                
-        metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=true_onehot_labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device)
+                scores_list.extend(scores)
+                labels_list.extend(y_total_onehot)              
+        metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device)
         # Save Metrics in Summarywriter.
         for key,value in metrics_dict.items():
             self.tb_writer.add_scalar(key,value,0)
