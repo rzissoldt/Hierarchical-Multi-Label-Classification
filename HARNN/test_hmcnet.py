@@ -57,7 +57,7 @@ def test_hmcnet(args):
     
     
     # Define Model
-    model = HmcNet(feature_dim=args.feature_dim_backbone,attention_unit_size=args.attention_dim,backbone_fc_hidden_size=args.backbone_dim,fc_hidden_size=args.fc_dim,freeze_backbone=True,highway_fc_hidden_size=args.highway_fc_dim,highway_num_layers=args.highway_num_layers,num_classes_list=num_classes_list,total_classes=total_class_num,l2_reg_lambda=args.l2_lambda,dropout_keep_prob=args.dropout_rate,alpha=args.alpha,beta=args.beta).to(device=device)
+    model = HmcNet(feature_dim=best_model_config.feature_dim_backbone,attention_unit_size=best_model_config.attention_dim,backbone_fc_hidden_size=best_model_config.backbone_dim,fc_hidden_size=best_model_config.fc_dim,freeze_backbone=True,highway_fc_hidden_size=best_model_config.highway_fc_dim,highway_num_layers=best_model_config.highway_num_layers,num_classes_list=num_classes_list,total_classes=total_class_num,l2_reg_lambda=best_model_config.l2_lambda,dropout_keep_prob=best_model_config.dropout_rate,alpha=best_model_config.alpha,beta=best_model_config.beta).to(device=device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     print(f'Total Classes: {sum(num_classes_list)}')
