@@ -44,6 +44,7 @@ def analyze_summarywriter_dir(dir):
     print(f'Model Config:{best_model_config} from {best_model_dir}')
     print(f'Best AveragePrecision Score was {best_auprc_score}')
     best_model_file_path = os.path.join(best_model_dir,'models',os.listdir(os.path.join(best_model_dir,'models'))[0])
+    print('Best Model file path:', best_model_file_path)
     return best_model_file_path, best_model_config
 
 
