@@ -32,6 +32,7 @@ def analyze_summarywriter_dir(dir):
                         'average_precision':model_metric['AveragePrecision']
                     }
                 )
+                best_model_index = i
 
     # Sort the list of dictionaries based on the 'age' key in descending order
     sorted_list = sorted(model_list, key=lambda x: x['average_precision'], reverse=True)
