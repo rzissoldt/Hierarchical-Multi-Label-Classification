@@ -69,7 +69,7 @@ def test_hmc_lmlp(args):
         
     # Create Training and Validation Dataset
     test_dataset = HmcLMLPDataset(args.test_file, args.hierarchy_file,image_dir)
-    
+    test_dataset.is_training = False
         
     # Define Trainer for HmcNet
     tester = HmcLMLPTester(model=model,test_dataset=test_dataset,path_to_results=args.path_to_results,num_classes_list=num_classes_list,pcp_hierarchy=explicit_hierarchy,args=args,device=device)

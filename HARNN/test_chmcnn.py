@@ -69,6 +69,7 @@ def test_chmcnn(args):
         
     # Create Training and Validation Dataset
     test_dataset = CHMCNNDataset(args.test_file, args.hierarchy_file,image_dir)
+    test_dataset.is_training = False
     
         
     # Define Trainer for HmcNet
