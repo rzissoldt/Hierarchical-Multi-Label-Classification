@@ -84,7 +84,7 @@ class CHMCNNTrainer():
                     print(f'Early stopping triggered and validate best Epoch {best_epoch}.')
                     print(f'Begin fine tuning model.')
                     self.unfreeze_backbone()
-                    best_vauprc = 0.
+                    #best_vauprc = 0.
                     is_fine_tuning = True
                     counter = 0
                     continue

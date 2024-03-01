@@ -145,7 +145,7 @@ class BaselineTrainer():
                         print(f'Early stopping triggered and validate best Epoch {best_epoch + 1}.')
                         print(f'Begin fine-tuning model.')
                         self.unfreeze_backbone()
-                        best_vloss = 1_000_000.
+                        #best_vloss = 1_000_000.
                         is_fine_tuning = True
                         counter = 0
                         continue
