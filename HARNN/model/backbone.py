@@ -12,10 +12,7 @@ class BackboneEmbedding(nn.Module):
         self.backbone_dropout =  nn.Dropout1d(p=dropout_keep_prob)
     
     def forward(self,x):
-        num_channels,spatial_dim1, spatial_dim2 = x.shape[1:]
-        feature_extractor_out = x.view(-1, num_channels, spatial_dim1 * spatial_dim2)
-        feature_extractor_out = torch.squeeze(feature_extractor_out,dim=2)
-        fc_feature_out = self.backbone_fc_layer(feature_extractor_out)
+        fc_feature_out = self.backbone_fc_layer(x)
         fc_feature_out = self.backbone_activation(fc_feature_out)
         if fc_feature_out.shape[0] != 1:
             fc_feature_out = self.backbone_batchnorm(fc_feature_out)
@@ -32,4 +29,6 @@ class Backbone(nn.Module):
         
     def forward(self,x):
         feature_extractor_out = self.backbone_feature_ext(x)
+        num_channels,spatial_dim1, spatial_dim2 = feature_extractor_out.shape[1:]
+        feature_extractor_out = feature_extractor_out.view(-1, num_channels, spatial_dim1 * spatial_dim2)
         return feature_extractor_out

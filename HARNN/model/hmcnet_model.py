@@ -224,10 +224,16 @@ class HighwayLayer(nn.Module):
     
 class HmcNet(nn.Module):
     """A HARNN for image classification."""
-    def __init__(self,feature_dim,attention_unit_size,backbone_fc_hidden_size,highway_fc_hidden_size,highway_num_layers,fc_hidden_size, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
+    def __init__(self,feature_dim,attention_unit_size,is_backbone_embedding_active,backbone_fc_hidden_size,highway_fc_hidden_size,highway_num_layers,fc_hidden_size, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
         super(HmcNet,self).__init__()
         self.backbone = Backbone()
-        self.backbone_embedding = BackboneEmbedding(feature_dim=feature_dim,backbone_fc_hidden_size=backbone_fc_hidden_size,dropout_keep_prob=dropout_keep_prob)
+        self.is_backbone_embedding_active = is_backbone_embedding_active
+        if is_backbone_embedding_active:
+            self.backbone_embedding = BackboneEmbedding(feature_dim=feature_dim,backbone_fc_hidden_size=backbone_fc_hidden_size,dropout_keep_prob=dropout_keep_prob)
+            ham_input_size = backbone_fc_hidden_size
+        else:
+            self.backbone_embedding = None
+            ham_input_size = feature_dim[0]
         self.ham_modules = nn.ModuleList()
         self.feature_dim = feature_dim
         self.attention_unit_size = attention_unit_size
@@ -245,15 +251,17 @@ class HmcNet(nn.Module):
         for i in range(len(num_classes_list)):
             if i == len(num_classes_list)-1:
                 #If its the last HAM Module, the last omega_h of CDM ist not needed.
-                self.ham_modules.append(HAM(input_size=backbone_fc_hidden_size,num_classes=num_classes_list[i],next_num_classes=None,attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
+                
+                self.ham_modules.append(HAM(input_size=ham_input_size,num_classes=num_classes_list[i],next_num_classes=None,attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
                 break
-            self.ham_modules.append(HAM(input_size=backbone_fc_hidden_size,num_classes=num_classes_list[i],next_num_classes=num_classes_list[i+1],attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
+            self.ham_modules.append(HAM(input_size=ham_input_size,num_classes=num_classes_list[i],next_num_classes=num_classes_list[i+1],attention_unit_size=attention_unit_size,fc_hidden_size=fc_hidden_size))
         
         self.hybrid_predicting_module = HybridPredictingModuleHighway(fc_hidden_size=fc_hidden_size,highway_fc_hidden_size=highway_fc_hidden_size,num_layers=len(num_classes_list),highway_num_layers=highway_num_layers,total_classes=total_classes,dropout_keep_prob=dropout_keep_prob,alpha=alpha)
         
     def forward(self,x):
         fc_feature_out = self.backbone(x)
-        fc_feature_out = self.backbone_embedding(fc_feature_out)
+        if self.backbone_embedding is not None:
+            fc_feature_out = self.backbone_embedding(fc_feature_out)
         feature_extractor_out_transposed = torch.permute(fc_feature_out,(0,2,1))
         omega_h = torch.ones(self.num_classes_list[0],self.attention_unit_size).to(self.device)
         local_score_list = []

@@ -43,8 +43,8 @@ def train_baseline_model(args):
     # Load Input Data
     hierarchy = xtree.load_xtree_json(args.hierarchy_file)
     hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
-    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
-    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy)).to(device=device)
+    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)[:args.hierarchy_depth]
+    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy,args.hierarchy_depth)).to(device=device)
     
     
     image_dir = args.image_dir
@@ -52,7 +52,7 @@ def train_baseline_model(args):
     
     
     # Define Model
-    model = BaselineModel(output_dim=total_class_num,R=explicit_hierarchy, args=args)
+    model = BaselineModel(output_dim=total_class_num, args=args)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     print(f'Total Classes: {sum(num_classes_list)}')
@@ -74,13 +74,13 @@ def train_baseline_model(args):
     criterion = BaselineModelLoss(l2_lambda=args.l2_lambda,device=device)
     
     # Create Training and Validation Dataset
-    training_dataset = BaselineDataset(args.train_file, args.hierarchy_file,image_dir)
+    training_dataset = BaselineDataset(args.train_file, args.hierarchy_file,args.hierarchy_depth,image_dir)
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
-        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}/chmcnn_{timestamp}'
+        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}/baseline_model_{timestamp}'
     else:
-        path_to_model = f'runs/chmcnn_{args.dataset_name}_{timestamp}'
+        path_to_model = f'runs/baseline_model_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_{timestamp}'
     
     # Define Trainer for HmcNet
     trainer = BaselineTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)

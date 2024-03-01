@@ -129,7 +129,7 @@ def baseline_parameter_parser():
     parser.add_argument("--test-file", nargs="?", default="../data/Test_sample.json", help="Testing data.")
     parser.add_argument("--hierarchy-file", nargs="?", default="../data/image_harnn/bauwerke", help="Hierarchy data.")
     parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
-    parser.add_argument("--hierarchy-depth", nargs=int,default=-1, help="Defines hierarchy depth.")
+    parser.add_argument("--hierarchy-depth", type=int,default=-1, help="Defines hierarchy depth.")
     parser.add_argument("--num-workers-dataloader", type=int, default=4, help="Number of workers used for Dataloading.")
     parser.add_argument("--pin-memory", type=bool_argument, default=True, help="Pin Memory in Dataloading activated or not.")
     parser.add_argument("--hyperparameter-dir", nargs="?", default="../data/Train_sample.json", help="Hyperparameter directory.")
@@ -145,7 +145,7 @@ def baseline_parameter_parser():
      # Training Parameters
     parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
     parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
-    parser.add_argument("--is-k-crossfold-val", type=bool_argument, default=True, help="Choose if Training should be k-crossfold-validation.")
+    parser.add_argument("--is-k-crossfold-val", type=bool_argument, default=False, help="Choose if Training should be k-crossfold-validation.")
     parser.add_argument("--k-folds", type=int, default=5, help="Count of K-Folds for Stratified Crossvalidation.")
     parser.add_argument("--optimizer",default="adam", help="Select between SGD or Adam.")
     parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs.")
@@ -180,7 +180,7 @@ def chmcnn_parameter_parser():
     parser.add_argument("--train-file", nargs="?", default="../data/Train_sample.json", help="Training data.")
     parser.add_argument("--test-file", nargs="?", default="../data/Test_sample.json", help="Testing data.")
     parser.add_argument("--hierarchy-file", nargs="?", default="../data/image_harnn/bauwerke", help="Hierarchy data.")
-    parser.add_argument("--hierarchy-depth", nargs=int,default=-1, help="Defines hierarchy depth.")
+    parser.add_argument("--hierarchy-depth", type=int,default=-1, help="Defines hierarchy depth.")
     parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
     parser.add_argument("--num-workers-dataloader", type=int, default=4, help="Number of workers used for Dataloading.")
     parser.add_argument("--pin-memory", type=bool_argument, default=True, help="Pin Memory in Dataloading activated or not.")
@@ -292,7 +292,9 @@ def hmcnet_parameter_parser():
     parser.add_argument("--hyperparameter-dir", nargs="?", default="../data/Train_sample.json", help="Hyperparameter directory.")
     parser.add_argument("--path-to-results", nargs="?", default="../data/Train_sample.json", help="Path to results of best model on testset metrics.")
     
+    # Model Parameters
     parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
+    parser.add_argument("--is-backbone-embedding-active", type=bool_argument, default=False, help="Dimensionality of Backbone neurons.")
     parser.add_argument("--backbone-dim", type=int, default=256, help="Dimensionality of Backbone neurons.")
     parser.add_argument("--backbone-layers", type=int, default=1, help="Number of Backbone layers.")
     parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,1), help="Dimensionality of the Feature Output of backbone.")

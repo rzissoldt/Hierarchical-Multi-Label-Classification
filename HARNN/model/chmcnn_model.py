@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from model.backbone import Backbone
 def get_constr_out(x, R):
     """ Given the output of the neural network x returns the output of MCM given the hierarchy constraint expressed in the matrix R """
     c_out = x.double()
@@ -15,8 +16,7 @@ class ConstrainedFFNNModel(nn.Module):
     """ C-HMCNN(h) model - during training it returns the not-constrained output that is then passed to MCLoss """
     def __init__(self, output_dim,R, args):
         super(ConstrainedFFNNModel, self).__init__()
-        resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
-        self.backbone = nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
+        self.backbone = Backbone()
         self.nb_layers = args.num_layers
         self.feature_dim = args.feature_dim_backbone[0]
         self.hidden_dim = args.fc_dim

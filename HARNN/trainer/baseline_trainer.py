@@ -254,7 +254,7 @@ class BaselineTrainer():
                 last_vloss = current_vloss/(i+1)
                 last_vglobal_loss = current_vglobal_loss/(i+1)
                 last_vl2_loss = current_vl2_loss/(i+1)
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {last_vglobal_loss}, L2-Loss: {last_l2_loss}"
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {last_vglobal_loss}, L2-Loss: {last_vl2_loss}"
                 print(progress_info, end='\r')
                 tb_x = epoch_index * num_of_val_batches + i + 1
                 self.tb_writer.add_scalar('Validation/Loss', last_vloss, tb_x)

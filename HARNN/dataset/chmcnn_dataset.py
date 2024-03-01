@@ -13,7 +13,7 @@ import torch.multiprocessing
 #torch.multiprocessing.set_sharing_strategy('file_system')
 from torchvision import transforms
 class CHMCNNDataset(Dataset):
-    def __init__(self, annotation_file_path, hierarchy_file_path, image_dir):
+    def __init__(self, annotation_file_path, hierarchy_file_path, hierarchy_depth,image_dir):
         super(CHMCNNDataset, self).__init__()
         #self.lock = threading.Lock()
         with open(annotation_file_path,'r') as infile:
@@ -21,6 +21,7 @@ class CHMCNNDataset(Dataset):
         hierarchy = xtree.load_xtree_json(hierarchy_file_path)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
         self.image_dir = image_dir
+        self.hierarchy_depth = hierarchy_depth
         # Define the transformation pipeline for image preprocessing.
         self.train_transform = transforms.Compose([
             transforms.Resize((256, 256)),                    
@@ -46,7 +47,8 @@ class CHMCNNDataset(Dataset):
             data_tuple = []
             labels = self.image_dict[file_name]        
             label_dict = self._find_labels_in_hierarchy_dicts(labels)
-            total_class_labels = self._calc_total_class_labels(label_dict)
+            #sliced_label_dict = dict(list(label_dict.items())[:self.hierarchy_depth])
+            total_class_labels = self._calc_total_class_labels(label_dict)[:self.hierarchy_depth]
             total_class_num = self._calc_total_classes()
             if len(total_class_labels) == 0:
                 continue
@@ -123,7 +125,7 @@ class CHMCNNDataset(Dataset):
     
     def _calc_total_classes(self):
         total_class_num = 0
-        for dict in self.hierarchy_dicts:
+        for dict in self.hierarchy_dicts[:self.hierarchy_depth]:
             total_class_num+=len(dict.keys())
         return total_class_num
     
