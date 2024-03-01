@@ -15,13 +15,14 @@ from torchvision import transforms
 
      
 class HmcNetDataset(Dataset):
-    def __init__(self, annotation_file_path, hierarchy_file_path, image_dir):
+    def __init__(self, annotation_file_path, hierarchy_file_path, hierarchy_depth, image_dir):
         super(HmcNetDataset, self).__init__()
         #self.lock = threading.Lock()
         with open(annotation_file_path,'r') as infile:
             self.image_dict = json.load(infile)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(xtree.load_xtree_json(hierarchy_file_path))
         self.image_dir = image_dir
+        self.hierarchy_depth = hierarchy_depth
         # Define the transformation pipeline for image preprocessing.
         self.train_transform = transforms.Compose([
             transforms.Resize((256, 256)),                    
@@ -47,7 +48,8 @@ class HmcNetDataset(Dataset):
             data_tuple = []
             labels = self.image_dict[file_name]        
             label_dict = self._find_labels_in_hierarchy_dicts(labels)
-            total_class_labels = self._calc_total_class_labels(label_dict)
+            sliced_label_dict = dict(list(label_dict.items())[:self.hierarchy_depth])
+            total_class_labels = self._calc_total_class_labels(label_dict)[:self.hierarchy_depth]
             total_class_num = self._calc_total_classes()
             if len(total_class_labels) == 0:
                 continue
@@ -55,7 +57,7 @@ class HmcNetDataset(Dataset):
             data_tuple.append(os.path.join(image_dir,file_name))
             data_tuple.append(torch.tensor(self._create_onehot_labels(total_class_labels, total_class_num),dtype=torch.float32))
             level = 0
-            for key,labels in label_dict.items():
+            for key,labels in sliced_label_dict.items():
                 data_tuple.append(torch.tensor(self._create_onehot_labels(labels,len(self.hierarchy_dicts[level])),dtype=torch.float32))
                     
                 level+=1
@@ -129,8 +131,9 @@ class HmcNetDataset(Dataset):
     
     def _calc_total_classes(self):
         total_class_num = 0
-        for dict in self.hierarchy_dicts:
-            total_class_num+=len(dict.keys())
+        sliced_hierarchy_dicts = self.hierarchy_dicts[:self.hierarchy_depth]
+        for sliced_dict in sliced_hierarchy_dicts:
+            total_class_num+=len(sliced_dict.keys())
         return total_class_num
     
     def _create_onehot_labels(self,labels_index, num_labels):

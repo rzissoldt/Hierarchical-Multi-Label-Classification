@@ -157,8 +157,8 @@ def create_prediction_file(output_file, data_id, true_labels, predict_labels, pr
                 ('predict_scores', [round(i, 4) for i in predict_scores[i]])
             ])
             fout.write(json.dumps(data_record, ensure_ascii=False) + '\n')
-def generate_hierarchy_matrix_from_tree(hierarchy_tree):
-    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy_tree)
+def generate_hierarchy_matrix_from_tree(hierarchy_tree,hierarchy_depth):
+    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy_tree)[:hierarchy_depth]
     total_hierarchy_dict =  {}
     counter = 0 
     for hierarchy_dict in hierarchy_dicts:

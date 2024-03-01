@@ -46,8 +46,8 @@ def train_hmcnet(args):
     # Load Input Data
     hierarchy = xtree.load_xtree_json(args.hierarchy_file)
     hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
-    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
-    explicit_hierarchy = dh.generate_hierarchy_matrix_from_tree(hierarchy)
+    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)[:args.hierarchy_depth]
+    explicit_hierarchy = dh.generate_hierarchy_matrix_from_tree(hierarchy,args.hierarchy_depth)
     
     image_dir = args.image_dir
     total_classes = sum(num_classes_list)
@@ -75,13 +75,13 @@ def train_hmcnet(args):
     
     
     # Create Training and Validation Dataset
-    training_dataset = HmcNetDataset(args.train_file, args.hierarchy_file, image_dir)
+    training_dataset = HmcNetDataset(args.train_file, args.hierarchy_file, args.hierarchy_depth, image_dir)
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
-        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}/hmc_net_{timestamp}'
+        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}/hmc_net_{timestamp}'
     else:
-        path_to_model = f'runs/hmc_net_{args.dataset_name}_{timestamp}'
+        path_to_model = f'runs/hmc_net_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_{timestamp}'
     
     
     # Define Trainer for HmcNet
@@ -105,7 +105,7 @@ def get_random_hyperparameter(base_args):
     highway_fc_dim = random.choice([256,512,1024])
     highway_num_layers = random.choice([1,2])
     backbone_fc_dim = random.choice([128,256,512])
-    batch_size = random.choice([128])
+    batch_size = random.choice([64,128])
     learning_rate = random.choice([0.001])
     optimizer = random.choice(['adam'])
     
