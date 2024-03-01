@@ -1,6 +1,6 @@
 import copy, datetime
 import torch
-import sys, os
+import sys, os, time
 import numpy as np
 sys.path.append('../')
 from utils import data_helpers as dh
@@ -31,6 +31,7 @@ class HmcNetTrainer():
         
     
     def train_and_validate(self):
+        start_time = time.time()
         counter = 0
         best_epoch = 0
         best_vloss = 1_000_000.
@@ -86,6 +87,9 @@ class HmcNetTrainer():
                 if counter >= self.args.early_stopping_patience and is_fine_tuning:
                     print(f'Early stopping triggered in fine tuning Phase. {best_epoch} was the best Epoch.')
                     break
+        end_time = time.time()
+        training_time = end_time - start_time
+        self.tb_writer.add_scalar('Training/Time',training_time)        
         # Test and save Best Model
         self.test(epoch_index=best_epoch,data_loader=val_loader)
         model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{best_epoch}')
