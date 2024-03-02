@@ -197,7 +197,7 @@ def chmcnn_parameter_parser():
      # Training Parameters
     parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
     parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
-    parser.add_argument("--is-k-crossfold-val", type=bool_argument, default=True, help="Choose if Training should be k-crossfold-validation.")
+    parser.add_argument("--is-k-crossfold-val", type=bool_argument, default=False, help="Choose if Training should be k-crossfold-validation.")
     parser.add_argument("--k-folds", type=int, default=5, help="Count of K-Folds for Stratified Crossvalidation.")
     parser.add_argument("--optimizer",default="adam", help="Select between SGD or Adam.")
     parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs.")
