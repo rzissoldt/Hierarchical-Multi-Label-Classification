@@ -43,8 +43,6 @@ class BaselineModel(nn.Module):
         
     def forward(self, x):
         feature_extractor_out = self.backbone(x)
-        num_channels,spatial_dim1, spatial_dim2 = feature_extractor_out.shape[1:]
-        feature_extractor_out = feature_extractor_out.view(-1, num_channels, spatial_dim1 * spatial_dim2)
         x = torch.squeeze(feature_extractor_out,dim=2)
         for i in range(self.nb_layers):
             if i == self.nb_layers-1:
