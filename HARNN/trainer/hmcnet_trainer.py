@@ -74,6 +74,7 @@ class HmcNetTrainer():
                 best_epoch = epoch+1
                 self.best_model = copy.deepcopy(self.model)
                 best_vloss = avg_val_loss
+                counter = 0
             else:
                 counter += 1
                 if counter >= self.args.early_stopping_patience and not is_fine_tuning:

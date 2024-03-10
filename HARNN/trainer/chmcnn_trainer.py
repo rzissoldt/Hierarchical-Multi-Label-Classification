@@ -174,7 +174,7 @@ class CHMCNNTrainer():
             # Every data instance is an input + label pair
             inputs, labels = copy.deepcopy(data)
             inputs = inputs.to(self.device)
-            labels = labels.to(self.device)
+            labels = labels.to(self.device) # y
             
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
@@ -183,12 +183,12 @@ class CHMCNNTrainer():
             output = self.model(inputs.float())
 
             # Compute the loss and its gradients
-            constr_output = get_constr_out(output, self.explicit_hierarchy)
-            train_output = labels*output.double()
-            train_output = get_constr_out(train_output, self.explicit_hierarchy)
-            train_output = (1-labels)*constr_output.double() + labels*train_output
+            constr_output = get_constr_out(output, self.explicit_hierarchy) # MCM Output
+            train_output = labels*output.double() # h-strich
+            train_output = get_constr_out(train_output, self.explicit_hierarchy) # max (M dotproduct H-strich)
+            train_output = (1-labels)*constr_output.double() + labels*train_output # (1-y) dotproduct MCM + (y dotproduct max(M dotproduct H-strich))
             x = train_output,labels.double(),self.model
-            loss,global_loss,l2_loss = self.criterion(x)
+            loss,global_loss,l2_loss = self.criterion(x) #BCELoss((1-y) dotproduct MCM + (y dotproduct max(M dotproduct H-strich)),y)
             predicted = constr_output.data > 0.5
             
             # Total number of labels
