@@ -255,20 +255,20 @@ class MarginLoss(nn.Module):
         return total_marginloss
 
 class ReconstructionLoss(nn.Module):
-    def __init__(self,alpha):
+    def __init__(self):
         super(ReconstructionLoss, self).__init__()
-        self.alpha = alpha
+        
     def forward(self,x):
         x_real,x_reconstructed = x
         x_real_flatten, x_reconstructed_flatten = torch.flatten(x_real,start_dim=1),torch.flatten(x_reconstructed,start_dim=1)
         l2_norm_squared = torch.norm(x_real_flatten-x_reconstructed_flatten,p=2,dim=1)**2
-        return self.alpha*torch.mean(l2_norm_squared)
+        return torch.mean(l2_norm_squared)
     
 class HCapsNetLoss(nn.Module):
-    def __init__(self,l2_reg_lambda, alpha,tau=0.5, m_plus=0.9, m_minus=0.1, lambda_=0.5,device=None):
+    def __init__(self,l2_reg_lambda,tau, m_plus=0.9, m_minus=0.1, lambda_=0.5,device=None):
         super(HCapsNetLoss, self).__init__()
         self.margin_loss = MarginLoss(m_plus = m_plus,m_minus = m_minus,lambda_ = lambda_)
-        self.reconstruction_loss =ReconstructionLoss(alpha=alpha) 
+        self.reconstruction_loss =ReconstructionLoss() 
         self.l2_loss = L2Loss(l2_reg_lambda=l2_reg_lambda,device=device)
         self.device = device
         self.tau = tau
@@ -284,7 +284,7 @@ class HCapsNetLoss(nn.Module):
             margin_losses[i] = margin_loss
         
         margin_loss_sum = torch.sum(margin_losses)
-        hcapsnet_loss = torch.add((1-self.tau)*reconstructions_loss,self.tau*margin_loss_sum)
+        hcapsnet_loss = torch.add(self.tau*reconstructions_loss,(1-self.tau)*margin_loss_sum)
         global_loss = torch.add(hcapsnet_loss,l2_loss)
         return global_loss,margin_loss_sum,reconstructions_loss,l2_loss
 class L2Loss(nn.Module):
