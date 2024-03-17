@@ -97,12 +97,12 @@ def train_baseline_model(args):
         trainer.train_and_validate()
         
 def get_random_hyperparameter(base_args):
-    fc_dim = random.choice([512,1024,2048])
-    batch_size = random.choice([64,128])
+    fc_dim = random.choice([256,512,1024,2048])
+    batch_size = random.choice([64,128,256])
     learning_rate = random.choice([0.001])
     optimizer = random.choice(['adam'])
     num_layers = random.choice([1,2,3])
-    dropout_rate = random.choice([0.3,0.4,0.5])
+    dropout_rate = random.choice([0.3,0.5,0.7])
     is_batchnorm_active = random.choice([True])
     activation_func = random.choice(['relu'])
     
