@@ -295,6 +295,7 @@ def hmcnet_parameter_parser():
     # Model Parameters
     parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
     parser.add_argument("--is-backbone-embedding-active", type=bool_argument, default=False, help="Dimensionality of Backbone neurons.")
+    parser.add_argument("--is-backbone-global-average-pooling-active", type=bool_argument, default=True, help="Global Average Pooling of backbone active.")
     parser.add_argument("--backbone-dim", type=int, default=256, help="Dimensionality of Backbone neurons.")
     parser.add_argument("--backbone-layers", type=int, default=1, help="Number of Backbone layers.")
     parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,1), help="Dimensionality of the Feature Output of backbone.")

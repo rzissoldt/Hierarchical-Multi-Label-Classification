@@ -22,10 +22,13 @@ class BackboneEmbedding(nn.Module):
     
 class Backbone(nn.Module):
     """A Backbone for image feature extraction."""
-    def __init__(self):
+    def __init__(self,global_average_pooling_active):
         super(Backbone,self).__init__()
         resnet50 = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
-        self.backbone_feature_ext = nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
+        if global_average_pooling_active:
+            self.backbone_feature_ext = nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-1]))
+        else:
+            self.backbone_feature_ext = nn.Sequential(*(list(resnet50.children())[:len(list(resnet50.children()))-2]))
         
     def forward(self,x):
         feature_extractor_out = self.backbone_feature_ext(x)

@@ -224,9 +224,9 @@ class HighwayLayer(nn.Module):
     
 class HmcNet(nn.Module):
     """A HARNN for image classification."""
-    def __init__(self,feature_dim,attention_unit_size,is_backbone_embedding_active,backbone_fc_hidden_size,highway_fc_hidden_size,highway_num_layers,fc_hidden_size, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
+    def __init__(self,global_average_pooling_active,feature_dim,attention_unit_size,is_backbone_embedding_active,backbone_fc_hidden_size,highway_fc_hidden_size,highway_num_layers,fc_hidden_size, num_classes_list, total_classes, freeze_backbone,l2_reg_lambda=0.0,dropout_keep_prob=0.5,alpha=0.5,beta=0.5,device=None):
         super(HmcNet,self).__init__()
-        self.backbone = Backbone()
+        self.backbone = Backbone(global_average_pooling_active=global_average_pooling_active)
         self.is_backbone_embedding_active = is_backbone_embedding_active
         if is_backbone_embedding_active:
             self.backbone_embedding = BackboneEmbedding(feature_dim=feature_dim,backbone_fc_hidden_size=backbone_fc_hidden_size,dropout_keep_prob=dropout_keep_prob)
