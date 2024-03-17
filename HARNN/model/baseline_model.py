@@ -8,7 +8,7 @@ class BaselineModel(nn.Module):
     """Baseline model"""
     def __init__(self, output_dim, args):
         super(BaselineModel, self).__init__()
-        self.backbone = Backbone()
+        self.backbone = Backbone(global_average_pooling_active=True)
         self.nb_layers = args.num_layers
         self.feature_dim = args.feature_dim_backbone[0]
         self.hidden_dim = args.fc_dim

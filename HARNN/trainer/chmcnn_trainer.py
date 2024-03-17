@@ -83,8 +83,8 @@ class CHMCNNTrainer():
                 if counter >= self.args.early_stopping_patience and not is_fine_tuning:
                     print(f'Early stopping triggered and validate best Epoch {best_epoch}.')
                     print(f'Begin fine tuning model.')
+                    self.model = copy.deepcopy(self.best_model)
                     self.unfreeze_backbone()
-                    #best_vauprc = 0.
                     is_fine_tuning = True
                     counter = 0
                     continue

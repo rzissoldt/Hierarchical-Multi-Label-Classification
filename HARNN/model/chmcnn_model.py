@@ -16,7 +16,7 @@ class ConstrainedFFNNModel(nn.Module):
     """ C-HMCNN(h) model - during training it returns the not-constrained output that is then passed to MCLoss """
     def __init__(self, output_dim,R, args):
         super(ConstrainedFFNNModel, self).__init__()
-        self.backbone = Backbone()
+        self.backbone = Backbone(global_average_pooling_active=True)
         self.nb_layers = args.num_layers
         self.feature_dim = args.feature_dim_backbone[0]
         self.hidden_dim = args.fc_dim

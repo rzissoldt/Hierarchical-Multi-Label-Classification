@@ -79,7 +79,7 @@ def train_hmcnet(args):
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
-        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}/hmc_net_{timestamp}'
+        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_hmcnet/hmc_net_{timestamp}'
     else:
         path_to_model = f'runs/hmc_net_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_{timestamp}'
     
