@@ -18,7 +18,7 @@ from torch.nn.functional import one_hot
 from solt.core import DataContainer
 sys.path.append('../')
 from utils import xtree_utils as xtree 
-from torchmetrics import AUROC, AveragePrecision
+from torchmetrics.classification import MultilabelAUROC, MultilabelAveragePrecision
 def _option(pattern):
     """
     Get the option according to the pattern.
@@ -275,7 +275,7 @@ def get_pcp_onehot_label_topk(scores,explicit_hierarchy,num_classes_list,pcp_thr
 
 def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_classes_list,device=None):
     metric_dict = {}
-    
+    total_class_num = sum(num_classes_list)
     eval_pre_pcp_tk = [0.0] * topK
     eval_rec_pcp_tk = [0.0] * topK
     eval_F1_pcp_tk = [0.0] * topK
@@ -339,21 +339,21 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_cl
     eval_emr_pcp_ts = eval_exact_match_ratio(true_labels_batch=true_onehot_labels,predicted_labels_batch=predicted_pcp_onehot_labels)
     
     # Calculate Precision & Recall & F1 per Hierarchy-Layer
-    eval_metrics_per_layer = get_per_layer_metrics(scores=predicted_onehot_labels,labels=true_onehot_labels,num_classes_list=num_classes_list)
+    eval_metrics_per_layer = get_per_layer_metrics(scores=scores,labels=true_onehot_labels,num_classes_list=num_classes_list)
     
     # Calculate PCP Precision & Recall & F1 per Hierarchy-Layer
-    eval_pcp_metrics_per_layer = get_per_layer_metrics(scores=predicted_pcp_onehot_labels,labels=true_onehot_labels,num_classes_list=num_classes_list)
+    eval_pcp_metrics_per_layer = get_per_layer_metrics(scores=scores,labels=true_onehot_labels,num_classes_list=num_classes_list)
     
     
             
-    auroc = AUROC(task="binary")
+    auroc = MultilabelAUROC(num_labels=total_class_num,average='macro')
     eval_pcp_auc = auroc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
     
-    auprc = AveragePrecision(task="binary")
+    auprc = MultilabelAveragePrecision(num_labels=total_class_num,average='macro')
     eval_pcp_auprc = auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
     
-    eval_auc = auroc(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
-    eval_auprc = auprc(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+    eval_auc = auroc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+    eval_auprc = auprc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
     metric_dict['Validation/PCPAverageAUC'] = eval_pcp_auc
     metric_dict['Validation/PCPAveragePrecision'] = eval_pcp_auprc
     metric_dict['Validation/PCPPrecision'] = eval_pre_pcp_ts
@@ -462,10 +462,11 @@ def get_per_layer_metrics(scores,labels, num_classes_list):
     # Calculate Precision & Recall & F1 per Hierarchy-Layer
     begin = 0
     end = 0
-    auroc = AUROC(task="binary")
-    auprc = AveragePrecision(task="binary")
+    
     eval_metrics_per_layer = []
     for i in range(len(num_classes_list)):
+        auroc = MultilabelAUROC(num_labels=num_classes_list[i],average='macro')
+        auprc = MultilabelAveragePrecision(num_labels=num_classes_list[i],average='macro')
         if i == 0:
             begin = 0
             end = num_classes_list[0]

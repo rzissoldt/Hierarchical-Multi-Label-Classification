@@ -6,7 +6,7 @@ sys.path.append('../')
 from utils import data_helpers as dh
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit,MultilabelStratifiedKFold
 
-from torchmetrics import AUROC, AveragePrecision
+from torchmetrics.classification import  MultilabelAveragePrecision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from HARNN.model.chmcnn_model import get_constr_out
@@ -216,7 +216,7 @@ class CHMCNNTrainer():
             self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
             self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
         # Gather data and report
-        auprc = AveragePrecision(task="binary")
+        auprc = MultilabelAveragePrecision(num_labels=self.total_class_num,average='macro')
         predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
         labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
         eval_auprc = auprc(predicted_onehot_labels.to(dtype=torch.float32),labels.to(dtype=torch.long))
@@ -251,7 +251,7 @@ class CHMCNNTrainer():
                 labels_list.extend(labels)
             # Gather data and report
             
-            auprc = AveragePrecision(task="binary")
+            auprc = MultilabelAveragePrecision(num_labels=self.total_class_num,average='macro')
             predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
             labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
             eval_auprc = auprc(predicted_onehot_labels.to(dtype=torch.float32),labels.to(dtype=torch.long))
