@@ -218,7 +218,7 @@ class CHMCNNTrainer():
             self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
             self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
         # Gather data and report
-        auprc = MultilabelAveragePrecision(num_labels=self.total_class_num,average='micro')
+        auprc = MultilabelAveragePrecision(num_labels=self.total_class_num,average='macro')
         #predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
         scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in constr_out_list],dim=0).to(self.device)
         labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
@@ -257,7 +257,7 @@ class CHMCNNTrainer():
                 labels_list.extend(labels)
             # Gather data and report
             
-            avg_precision = MultilabelAveragePrecision(num_labels=self.total_class_num,average='micro')
+            avg_precision = MultilabelAveragePrecision(num_labels=self.total_class_num,average='macro')
             #predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
             scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in constr_out_list],dim=0).to(self.device)
             labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
