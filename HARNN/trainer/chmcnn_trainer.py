@@ -168,6 +168,7 @@ class CHMCNNTrainer():
         last_loss = 0.
         self.model.train(True)
         predicted_list = []
+        constr_out_list = []
         labels_list = []
         num_of_train_batches = len(data_loader)
         for i, data in enumerate(data_loader):
@@ -200,6 +201,7 @@ class CHMCNNTrainer():
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             loss.backward()
             self.optimizer.step()
+            constr_out_list.extend(constr_output)
             predicted_list.extend(predicted)
             labels_list.extend(labels)
             # Gather data and report
@@ -217,9 +219,10 @@ class CHMCNNTrainer():
             self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
         # Gather data and report
         auprc = MultilabelAveragePrecision(num_labels=self.total_class_num,average='micro')
-        predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
+        #predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
+        scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in constr_out_list],dim=0).to(self.device)
         labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
-        eval_auprc = auprc(predicted_onehot_labels.to(dtype=torch.float32),labels.to(dtype=torch.long))
+        eval_auprc = auprc(scores.to(dtype=torch.float32),labels.to(dtype=torch.long))
         progress_info = f"Training: Epoch [{epoch_index+1}], AUPRC: {eval_auprc}"
         
         
@@ -233,6 +236,7 @@ class CHMCNNTrainer():
         self.model.eval()
         eval_counter = 0
         num_of_val_batches = len(data_loader)
+        constr_out_list = []
         predicted_list = []
         labels_list = []
         # Disable gradient computation and reduce memory consumption.
@@ -247,14 +251,17 @@ class CHMCNNTrainer():
                 # Make predictions for this batch
                 constr_output = self.model(inputs.float())
                 predicted = constr_output > 0.5
+                
+                constr_out_list.extend(constr_output)
                 predicted_list.extend(predicted)
                 labels_list.extend(labels)
             # Gather data and report
             
             avg_precision = MultilabelAveragePrecision(num_labels=self.total_class_num,average='micro')
-            predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
+            #predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
+            scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in constr_out_list],dim=0).to(self.device)
             labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
-            eval_avg_precision = avg_precision(predicted_onehot_labels.to(dtype=torch.float32),labels.to(dtype=torch.long))
+            eval_avg_precision = avg_precision(scores.to(dtype=torch.float32),labels.to(dtype=torch.long))
             progress_info = f"Validation: Epoch [{epoch_index+1}], Average Precision: {eval_avg_precision}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_val_batches + eval_counter + 1
