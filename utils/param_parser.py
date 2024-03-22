@@ -143,6 +143,7 @@ def baseline_parameter_parser():
     parser.add_argument("--activation-func", default="tanh", help="If tanh should be used or ReLU.")
     parser.add_argument("--is-batchnorm-active", type=bool_argument, default=True, help="If batchnorm should be used.")
      # Training Parameters
+    parser.add_argument("--pcp-metrics-active", type=bool_argument, default=False, help="Is pcp-Metrics active?")
     parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
     parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
     parser.add_argument("--is-k-crossfold-val", type=bool_argument, default=False, help="Choose if Training should be k-crossfold-validation.")
@@ -195,6 +196,7 @@ def chmcnn_parameter_parser():
     parser.add_argument("--activation-func", default="tanh", help="If tanh should be used or ReLU.")
     parser.add_argument("--is-batchnorm-active", type=bool_argument, default=True, help="If batchnorm should be used.")
      # Training Parameters
+    parser.add_argument("--pcp-metrics-active", type=bool_argument, default=False, help="Is pcp-Metrics active?")
     parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
     parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
     parser.add_argument("--is-k-crossfold-val", type=bool_argument, default=False, help="Choose if Training should be k-crossfold-validation.")
@@ -247,6 +249,7 @@ def hcapsnet_parameter_parser():
     parser.add_argument("--tau", type=float, default=0.0005, help="Weight of Reconstruction Loss in loss cal.")
     
     # Training Parameters
+    parser.add_argument("--pcp-metrics-active", type=bool_argument, default=False, help="Is pcp-Metrics active?")
     parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
     parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
     parser.add_argument("--is-k-crossfold-val", type=bool_argument, default=False, help="Choose if Training should be k-crossfold-validation.")
@@ -310,6 +313,7 @@ def hmcnet_parameter_parser():
     
     
     # Training Parameters
+    parser.add_argument("--pcp-metrics-active", type=bool_argument, default=False, help="Is pcp-Metrics active?")
     parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
     parser.add_argument("--num-hyperparameter-search", type=int, default=10, help="Count of random Hyperparameter searches.")
     parser.add_argument("--is-k-crossfold-val", type=bool_argument, default=False, help="Choose if Training should be k-crossfold-validation.")
@@ -364,6 +368,7 @@ def image_parameter_parser():
     parser.add_argument("--threshold", type=float, default=0.5, help="Threshold for prediction classes.")
 
     # Training Parameters
+    parser.add_argument("--pcp-metrics-active", type=bool_argument, default=False, help="Is pcp-Metrics active?")
     parser.add_argument("--gpu", type=bool, default=True, help="GPU-Support active or not")
     parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs.")
     parser.add_argument("--batch-size", type=int, default=32, help="Batch Size.")

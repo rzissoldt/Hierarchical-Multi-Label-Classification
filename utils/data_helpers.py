@@ -273,17 +273,28 @@ def get_pcp_onehot_label_topk(scores,explicit_hierarchy,num_classes_list,pcp_thr
     pcp_onehot_labels_topk = [torch.zeros(num_classes) if len(path_pruned_classes_topk) == 0 else generate_one_hot(path_pruned_classes_topk,num_classes) for path_pruned_classes_topk in path_pruned_classes_topk_list]
     return pcp_onehot_labels_topk      
 
-def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_classes_list,device=None):
+def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_classes_list,eval_pcp=False,device=None):
     metric_dict = {}
     total_class_num = sum(num_classes_list)
-    eval_pre_pcp_tk = [0.0] * topK
-    eval_rec_pcp_tk = [0.0] * topK
-    eval_F1_pcp_tk = [0.0] * topK
+    eval_micro_pre_pcp_tk = [0.0] * topK
+    eval_micro_rec_pcp_tk = [0.0] * topK
+    eval_micro_F1_pcp_tk = [0.0] * topK
+    eval_macro_pre_pcp_tk = [0.0] * topK
+    eval_macro_rec_pcp_tk = [0.0] * topK
+    eval_macro_F1_pcp_tk = [0.0] * topK
     eval_emr_pcp_tk = [0.0] * topK
-    eval_pre_tk = [0.0] * topK
-    eval_rec_tk = [0.0] * topK
-    eval_F1_tk = [0.0] * topK
+    eval_micro_pre_tk = [0.0] * topK
+    eval_micro_rec_tk = [0.0] * topK
+    eval_micro_F1_tk = [0.0] * topK
+    eval_macro_pre_tk = [0.0] * topK
+    eval_macro_rec_tk = [0.0] * topK
+    eval_macro_F1_tk = [0.0] * topK
+    
     eval_emr_tk = [0.0] * topK
+    macro_auroc = MultilabelAUROC(num_labels=total_class_num,average='macro')
+    macro_auprc = MultilabelAveragePrecision(num_labels=total_class_num,average='macro')
+    micro_auroc = MultilabelAUROC(num_labels=total_class_num,average='micro')
+    micro_auprc = MultilabelAveragePrecision(num_labels=total_class_num,average='micro')
     predicted_onehot_labels_ts = []
     predicted_pcp_onehot_labels_ts = []
     predicted_onehot_labels_tk = [[] for _ in range(topK)]
@@ -300,140 +311,186 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_cl
         batch_predicted_onehot_labels_tk = get_onehot_label_topk(scores=scores_np,top_num=top_num+1)
         for i in batch_predicted_onehot_labels_tk:
             predicted_onehot_labels_tk[top_num].append(i)
-    
-    # Predict by pcp-threshold
-    batch_predicted_pcp_onehot_labels_ts = get_pcp_onehot_label_threshold(scores=scores,explicit_hierarchy=pcp_hierarchy,num_classes_list=num_classes_list, pcp_threshold=pcp_threshold)
-    for k in batch_predicted_pcp_onehot_labels_ts:
-        predicted_pcp_onehot_labels_ts.append(k)
-    
-    # Predict by pcp-topK
-    for top_num in range(topK):
-        batch_predicted_pcp_onehot_labels_tk = get_pcp_onehot_label_topk(scores=scores,explicit_hierarchy=pcp_hierarchy,pcp_threshold=pcp_threshold,num_classes_list=num_classes_list, top_num=top_num+1)
-        for i in batch_predicted_pcp_onehot_labels_tk:
-            predicted_pcp_onehot_labels_tk[top_num].append(i)
-            
+    if eval_pcp:
+        # Predict by pcp-threshold
+        batch_predicted_pcp_onehot_labels_ts = get_pcp_onehot_label_threshold(scores=scores,explicit_hierarchy=pcp_hierarchy,num_classes_list=num_classes_list, pcp_threshold=pcp_threshold)
+        for k in batch_predicted_pcp_onehot_labels_ts:
+            predicted_pcp_onehot_labels_ts.append(k)
+
+        # Predict by pcp-topK
+        for top_num in range(topK):
+            batch_predicted_pcp_onehot_labels_tk = get_pcp_onehot_label_topk(scores=scores,explicit_hierarchy=pcp_hierarchy,pcp_threshold=pcp_threshold,num_classes_list=num_classes_list, top_num=top_num+1)
+            for i in batch_predicted_pcp_onehot_labels_tk:
+                predicted_pcp_onehot_labels_tk[top_num].append(i)
+        predicted_pcp_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_pcp_onehot_labels_ts],dim=0).to(device)
+        eval_micro_pre_pcp_ts,eval_micro_rec_pcp_ts,eval_micro_F1_pcp_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels, average='micro')
+        eval_macro_pre_pcp_ts,eval_macro_rec_pcp_ts,eval_macro_F1_pcp_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels, average='macro')
+        for top_num in range(topK):
+            predicted_pcp_onehot_labels_topk = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_pcp_onehot_labels_tk[top_num]],dim=0).to(device)
+            eval_micro_pre_pcp_tk[top_num], eval_micro_rec_pcp_tk[top_num],eval_micro_F1_pcp_tk[top_num] = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels_topk, average='micro')
+            eval_macro_pre_pcp_tk[top_num], eval_macro_rec_pcp_tk[top_num],eval_macro_F1_pcp_tk[top_num] = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels_topk, average='macro')
+            eval_emr_pcp_tk[top_num] = eval_exact_match_ratio(true_labels_batch=true_onehot_labels,predicted_labels_batch=predicted_pcp_onehot_labels_topk) 
+        # Calculate Exact Match-Ratio for PCP Threshold
+        eval_emr_pcp_ts = eval_exact_match_ratio(true_labels_batch=true_onehot_labels,predicted_labels_batch=predicted_pcp_onehot_labels)
+        # Calculate PCP Precision & Recall & F1 per Hierarchy-Layer
+        eval_pcp_metrics_per_layer = get_per_layer_metrics(scores=scores,labels=true_onehot_labels,num_classes_list=num_classes_list)
+        eval_pcp_macro_auc = macro_auroc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
+        eval_pcp_macro_auprc = macro_auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
+        eval_pcp_micro_auc = macro_auroc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
+        eval_pcp_micro_auprc = macro_auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
+        metric_dict['Validation/PCPMacroAverageAUC'] = eval_pcp_macro_auc
+        metric_dict['Validation/PCPMacroAveragePrecision'] = eval_pcp_macro_auprc
+        metric_dict['Validation/PCPMicroAverageAUC'] = eval_pcp_micro_auc
+        metric_dict['Validation/PCPMicroAveragePrecision'] = eval_pcp_micro_auprc
+        metric_dict['Validation/PCPMicroPrecision'] = eval_micro_pre_pcp_ts
+        metric_dict['Validation/PCPMicroRecall'] = eval_micro_rec_pcp_ts
+        metric_dict['Validation/PCPMicroF1'] = eval_micro_F1_pcp_ts
+        metric_dict['Validation/PCPMacroPrecision'] = eval_macro_pre_pcp_ts
+        metric_dict['Validation/PCPMacroRecall'] = eval_macro_rec_pcp_ts
+        metric_dict['Validation/PCPMacroF1'] = eval_macro_F1_pcp_ts
+        metric_dict['Validation/PCPEMR'] = eval_emr_pcp_ts
+        for i,pcp_precision in enumerate(eval_micro_pre_pcp_tk):
+            metric_dict[f'Validation/PCPMicroPrecisionTopK/{i}'] = pcp_precision
+        for i, pcp_recall in enumerate(eval_micro_rec_pcp_tk):
+            metric_dict[f'Validation/PCPMicroRecallTopK/{i}'] = pcp_recall
+        for i, pcp_f1 in enumerate(eval_micro_F1_pcp_tk):
+            metric_dict[f'Validation/PCPMicroF1TopK/{i}'] = pcp_f1
+        for i,pcp_precision in enumerate(eval_macro_pre_pcp_tk):
+            metric_dict[f'Validation/PCPMacroPrecisionTopK/{i}'] = pcp_precision
+        for i, pcp_recall in enumerate(eval_macro_rec_pcp_tk):
+            metric_dict[f'Validation/PCPMacroRecallTopK/{i}'] = pcp_recall
+        for i, pcp_f1 in enumerate(eval_macro_F1_pcp_tk):
+            metric_dict[f'Validation/PCPMacroF1TopK/{i}'] = pcp_f1
+        for i, pcp_emr in enumerate(eval_emr_pcp_tk):
+            metric_dict[f'Validation/PCPEMRTopK/{i}'] = pcp_emr
+        for i in range(len(eval_metrics_per_layer)):
+            eval_layer_pcp_macro_pre = eval_pcp_metrics_per_layer[i]['macro_pre']
+            eval_layer_pcp_macro_rec = eval_pcp_metrics_per_layer[i]['macro_rec']
+            eval_layer_pcp_macro_f1 = eval_pcp_metrics_per_layer[i]['macro_f1']
+            eval_layer_pcp_macro_auc = eval_pcp_metrics_per_layer[i]['macro_auc']
+            eval_layer_pcp_macro_auprc = eval_pcp_metrics_per_layer[i]['macro_auprc']
+            eval_layer_pcp_micro_pre = eval_pcp_metrics_per_layer[i]['micro_pre']
+            eval_layer_pcp_micro_rec = eval_pcp_metrics_per_layer[i]['micro_rec']
+            eval_layer_pcp_micro_f1 = eval_pcp_metrics_per_layer[i]['micro_f1']
+            eval_layer_pcp_micro_auc = eval_pcp_metrics_per_layer[i]['micro_auc']
+            eval_layer_pcp_micro_auprc = eval_pcp_metrics_per_layer[i]['micro_auprc']
+            metric_dict[f'Validation/{i+1}-LayerPCPMacroPrecision'] = eval_layer_pcp_macro_pre
+            metric_dict[f'Validation/{i+1}-LayerPCPMacroRecall'] = eval_layer_pcp_macro_rec
+            metric_dict[f'Validation/{i+1}-LayerPCPMacroF1'] = eval_layer_pcp_macro_f1
+            metric_dict[f'Validation/{i+1}-LayerPCPMacroAUC'] = eval_layer_pcp_macro_auc
+            metric_dict[f'Validation/{i+1}-LayerPCPMacroAUPRC'] = eval_layer_pcp_macro_auprc
+            metric_dict[f'Validation/{i+1}-LayerPCPMicroPrecision'] = eval_layer_pcp_micro_pre
+            metric_dict[f'Validation/{i+1}-LayerPCPMicroRecall'] = eval_layer_pcp_micro_rec
+            metric_dict[f'Validation/{i+1}-LayerPCPMicroF1'] = eval_layer_pcp_micro_f1
+            metric_dict[f'Validation/{i+1}-LayerPCPMicroAUC'] = eval_layer_pcp_micro_auc
+            metric_dict[f'Validation/{i+1}-LayerPCPMicroAUPRC'] = eval_layer_pcp_micro_auprc
+        # Predict by pcp
+        print("Predict by PCP thresholding: PCP-Micro-Precision {0:g}, PCP-Micro-Recall {1:g}, PCP-Micro-F1 {2:g}, PCP-Micro-AUC {3:g} , PCP-Micro-AUPRC {4:g}, PCP-EMR {5:g}".format(eval_micro_pre_pcp_ts, eval_micro_rec_pcp_ts, eval_micro_F1_pcp_ts,eval_pcp_micro_auc,eval_pcp_micro_auprc,eval_emr_pcp_ts))
+        print("Predict by PCP thresholding: PCP-Macro-Precision {0:g}, PCP-Macro-Recall {1:g}, PCP-Macro-F1 {2:g}, PCP-Macro-AUC {3:g} , PCP-Macro-AUPRC {4:g}".format(eval_macro_pre_pcp_ts, eval_macro_rec_pcp_ts, eval_macro_F1_pcp_ts,eval_pcp_macro_auc,eval_pcp_macro_auprc))
+        print("\n")
+        # Predict by PCP-topK
+        print("Predict by PCP-topK:")
+        for top_num in range(topK):
+            print("Top{0}: PCP-Micro-Precision {1:g}, PCP-Micro-Recall {2:g}, PCP-Micro-F1 {3:g}, PCP-EMR {4:g}".format(top_num+1, eval_micro_pre_pcp_tk[top_num], eval_micro_rec_pcp_tk[top_num], eval_micro_F1_pcp_tk[top_num],eval_emr_pcp_tk[top_num]))
+            print("Top{0}: PCP-Macro-Precision {1:g}, PCP-Macro-Recall {2:g}, PCP-Macro-F1 {3:g}".format(top_num+1, eval_macro_pre_pcp_tk[top_num], eval_macro_rec_pcp_tk[top_num], eval_macro_F1_pcp_tk[top_num]))
+        print("\n")
+        # Predict by PCP-tresholding per layer
+        print("PCP-Thresholding Prediction by Layer:")
+        for i in range(len(eval_pcp_metrics_per_layer)):
+            print("Layer{0}: PCP-Micro-Precision {1:g}, PCP-Micro-Recall {2:g}, PCP-Micro-F1 {3:g}, PCP-Micro-AUC {4:g}, PCP-Micro-AUPRC {5:g}, PCP-EMR {6:g}".format(i+1, eval_pcp_metrics_per_layer[i]['micro_pre'], eval_pcp_metrics_per_layer[i]['micro_rec'], eval_pcp_metrics_per_layer[i]['micro_f1'],eval_pcp_metrics_per_layer[i]['micro_auc'],eval_pcp_metrics_per_layer[i]['micro_auprc'],eval_pcp_metrics_per_layer[i]['emr']))
+            print("Layer{0}: PCP-Macro-Precision {1:g}, PCP-Macro-Recall {2:g}, PCP-Macro-F1 {3:g}, PCP-Macro-AUC {4:g}, PCP-Macro-AUPRC {5:g}".format(i+1, eval_pcp_metrics_per_layer[i]['macro_pre'], eval_pcp_metrics_per_layer[i]['macro_rec'], eval_pcp_metrics_per_layer[i]['macro_f1'],eval_pcp_metrics_per_layer[i]['macro_auc'],eval_pcp_metrics_per_layer[i]['macro_auprc']))
     # Calculate PCP Precision & Recall & F1
     true_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(device)
-    predicted_pcp_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_pcp_onehot_labels_ts],dim=0).to(device)
-    
-    eval_pre_pcp_ts,eval_rec_pcp_ts,eval_F1_pcp_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels, average='micro')
-    
-    for top_num in range(topK):
-        predicted_pcp_onehot_labels_topk = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_pcp_onehot_labels_tk[top_num]],dim=0).to(device)
-        eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num],eval_F1_pcp_tk[top_num] = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels_topk, average='micro')
-        eval_emr_pcp_tk[top_num] = eval_exact_match_ratio(true_labels_batch=true_onehot_labels,predicted_labels_batch=predicted_pcp_onehot_labels_topk)
     # Calculate Precision & Recall & F1
     predicted_onehot_labels = torch.cat([torch.unsqueeze(torch.tensor(tensor),0) for tensor in predicted_onehot_labels_ts],dim=0).to(device)
     
-    eval_pre_ts,eval_rec_ts,eval_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='micro')
-        
+    eval_micro_pre_ts,eval_micro_rec_ts,eval_micro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='micro')
+    eval_macro_pre_ts,eval_macro_rec_ts,eval_macro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='macro')
     for top_num in range(topK):
         predicted_onehot_labels_topk = torch.cat([torch.unsqueeze(torch.tensor(tensor),0) for tensor in predicted_onehot_labels_tk[top_num]],dim=0).to(device)
-        eval_pre_tk[top_num], eval_rec_tk[top_num],eval_F1_tk[top_num] = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels_topk, average='micro')
+        eval_micro_pre_tk[top_num], eval_micro_rec_tk[top_num],eval_micro_F1_tk[top_num] = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels_topk, average='micro')
+        eval_macro_pre_tk[top_num], eval_macro_rec_tk[top_num],eval_macro_F1_tk[top_num] = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels_topk, average='macro')
         eval_emr_tk[top_num] = eval_exact_match_ratio(true_labels_batch=true_onehot_labels,predicted_labels_batch=predicted_onehot_labels_topk)
     
     # Calculate Exact Match-Ratio
     eval_emr_ts = eval_exact_match_ratio(true_labels_batch=true_onehot_labels,predicted_labels_batch=predicted_onehot_labels)
-    
-    # Calculate Exact Match-Ratio for PCP Threshold
-    eval_emr_pcp_ts = eval_exact_match_ratio(true_labels_batch=true_onehot_labels,predicted_labels_batch=predicted_pcp_onehot_labels)
-    
+        
     # Calculate Precision & Recall & F1 per Hierarchy-Layer
-    eval_metrics_per_layer = get_per_layer_metrics(scores=scores,labels=true_onehot_labels,num_classes_list=num_classes_list)
-    
-    # Calculate PCP Precision & Recall & F1 per Hierarchy-Layer
-    eval_pcp_metrics_per_layer = get_per_layer_metrics(scores=scores,labels=true_onehot_labels,num_classes_list=num_classes_list)
-    
-    
-            
-    auroc = MultilabelAUROC(num_labels=total_class_num,average='macro')
-    eval_pcp_auc = auroc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
-    
-    auprc = MultilabelAveragePrecision(num_labels=total_class_num,average='macro')
-    eval_pcp_auprc = auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
-    
-    eval_auc = auroc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
-    eval_auprc = auprc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
-    metric_dict['Validation/PCPAverageAUC'] = eval_pcp_auc
-    metric_dict['Validation/PCPAveragePrecision'] = eval_pcp_auprc
-    metric_dict['Validation/PCPPrecision'] = eval_pre_pcp_ts
-    metric_dict['Validation/PCPRecall'] = eval_rec_pcp_ts
-    metric_dict['Validation/PCPF1'] = eval_F1_pcp_ts
-    metric_dict['Validation/PCPEMR'] = eval_emr_pcp_ts
-    for i,pcp_precision in enumerate(eval_pre_pcp_tk):
-        metric_dict[f'Validation/PCPPrecisionTopK/{i}'] = pcp_precision
-    for i, pcp_recall in enumerate(eval_rec_pcp_tk):
-        metric_dict[f'Validation/PCPRecallTopK/{i}'] = pcp_recall
-    for i, pcp_f1 in enumerate(eval_F1_pcp_tk):
-        metric_dict[f'Validation/PCPF1TopK/{i}'] = pcp_f1
-    for i, pcp_emr in enumerate(eval_emr_pcp_tk):
-        metric_dict[f'Validation/PCPEMRTopK/{i}'] = pcp_emr
-    
-    metric_dict['Validation/AverageAUC'] = eval_auc
-    metric_dict['Validation/AveragePrecision'] = eval_auprc
-    metric_dict['Validation/Precision'] = eval_pre_ts
-    metric_dict['Validation/Recall'] = eval_rec_ts
-    metric_dict['Validation/F1'] = eval_F1_ts
+    eval_metrics_per_layer = get_per_layer_metrics(scores=scores,labels=true_onehot_labels,num_classes_list=num_classes_list)    
+    eval_macro_auc = macro_auroc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+    eval_macro_auprc = macro_auprc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+    eval_micro_auc = micro_auroc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+    eval_micro_auprc = micro_auprc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+    metric_dict['Validation/MacroAverageAUC'] = eval_macro_auc
+    metric_dict['Validation/MacroAveragePrecision'] = eval_macro_auprc
+    metric_dict['Validation/MicroAverageAUC'] = eval_micro_auc
+    metric_dict['Validation/MicroAveragePrecision'] = eval_micro_auprc
+    metric_dict['Validation/MicroPrecision'] = eval_micro_pre_ts
+    metric_dict['Validation/MicroRecall'] = eval_micro_rec_ts
+    metric_dict['Validation/MicroF1'] = eval_micro_F1_ts
+    metric_dict['Validation/MacroPrecision'] = eval_macro_pre_ts
+    metric_dict['Validation/MacroRecall'] = eval_macro_rec_ts
+    metric_dict['Validation/MacroF1'] = eval_macro_F1_ts
     metric_dict['Validation/EMR'] = eval_emr_ts
 
-    for i, precision in enumerate(eval_pre_tk):
-        metric_dict[f'Validation/PrecisionTopK/{i}'] = precision
-    for i, recall in enumerate(eval_rec_tk):
-        metric_dict[f'Validation/RecallTopK/{i}'] = recall
-    for i, f1 in enumerate(eval_F1_tk):
-        metric_dict[f'Validation/F1TopK/{i}'] = f1
+    for i, precision in enumerate(eval_micro_pre_tk):
+        metric_dict[f'Validation/MicroPrecisionTopK/{i}'] = precision
+    for i, recall in enumerate(eval_micro_rec_tk):
+        metric_dict[f'Validation/MicroRecallTopK/{i}'] = recall
+    for i, f1 in enumerate(eval_micro_F1_tk):
+        metric_dict[f'Validation/MicroF1TopK/{i}'] = f1
+    for i, precision in enumerate(eval_macro_pre_tk):
+        metric_dict[f'Validation/MacroPrecisionTopK/{i}'] = precision
+    for i, recall in enumerate(eval_macro_rec_tk):
+        metric_dict[f'Validation/MacroRecallTopK/{i}'] = recall
+    for i, f1 in enumerate(eval_macro_F1_tk):
+        metric_dict[f'Validation/MacroF1TopK/{i}'] = f1
     for i, emr in enumerate(eval_emr_tk):
         metric_dict[f'Validation/EMRTopK/{i}'] = emr
     
     for i in range(len(eval_metrics_per_layer)):
-        eval_layer_pre = eval_metrics_per_layer[i]['pre']
-        eval_layer_rec = eval_metrics_per_layer[i]['rec']
-        eval_layer_f1 = eval_metrics_per_layer[i]['f1']
-        eval_layer_auc = eval_metrics_per_layer[i]['auc']
-        eval_layer_auprc = eval_metrics_per_layer[i]['auprc']
-        eval_layer_pcp_pre = eval_pcp_metrics_per_layer[i]['pre']
-        eval_layer_pcp_rec = eval_pcp_metrics_per_layer[i]['rec']
-        eval_layer_pcp_f1 = eval_pcp_metrics_per_layer[i]['f1']
-        eval_layer_pcp_auc = eval_pcp_metrics_per_layer[i]['auc']
-        eval_layer_pcp_auprc = eval_pcp_metrics_per_layer[i]['auprc']
-        metric_dict[f'Validation/{i+1}-LayerPrecision'] = eval_layer_pre
-        metric_dict[f'Validation/{i+1}-LayerRecall'] = eval_layer_rec
-        metric_dict[f'Validation/{i+1}-LayerF1'] = eval_layer_f1
-        metric_dict[f'Validation/{i+1}-LayerAUC'] = eval_layer_auc
-        metric_dict[f'Validation/{i+1}-LayerAUPRC'] = eval_layer_auprc
-        metric_dict[f'Validation/{i+1}-LayerPCPPrecision'] = eval_layer_pcp_pre
-        metric_dict[f'Validation/{i+1}-LayerPCPRecall'] = eval_layer_pcp_rec
-        metric_dict[f'Validation/{i+1}-LayerPCPF1'] = eval_layer_pcp_f1
-        metric_dict[f'Validation/{i+1}-LayerPCPAUC'] = eval_layer_pcp_auc
-        metric_dict[f'Validation/{i+1}-LayerPCPAUPRC'] = eval_layer_pcp_auprc
+        eval_layer_micro_pre = eval_metrics_per_layer[i]['micro_pre']
+        eval_layer_micro_rec = eval_metrics_per_layer[i]['micro_rec']
+        eval_layer_micro_f1 = eval_metrics_per_layer[i]['micro_f1']
+        eval_layer_micro_auc = eval_metrics_per_layer[i]['micro_auc']
+        eval_layer_micro_auprc = eval_metrics_per_layer[i]['micro_auprc']
+        eval_layer_macro_pre = eval_metrics_per_layer[i]['macro_pre']
+        eval_layer_macro_rec = eval_metrics_per_layer[i]['macro_rec']
+        eval_layer_macro_f1 = eval_metrics_per_layer[i]['macro_f1']
+        eval_layer_macro_auc = eval_metrics_per_layer[i]['macro_auc']
+        eval_layer_macro_auprc = eval_metrics_per_layer[i]['macro_auprc']
+        
+        metric_dict[f'Validation/{i+1}-LayerMicroPrecision'] = eval_layer_micro_pre
+        metric_dict[f'Validation/{i+1}-LayerMicroRecall'] = eval_layer_micro_rec
+        metric_dict[f'Validation/{i+1}-LayerMicroF1'] = eval_layer_micro_f1
+        metric_dict[f'Validation/{i+1}-LayerMicroAUC'] = eval_layer_micro_auc
+        metric_dict[f'Validation/{i+1}-LayerMicroAUPRC'] = eval_layer_micro_auprc
+        metric_dict[f'Validation/{i+1}-LayerMacroPrecision'] = eval_layer_macro_pre
+        metric_dict[f'Validation/{i+1}-LayerMacroRecall'] = eval_layer_macro_rec
+        metric_dict[f'Validation/{i+1}-LayerMacroF1'] = eval_layer_macro_f1
+        metric_dict[f'Validation/{i+1}-LayerMacroAUC'] = eval_layer_macro_auc
+        metric_dict[f'Validation/{i+1}-LayerMacroAUPRC'] = eval_layer_macro_auprc
+        
     
     # Show metrics
     
     # Predict by threshold
-    print("Predict by thresholding: Precision {0:g}, Recall {1:g}, F1 {2:g}, AUC {3:g} , AUPRC {4:g}, EMR {5:g}".format(eval_pre_ts, eval_rec_ts, eval_F1_ts,eval_auc,eval_auprc,eval_emr_ts))
+    print("Predict by thresholding: Micro Precision {0:g}, Micro Recall {1:g}, Micro F1 {2:g}, Micro AUC {3:g} , Micro AUPRC {4:g}, EMR {5:g}".format(eval_micro_pre_ts, eval_micro_rec_ts, eval_micro_F1_ts,eval_micro_auc,eval_micro_auprc,eval_emr_ts))
+    print("Predict by thresholding: Macro Precision {0:g}, Macro Recall {1:g}, Macro F1 {2:g}, Macro AUC {3:g} , Macro AUPRC {4:g}".format(eval_macro_pre_ts, eval_macro_rec_ts, eval_macro_F1_ts,eval_macro_auc,eval_macro_auprc))
     print("\n")
     # Predict by topK
     print("Predict by topK:")
     for top_num in range(topK):
-        print("Top{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}, EMR {4:g}".format(top_num+1, eval_pre_tk[top_num], eval_rec_tk[top_num], eval_F1_tk[top_num],eval_emr_tk[top_num]))  
+        print("Top{0}: Micro Precision {1:g}, Micro Recall {2:g}, Micro F1 {3:g}, EMR {4:g}".format(top_num+1, eval_micro_pre_tk[top_num], eval_micro_rec_tk[top_num], eval_micro_F1_tk[top_num],eval_emr_tk[top_num]))
+        print("Top{0}: Macro Precision {1:g}, Macro Recall {2:g}, Macro F1 {3:g}".format(top_num+1, eval_macro_pre_tk[top_num], eval_macro_rec_tk[top_num], eval_macro_F1_tk[top_num]))   
     print("\n")
     # Predict by threshold per layer
     print("Thresholding Prediction by Layer:")
     for i in range(len(eval_metrics_per_layer)):
-        print("Layer{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}, AUC {4:g}, AUPRC {5:g}, EMR {6:g}".format(i+1, eval_metrics_per_layer[i]['pre'], eval_metrics_per_layer[i]['rec'], eval_metrics_per_layer[i]['f1'],eval_metrics_per_layer[i]['auc'],eval_metrics_per_layer[i]['auprc'],eval_metrics_per_layer[i]['emr']))  
+        print("Layer{0}: Micro Precision {1:g}, Micro Recall {2:g}, Micro F1 {3:g}, Micro AUC {4:g}, Micro AUPRC {5:g}, EMR {6:g}".format(i+1, eval_metrics_per_layer[i]['micro_pre'], eval_metrics_per_layer[i]['micro_rec'], eval_metrics_per_layer[i]['micro_f1'],eval_metrics_per_layer[i]['micro_auc'],eval_metrics_per_layer[i]['micro_auprc'],eval_metrics_per_layer[i]['emr']))  
+        print("Layer{0}: Macro Precision {1:g}, Macro Recall {2:g}, Macro F1 {3:g}, Macro AUC {4:g}, Macro AUPRC {5:g}".format(i+1, eval_metrics_per_layer[i]['macro_pre'], eval_metrics_per_layer[i]['macro_rec'], eval_metrics_per_layer[i]['macro_f1'],eval_metrics_per_layer[i]['macro_auc'],eval_metrics_per_layer[i]['macro_auprc']))  
     print("\n")
-    # Predict by pcp
-    print("Predict by PCP thresholding: PCP-Precision {0:g}, PCP-Recall {1:g}, PCP-F1 {2:g}, PCP-AUC {3:g} , PCP-AUPRC {4:g}, PCP-EMR {5:g}".format(eval_pre_pcp_ts, eval_rec_pcp_ts, eval_F1_pcp_ts,eval_pcp_auc,eval_pcp_auprc,eval_emr_pcp_ts))
-    print("\n")
-    # Predict by PCP-topK
-    print("Predict by PCP-topK:")
-    for top_num in range(topK):
-        print("Top{0}: PCP-Precision {1:g}, PCP-Recall {2:g}, PCP-F1 {3:g}, PCP-EMR {4:g}".format(top_num+1, eval_pre_pcp_tk[top_num], eval_rec_pcp_tk[top_num], eval_F1_pcp_tk[top_num],eval_emr_pcp_tk[top_num]))
-    print("\n")
-    # Predict by PCP-tresholding per layer
-    print("PCP-Thresholding Prediction by Layer:")
-    for i in range(len(eval_pcp_metrics_per_layer)):
-        print("Layer{0}: Precision {1:g}, Recall {2:g}, F1 {3:g}, AUC {4:g}, AUPRC {5:g}, EMR {6:g}".format(i+1, eval_pcp_metrics_per_layer[i]['pre'], eval_pcp_metrics_per_layer[i]['rec'], eval_pcp_metrics_per_layer[i]['f1'],eval_pcp_metrics_per_layer[i]['auc'],eval_pcp_metrics_per_layer[i]['auprc'],eval_pcp_metrics_per_layer[i]['emr']))
+    
 
     return metric_dict
 
@@ -465,8 +522,10 @@ def get_per_layer_metrics(scores,labels, num_classes_list):
     
     eval_metrics_per_layer = []
     for i in range(len(num_classes_list)):
-        auroc = MultilabelAUROC(num_labels=num_classes_list[i],average='macro')
-        auprc = MultilabelAveragePrecision(num_labels=num_classes_list[i],average='macro')
+        macro_auroc = MultilabelAUROC(num_labels=num_classes_list[i],average='macro')
+        macro_auprc = MultilabelAveragePrecision(num_labels=num_classes_list[i],average='macro')
+        micro_auroc = MultilabelAUROC(num_labels=num_classes_list[i],average='micro')
+        micro_auprc = MultilabelAveragePrecision(num_labels=num_classes_list[i],average='micro')
         if i == 0:
             begin = 0
             end = num_classes_list[0]
@@ -475,16 +534,25 @@ def get_per_layer_metrics(scores,labels, num_classes_list):
             end += num_classes_list[i]
         per_layer_pred = scores[:,begin:end]
         per_layer_labels = labels[:,begin:end]
-        eval_pre_layer, eval_rec_layer,eval_f1_layer = precision_recall_f1_score(labels=per_layer_labels,binary_predictions=per_layer_pred)
+        eval_macro_pre_layer, eval_macro_rec_layer,eval_macro_f1_layer = precision_recall_f1_score(labels=per_layer_labels,binary_predictions=per_layer_pred,average='macro')
+        eval_micro_pre_layer, eval_micro_rec_layer,eval_micro_f1_layer = precision_recall_f1_score(labels=per_layer_labels,binary_predictions=per_layer_pred,average='micro')
         eval_emr_layer = eval_exact_match_ratio(true_labels_batch=per_layer_labels,predicted_labels_batch=per_layer_pred)
-        eval_auc_layer = auroc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
-        eval_auprc_layer = auprc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
+        eval_macro_auc_layer = macro_auroc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
+        eval_macro_auprc_layer = macro_auprc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
+        eval_micro_auc_layer = micro_auroc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
+        eval_micro_auprc_layer = micro_auprc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
         eval_metrics_per_layer.append({
-            "pre": eval_pre_layer,
-            "rec": eval_rec_layer,
-            "f1": eval_f1_layer,
-            "auc": eval_auc_layer,
-            "auprc": eval_auprc_layer,
+            "macro_pre": eval_macro_pre_layer,
+            "macro_rec": eval_macro_rec_layer,
+            "macro_f1": eval_macro_f1_layer,
+            "micro_pre": eval_micro_pre_layer,
+            "micro_rec": eval_micro_rec_layer,
+            "micro_f1": eval_micro_f1_layer,
+            "macro_auc": eval_macro_auc_layer,
+            "macro_auprc": eval_macro_auprc_layer,
+            "micro_auc": eval_micro_auc_layer,
+            "micro_auprc": eval_micro_auprc_layer,
+            
             "emr":eval_emr_layer
         })
     return eval_metrics_per_layer
