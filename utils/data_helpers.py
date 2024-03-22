@@ -534,13 +534,13 @@ def get_per_layer_metrics(scores,labels, num_classes_list,device=None):
             begin += num_classes_list[i-1]
             end += num_classes_list[i]
         per_layer_pred = scores[:,begin:end]
-        per_layer_pred_tresholded = get_onehot_label_threshold(per_layer_pred.numpy(),threshold=0.5)
+        per_layer_pred_tresholded = torch.where(per_layer_pred < 0.5, torch.tensor(0.0), torch.tensor(1.0)).to(device=device)
         per_layer_pred = per_layer_pred.to(device=device)
-        predicted_onehot_labels = torch.cat([torch.unsqueeze(torch.tensor(tensor),0) for tensor in per_layer_pred_tresholded],dim=0).to(device)
+        #predicted_onehot_labels = torch.cat([torch.unsqueeze(torch.tensor(tensor),0) for tensor in per_layer_pred_tresholded],dim=0).to(device)
         per_layer_labels = labels[:,begin:end]
         eval_macro_pre_layer, eval_macro_rec_layer,eval_macro_f1_layer = precision_recall_f1_score(labels=per_layer_labels,binary_predictions=per_layer_pred_tresholded,average='macro')
         eval_micro_pre_layer, eval_micro_rec_layer,eval_micro_f1_layer = precision_recall_f1_score(labels=per_layer_labels,binary_predictions=per_layer_pred_tresholded,average='micro')
-        eval_emr_layer = eval_exact_match_ratio(true_labels_batch=per_layer_labels,predicted_labels_batch=predicted_onehot_labels)
+        eval_emr_layer = eval_exact_match_ratio(true_labels_batch=per_layer_labels,predicted_labels_batch=per_layer_pred_tresholded)
         eval_macro_auc_layer = macro_auroc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
         eval_macro_auprc_layer = macro_auprc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
         eval_micro_auc_layer = micro_auroc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
