@@ -103,9 +103,9 @@ def get_random_hyperparameter(base_args):
     attention_dim = random.choice([200,400,800])
     fc_dim = random.choice([256,512,1024])
     highway_fc_dim = random.choice([256,512,1024])
-    highway_num_layers = random.choice([1,2])
+    highway_num_layers = random.choice([1,2,3])
     backbone_fc_dim = random.choice([128,256,512])
-    batch_size = random.choice([64,128])
+    batch_size = random.choice([64,128,256])
     learning_rate = random.choice([0.001])
     optimizer = random.choice(['adam'])
     
