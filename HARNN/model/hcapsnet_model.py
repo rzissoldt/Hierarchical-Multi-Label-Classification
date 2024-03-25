@@ -301,7 +301,7 @@ class L2Loss(nn.Module):
                 l2_loss += torch.norm(param,p=2)**2
         return torch.tensor(l2_loss*self.l2_reg_lambda,dtype=torch.float32)
 class HCapsNet(nn.Module):
-    def __init__(self,feature_dim,input_shape,filter_list,num_classes_list,pcap_n_dims,scap_n_dims,fc_hidden_size,num_layers,target_shape,device=None):
+    def __init__(self,feature_dim,input_shape,filter_list,num_classes_list,secondary_capsule_input_dim,pcap_n_dims,scap_n_dims,fc_hidden_size,num_layers,target_shape,device=None):
         super(HCapsNet,self).__init__()
         self.device = device
         self.encoder = Encoder(in_channels=input_shape[2])
@@ -317,9 +317,8 @@ class HCapsNet(nn.Module):
         n_output = np.prod(input_shape)
         target_output = np.prod(target_shape)
         self.target_shape = target_shape
-        secondary_capsule_input_dim = None
-        for i in range(len(num_classes_list)):
-            secondary_capsule_input_dim = 4608            
+        
+        for i in range(len(num_classes_list)):         
             secondary_capsules.append(SecondaryCapsule(in_channels=secondary_capsule_input_dim,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[i],n_dims=scap_n_dims,device=device))
             length_layers.append(LengthLayer())
             masks.append(Mask(n_caps=num_classes_list[i],n_dims=scap_n_dims))

@@ -53,7 +53,7 @@ def train_hcapsnet(args):
     
 
     # Define Model 
-    model = HCapsNet(feature_dim=None,input_shape=args.input_size,filter_list=args.filter_list,num_classes_list=num_classes_list,pcap_n_dims=8,scap_n_dims=16,fc_hidden_size=512,num_layers=2,target_shape=args.target_shape,device=device).to(device)
+    model = HCapsNet(feature_dim=None,input_shape=args.input_size,filter_list=args.filter_list,secondary_capsule_input_dim=args.secondary_capsule_input_dim,num_classes_list=num_classes_list,pcap_n_dims=8,scap_n_dims=16,fc_hidden_size=512,num_layers=2,target_shape=args.target_shape,device=device).to(device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     print(f'Total Classes: {sum(num_classes_list)}')
@@ -113,12 +113,14 @@ def hyperparameter_search(base_args):
     base_args.batch_size = batch_size
     base_args.learning_rate = learning_rate
     base_args.optimizer = optimizer
-    filter_list = [16,32,64]
-    base_args.filter_list = filter_list
-    train_hcapsnet(args=base_args)
     filter_list = [32,64,128]
     base_args.filter_list = filter_list
     train_hcapsnet(args=base_args)
+    filter_list = [16,32,64]
+    base_args.filter_list = filter_list
+    base_args.secondary_capsule_input_dim = 1152
+    train_hcapsnet(args=base_args)
+    
     filter_list = [64,128,256]
     base_args.filter_list = filter_list
     train_hcapsnet(args=base_args)
