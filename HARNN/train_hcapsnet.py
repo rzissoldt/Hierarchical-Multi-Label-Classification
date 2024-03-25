@@ -113,17 +113,20 @@ def hyperparameter_search(base_args):
     base_args.batch_size = batch_size
     base_args.learning_rate = learning_rate
     base_args.optimizer = optimizer
-    filter_list = [32,64,128]
-    base_args.filter_list = filter_list
-    base_args.secondary_capsule_input_dim = 1152
-    train_hcapsnet(args=base_args)
     filter_list = [16,32,64]
     base_args.filter_list = filter_list
     base_args.secondary_capsule_input_dim = 1152
     train_hcapsnet(args=base_args)
+    filter_list = [32,64,128]
+    base_args.filter_list = filter_list
+    base_args.secondary_capsule_input_dim = 2304
+    
+    train_hcapsnet(args=base_args)
+    
     
     filter_list = [64,128,256]
     base_args.filter_list = filter_list
+    base_args.secondary_capsule_input_dim = 4608
     train_hcapsnet(args=base_args)
     
 
