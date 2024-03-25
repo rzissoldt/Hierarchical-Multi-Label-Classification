@@ -163,10 +163,12 @@ class HCapsNetTrainer():
             # Compute the loss and its gradients            
             x = (local_scores,y_local_onehots,recon_inputs.transpose(1,3),final_outputs,self.model)
             global_loss,margin_loss,reconstruction_loss,l2_loss = self.criterion(x)
-            global_loss.backward()
-            
             # Clip gradients by global norm
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
+            global_loss.backward()
+            
+            
+           
             
             # Adjust learning weights
             self.optimizer.step()

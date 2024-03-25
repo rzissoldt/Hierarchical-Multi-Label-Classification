@@ -197,9 +197,10 @@ class CHMCNNTrainer():
             # Total correct predictions
             correct_train = (predicted == labels.byte()).sum()
 
+            
+            loss.backward()
             # Clip gradients by global norm
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
-            loss.backward()
             self.optimizer.step()
             constr_out_list.extend(constr_output)
             predicted_list.extend(predicted)

@@ -187,9 +187,10 @@ class BaselineTrainer():
             loss,global_loss,l2_loss = self.criterion(x)
             predicted = output.data > 0.5            
 
+            
+            loss.backward()
             # Clip gradients by global norm
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
-            loss.backward()
             self.optimizer.step()
             predicted_list.extend(predicted)
             labels_list.extend(labels)
