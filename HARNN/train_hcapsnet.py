@@ -115,6 +115,7 @@ def hyperparameter_search(base_args):
     base_args.optimizer = optimizer
     filter_list = [32,64,128]
     base_args.filter_list = filter_list
+    base_args.secondary_capsule_input_dim = 1152
     train_hcapsnet(args=base_args)
     filter_list = [16,32,64]
     base_args.filter_list = filter_list
