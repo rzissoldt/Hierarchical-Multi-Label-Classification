@@ -53,7 +53,7 @@ def train_hcapsnet(args):
     
 
     # Define Model 
-    model = HCapsNet(feature_dim=None,input_shape=args.input_size,num_classes_list=num_classes_list,pcap_n_dims=8,scap_n_dims=16,fc_hidden_size=512,num_layers=2,target_shape=args.target_shape,device=device).to(device)
+    model = HCapsNet(feature_dim=None,input_shape=args.input_size,filter_list=args.filter_list,num_classes_list=num_classes_list,pcap_n_dims=8,scap_n_dims=16,fc_hidden_size=512,num_layers=2,target_shape=args.target_shape,device=device).to(device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     print(f'Total Classes: {sum(num_classes_list)}')
@@ -82,9 +82,9 @@ def train_hcapsnet(args):
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
-        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}/hcapsnet_{timestamp}'
+        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_hcapsnet/hcapsnet_{timestamp}'
     else:
-        path_to_model = f'runs/hcapsnet__{args.dataset_name}_{timestamp}'
+        path_to_model = f'runs/hcapsnet_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_{timestamp}'
     
     
     # Define Trainer for HmcNet
@@ -102,33 +102,27 @@ def train_hcapsnet(args):
         trainer.train_and_validate()
 
 
-def get_random_hyperparameter(base_args):
-    attention_dim = random.choice([200,400,800])
-    fc_dim = random.choice([256,512,1024])
-    highway_fc_dim = random.choice([256,512,1024])
-    highway_num_layers = random.choice([1,2])
-    backbone_fc_dim = random.choice([128,256,512])
+def hyperparameter_search(base_args):
     batch_size = random.choice([128])
     learning_rate = random.choice([0.001])
     optimizer = random.choice(['adam'])
     
-    print(f'Attention-Dim: {attention_dim}\n'
-          f'FC-Dim: {fc_dim}\n'
-          f'Highway-FC-Dim: {highway_fc_dim}\n'
-          f'Highway-Num-Layers: {highway_num_layers}\n'
-          f'Backbone-FC-Dim: {backbone_fc_dim}\n'
-          f'Batch-Size: {batch_size}\n'
+    print(f'Batch-Size: {batch_size}\n'
           f'Learning Rate: {learning_rate}\n'
           f'Optimizer: {optimizer}\n')
-    base_args.attention_dim = attention_dim
-    base_args.backbone_fc_dim = backbone_fc_dim
-    base_args.fc_dim = fc_dim
-    base_args.highway_fc_dim = highway_fc_dim
-    base_args.highway_num_layers = highway_num_layers
     base_args.batch_size = batch_size
     base_args.learning_rate = learning_rate
     base_args.optimizer = optimizer
-    return base_args
+    filter_list = [16,32,64]
+    base_args.filter_list = filter_list
+    train_hcapsnet(args=base_args)
+    filter_list = [32,64,128]
+    base_args.filter_list = filter_list
+    train_hcapsnet(args=base_args)
+    filter_list = [64,128,256]
+    base_args.filter_list = filter_list
+    train_hcapsnet(args=base_args)
+    
 
 
 
@@ -139,8 +133,7 @@ if __name__ == '__main__':
         # Normal Trainingloop with specific args.
         train_hcapsnet(args=args)
     else:
-        # Hyperparameter search Trainingloop with specific base args.
-        for i in range(args.num_hyperparameter_search):
-            train_hcapsnet(args=get_random_hyperparameter(args))
+        hyperparameter_search(base_args=args)
+            
     
     

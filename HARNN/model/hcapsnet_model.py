@@ -104,7 +104,7 @@ class Encoder(nn.Module):
         return x
 
 class PrimaryCapsule(nn.Module):
-    def __init__(self,in_channels,pcap_n_dims,num_classes_list):
+    def __init__(self,in_channels,filter_list,pcap_n_dims,num_classes_list):
         super(PrimaryCapsule, self).__init__()
         def conv_block(in_channels,filter_count_list):
             module_list = []
@@ -122,7 +122,7 @@ class PrimaryCapsule(nn.Module):
             block = nn.Sequential(*module_list)
             return block
         #filter_list = calculate_filter_pow(len(num_classes_list))
-        filter_list = [64,128,256]
+        
         conv_block_list = []
         for i in range(len(num_classes_list)):
             conv_block_list.append(conv_block(in_channels=in_channels,filter_count_list=filter_list))
@@ -301,14 +301,14 @@ class L2Loss(nn.Module):
                 l2_loss += torch.norm(param,p=2)**2
         return torch.tensor(l2_loss*self.l2_reg_lambda,dtype=torch.float32)
 class HCapsNet(nn.Module):
-    def __init__(self,feature_dim,input_shape,num_classes_list,pcap_n_dims,scap_n_dims,fc_hidden_size,num_layers,target_shape,device=None):
+    def __init__(self,feature_dim,input_shape,filter_list,num_classes_list,pcap_n_dims,scap_n_dims,fc_hidden_size,num_layers,target_shape,device=None):
         super(HCapsNet,self).__init__()
         self.device = device
         self.encoder = Encoder(in_channels=input_shape[2])
         self.feature_dim = feature_dim
         self.pcap_n_dims = pcap_n_dims
         self.scap_n_dims = scap_n_dims
-        self.primary_capsule = PrimaryCapsule(in_channels=64,pcap_n_dims=pcap_n_dims,num_classes_list=num_classes_list)
+        self.primary_capsule = PrimaryCapsule(in_channels=64,filter_list=filter_list,pcap_n_dims=pcap_n_dims,num_classes_list=num_classes_list)
         self.input_shape = input_shape
         secondary_capsules = []
         length_layers = []
