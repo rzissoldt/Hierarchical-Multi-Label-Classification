@@ -1084,8 +1084,62 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             end_index = min((batch_num + 1) * batch_size, data_size)
             yield shuffled_data[start_index:end_index]
 
+def hierarchical_precision_recall_f1_score(binary_predictions, labels, hierarchy):
+    def calculate_ancestors(class_graph, class_label):
+        ancestors = set()
+        queue = [class_label]
+
+        while queue:
+            current_class = queue.pop(0)
+            if current_class != 'root':
+                ancestors.add(current_class)
+                queue.extend(class_graph[current_class])
+
+        return ancestors
 
 
+    def hPrecision(true_labels, predicted_labels, class_graph):
+        total_intersection = 0
+        total_predicted = 0
+
+        for true_label, predicted_label in zip(true_labels, predicted_labels):
+            true_ancestors = calculate_ancestors(class_graph, true_label)
+            predicted_ancestors = calculate_ancestors(class_graph, predicted_label)
+
+            intersection = len(true_ancestors.intersection(predicted_ancestors))
+            total_intersection += intersection
+            total_predicted += len(predicted_ancestors)
+
+        h_precision = total_intersection / total_predicted if total_predicted > 0 else 0
+        return h_precision
+
+
+    def hRecall(true_labels, predicted_labels, class_graph):
+        total_intersection = 0
+        total_real = 0
+    
+        for true_label, predicted_label in zip(true_labels, predicted_labels):
+            true_ancestors = calculate_ancestors(class_graph, true_label)
+            predicted_ancestors = calculate_ancestors(class_graph, predicted_label)
+    
+            intersection = len(true_ancestors.intersection(predicted_ancestors))
+            total_intersection += intersection
+            total_real += len(true_ancestors)
+    
+        h_recall = total_intersection / total_real if total_real > 0 else 0
+        return h_recall
+    
+    
+    def hF1Score(true_labels, predicted_labels, class_graph, beta=1):
+        h_precision = hPrecision(true_labels, predicted_labels, class_graph)
+        h_recall = hRecall(true_labels, predicted_labels, class_graph)
+    
+        numerator = (beta ** 2 + 1) * h_precision * h_recall
+        denominator = (beta ** 2 * h_precision) + h_recall
+    
+        h_f1_score = numerator / denominator if denominator > 0 else 0
+        return h_f1_score
+    
 def precision_recall_f1_score(binary_predictions, labels, average='micro'):
     """
     Calculate precision, recall, and F1 score for multi-class classification.

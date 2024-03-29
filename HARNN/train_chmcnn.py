@@ -75,7 +75,7 @@ def train_chmcnn(args):
     
     # Create Training and Validation Dataset
     training_dataset = CHMCNNDataset(args.train_file, args.hierarchy_file,args.hierarchy_depth,image_dir)
-    
+    print('Trainset Size:',len(training_dataset))
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
         path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_chmcnn/chmcnn_{timestamp}'
