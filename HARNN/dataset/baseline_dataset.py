@@ -52,7 +52,6 @@ class BaselineDataset(Dataset):
             total_class_labels = self._calc_total_class_labels(label_dict)[:self.hierarchy_depth]
             total_class_num = self._calc_total_classes()
             if len(total_class_labels) == 0:
-                print(file_name)
                 continue
             
             data_tuple.append(os.path.join(image_dir,file_name))
