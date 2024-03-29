@@ -144,6 +144,19 @@ def get_leaf_count(node):
     
     return leaf_count
 
+def filter_hierarchy_dict_with_threshold(hierarchy_dicts,image_count_threshold):
+    filtered_hierarchy_dicts = []
+    counter = 0
+    for hierarchy_dict in hierarchy_dicts:
+        filtered_hierarchy_dict = {}
+        for key in hierarchy_dict.keys():
+            if hierarchy_dict[key]['image_count'] > image_count_threshold:
+                filtered_hierarchy_dict[key] = counter
+                counter+=1
+        counter = 0
+        filtered_hierarchy_dicts.append(filtered_hierarchy_dict)
+    return filtered_hierarchy_dicts
+
 def generate_dicts_per_level(root):
     if not root:
         return []
@@ -156,7 +169,11 @@ def generate_dicts_per_level(root):
         for index in range(len(queue)):
             node, parent_prefix = queue.popleft()
             node_id_with_prefix = f"{parent_prefix}_{node.id}" if parent_prefix else node.id
-            level_dict[node_id_with_prefix] = index
+            if len(node.nodes) == 0:
+                image_count = node.image_count
+            else:
+                image_count = node.summed_image_count
+            level_dict[node_id_with_prefix] = {'index':index,'image_count':image_count}
             for child in node.nodes:
                 queue.append((child, node_id_with_prefix))  # Pass the current node's ID as the prefix for its children
 

@@ -157,14 +157,15 @@ def create_prediction_file(output_file, data_id, true_labels, predict_labels, pr
                 ('predict_scores', [round(i, 4) for i in predict_scores[i]])
             ])
             fout.write(json.dumps(data_record, ensure_ascii=False) + '\n')
-def generate_hierarchy_matrix_from_tree(hierarchy_tree,hierarchy_depth):
+def generate_hierarchy_matrix_from_tree(hierarchy_tree,hierarchy_depth,image_count_threshold):
     hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy_tree)[:hierarchy_depth]
     total_hierarchy_dict =  {}
     counter = 0 
     for hierarchy_dict in hierarchy_dicts:
         for key in hierarchy_dict.keys():
-            total_hierarchy_dict[key] = counter
-            counter+=1   
+            if hierarchy_dict[key]['image_count']>image_count_threshold:
+                total_hierarchy_dict[key] = counter
+                counter+=1   
 
     hierarchy_matrix = np.zeros((len(total_hierarchy_dict),len(total_hierarchy_dict)))
     for key_parent,value_parent in total_hierarchy_dict.items():
@@ -497,8 +498,8 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_cl
     print("Predict by topK:")
     for top_num in range(topK):
         print("Top{0}: Micro Precision {1:g}, Micro Recall {2:g}, Micro F1 {3:g}, EMR {4:g}".format(top_num+1, eval_micro_pre_tk[top_num], eval_micro_rec_tk[top_num], eval_micro_F1_tk[top_num],eval_emr_tk[top_num]))
-        print("Top{0}: Macro Precision {1:g}, Macro Recall {2:g}, Macro F1 {3:g}".format(top_num+1, eval_macro_pre_tk[top_num], eval_macro_rec_tk[top_num], eval_macro_F1_tk[top_num]))   
-        print("Top{0}: Hierarchical Precision {1:g}, Hierarchical Recall {2:g}, Hierarchical F1 {3:g}".format(top_num+1,eval_hierarchical_pre_tk[top_num],eval_hierarchical_rec[top_num],eval_hierarchical_F1[top_num]))
+        print("Top{0}: Macro Precision {1:g}, Macro Recall {2:g}, Macro F1 {3:g}".format(top_num+1, eval_macro_pre_tk[top_num], eval_macro_rec_tk[top_num], eval_macro_F1_tk[top_num]))
+        print("Top{0}: Hierarchical Precision {1:g}, Hierarchical Recall {2:g}, Hierarchical F1 {3:g}".format(top_num+1,eval_hierarchical_pre_tk[top_num], eval_hierarchical_rec_tk[top_num], eval_hierarchical_pre_tk[top_num]))
     print("\n")
     # Predict by threshold per layer
     print("Thresholding Prediction by Layer:")
@@ -895,8 +896,16 @@ def load_word2vec_matrix(word2vec_file):
             embedding_matrix[value] = wv[key]
     return word2idx, embedding_matrix
 
-def get_num_classes_from_hierarchy(hierarchy_dicts):
-        return [len(hierarchy_dict.keys()) for hierarchy_dict in hierarchy_dicts]
+def get_num_classes_from_hierarchy(hierarchy_dicts,image_count_threshold):
+    counter=0
+    num_classes_list = []
+    for hierarchy_dict in hierarchy_dicts:
+        for key in hierarchy_dict.keys():
+            if hierarchy_dict[key]['image_count']>image_count_threshold:
+                counter+=1
+        num_classes_list.append(counter)
+        counter = 0
+    return num_classes_list
 
 def load_image_data_and_labels(input_file, hierarchy_dicts):
     """

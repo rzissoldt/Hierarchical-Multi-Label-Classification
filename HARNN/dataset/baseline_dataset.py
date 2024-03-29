@@ -13,13 +13,14 @@ import torch.multiprocessing
 #torch.multiprocessing.set_sharing_strategy('file_system')
 from torchvision import transforms
 class BaselineDataset(Dataset):
-    def __init__(self, annotation_file_path, hierarchy_file_path, hierarchy_depth, image_dir):
+    def __init__(self, annotation_file_path, hierarchy_file_path, hierarchy_depth, image_dir,image_count_threshold):
         super(BaselineDataset, self).__init__()
         #self.lock = threading.Lock()
         with open(annotation_file_path,'r') as infile:
             self.image_dict = json.load(infile)
-        hierarchy = xtree.load_xtree_json(hierarchy_file_path)
-        self.hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
+        self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
+        self.hierarchy_dicts = xtree.generate_dicts_per_level(root=self.hierarchy)
+        self.filtered_hierarchy_dicts = xtree.filter_hierarchy_dict_with_threshold(self.hierarchy_dicts,image_count_threshold=image_count_threshold)
         self.image_dir = image_dir
         self.hierarchy_depth = hierarchy_depth
         # Define the transformation pipeline for image preprocessing.
@@ -81,31 +82,59 @@ class BaselineDataset(Dataset):
         return pil_image, labels
 
     
+    #def _find_labels_in_hierarchy_dicts(self,labels):
+    #    for label in labels:
+    #        #test = xtree.get_id_paths(self.hierarchy,label)
+    #        label_dict = {}
+    #        labels_index = []
+    #        level = 0
+    #        for dict in self.hierarchy_dicts:
+    #            labels_index = []
+    #            label_dict['layer-{0}'.format(level)] = []
+    #            level +=1
+    #        level = 0
+    #        for dict in self.filtered_hierarchy_dicts:
+    #            labels_index = []
+    #            for key in dict.keys():
+    #                if key.endswith(label):
+    #                    labels_index.append(dict[key])
+    #                    temp_labels = key.split('_')
+    #                    for i in range(len(temp_labels)-1,0,-1):
+    #                        temp_key = '_'.join(temp_labels[:i+1])
+    #                        temp_dict = self.hierarchy_dicts[i-1]
+    #                        temp_label = temp_dict[temp_key]
+    #                        label_dict['layer-{0}'.format(i-1)].append(temp_label)
+    #                        
+    #                     
+    #            label_dict['layer-{0}'.format(level)].extend(labels_index)
+    #            level+=1
+    #    
+    #    return label_dict
+    
     def _find_labels_in_hierarchy_dicts(self,labels):
         for label in labels:
+            path = xtree.get_id_path(self.hierarchy,label)
+            
             label_dict = {}
             labels_index = []
             level = 0
-            for dict in self.hierarchy_dicts:
+            for dict in self.filtered_hierarchy_dicts:
                 labels_index = []
                 label_dict['layer-{0}'.format(level)] = []
                 level +=1
             level = 0
-            for dict in self.hierarchy_dicts:
-                labels_index = []
-                for key in dict.keys():
-                    if key.endswith(label):
-                        labels_index.append(dict[key])
-                        temp_labels = key.split('_')
-                        for i in range(len(temp_labels)-2,0,-1):
-                            temp_key = '_'.join(temp_labels[:i+1])
-                            temp_dict = self.hierarchy_dicts[i-1]
-                            temp_label = temp_dict[temp_key]
-                            label_dict['layer-{0}'.format(i-1)].append(temp_label)
+            for i in range(1,len(path)):
+                temp_key = '_'.join(path[:i+1])
+                temp_dict = self.filtered_hierarchy_dicts[i-1]
+                if temp_key not in temp_dict.keys():
+                    break
+                temp_label = temp_dict[temp_key]
+                label_dict['layer-{0}'.format(i-1)].append(temp_label)
+
                             
-                        
-                label_dict['layer-{0}'.format(level)].extend(labels_index)
-                level+=1
+                         
+            label_dict['layer-{0}'.format(level)].extend(labels_index)
+            level+=1
         
         return label_dict
     
