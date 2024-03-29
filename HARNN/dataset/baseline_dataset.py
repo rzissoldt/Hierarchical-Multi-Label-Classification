@@ -147,7 +147,7 @@ class BaselineDataset(Dataset):
                 else:
                     total_class_label = label
                     for i in range(level):
-                        total_class_label+=len(self.hierarchy_dicts[i].keys())
+                        total_class_label+=len(self.filtered_hierarchy_dicts[i].keys())
                     total_class_labels.append(total_class_label)
             level+=1
         return total_class_labels
