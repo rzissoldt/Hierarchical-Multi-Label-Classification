@@ -43,6 +43,7 @@ class BaselineDataset(Dataset):
         ])
         self.is_training = True
         self.image_label_tuple_list = []
+        print('Image dict size:',len(self.image_dict.keys()))
         for file_name in self.image_dict.keys():
             data_tuple = []
             labels = self.image_dict[file_name]        
