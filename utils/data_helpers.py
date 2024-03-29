@@ -289,7 +289,9 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_cl
     eval_macro_pre_tk = [0.0] * topK
     eval_macro_rec_tk = [0.0] * topK
     eval_macro_F1_tk = [0.0] * topK
-    
+    eval_hierarchical_pre_tk = [0.0] * topK
+    eval_hierarchical_rec_tk = [0.0] * topK
+    eval_hierarchical_F1_tk = [0.0] * topK
     eval_emr_tk = [0.0] * topK
     macro_auroc = MultilabelAUROC(num_labels=total_class_num,average='macro')
     macro_auprc = MultilabelAveragePrecision(num_labels=total_class_num,average='macro')
@@ -406,10 +408,12 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_cl
     
     eval_micro_pre_ts,eval_micro_rec_ts,eval_micro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='micro')
     eval_macro_pre_ts,eval_macro_rec_ts,eval_macro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='macro')
+    eval_hierarchical_pre, eval_hierarchical_rec, eval_hierarchical_F1 = hierarchical_precision_recall_f1_score(predicted=predicted_onehot_labels,true_labels=true_onehot_labels,matrix=pcp_hierarchy,beta=1)
     for top_num in range(topK):
         predicted_onehot_labels_topk = torch.cat([torch.unsqueeze(torch.tensor(tensor),0) for tensor in predicted_onehot_labels_tk[top_num]],dim=0).to(device)
         eval_micro_pre_tk[top_num], eval_micro_rec_tk[top_num],eval_micro_F1_tk[top_num] = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels_topk, average='micro')
         eval_macro_pre_tk[top_num], eval_macro_rec_tk[top_num],eval_macro_F1_tk[top_num] = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels_topk, average='macro')
+        eval_hierarchical_pre_tk[top_num], eval_hierarchical_rec_tk[top_num], eval_hierarchical_F1_tk[top_num] = hierarchical_precision_recall_f1_score(predicted=predicted_onehot_labels_topk,true_labels=true_onehot_labels,matrix=pcp_hierarchy,beta=1)
         eval_emr_tk[top_num] = eval_exact_match_ratio(true_labels_batch=true_onehot_labels,predicted_labels_batch=predicted_onehot_labels_topk)
     
     # Calculate Exact Match-Ratio
@@ -433,6 +437,9 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_cl
     metric_dict['Validation/MacroRecall'] = eval_macro_rec_ts
     metric_dict['Validation/MacroF1'] = eval_macro_F1_ts
     metric_dict['Validation/EMR'] = eval_emr_ts
+    metric_dict['Validation/HierarchicalPrecision'] = eval_hierarchical_pre
+    metric_dict['Validation/HierarchicalRecall'] = eval_hierarchical_rec
+    metric_dict['Validation/HierarchicalF1'] = eval_hierarchical_F1
 
     for i, precision in enumerate(eval_micro_pre_tk):
         metric_dict[f'Validation/MicroPrecisionTopK/{i}'] = precision
@@ -448,6 +455,12 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_cl
         metric_dict[f'Validation/MacroF1TopK/{i}'] = f1
     for i, emr in enumerate(eval_emr_tk):
         metric_dict[f'Validation/EMRTopK/{i}'] = emr
+    for i, precision in enumerate(eval_hierarchical_pre_tk):
+        metric_dict[f'Validation/HierarchicalPrecisionTopK/{i}'] = precision
+    for i, recall in enumerate(eval_hierarchical_rec_tk):
+        metric_dict[f'Validation/HierarchicalRecallTopK/{i}'] = recall
+    for i, f1 in enumerate(eval_hierarchical_F1_tk):
+        metric_dict[f'Validation/HierarchicalF1TopK/{i}'] = f1
     
     for i in range(len(eval_metrics_per_layer)):
         eval_layer_micro_pre = eval_metrics_per_layer[i]['micro_pre']
@@ -478,12 +491,14 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,num_cl
     # Predict by threshold
     print("Predict by thresholding: Micro Precision {0:g}, Micro Recall {1:g}, Micro F1 {2:g}, Micro AUC {3:g} , Micro AUPRC {4:g}, EMR {5:g}".format(eval_micro_pre_ts, eval_micro_rec_ts, eval_micro_F1_ts,eval_micro_auc,eval_micro_auprc,eval_emr_ts))
     print("Predict by thresholding: Macro Precision {0:g}, Macro Recall {1:g}, Macro F1 {2:g}, Macro AUC {3:g} , Macro AUPRC {4:g}".format(eval_macro_pre_ts, eval_macro_rec_ts, eval_macro_F1_ts,eval_macro_auc,eval_macro_auprc))
+    print("Predict by thresholding: Hierarchical Precision {0:g}, Hierarchical Recall {1:g}, Hierarchical F1 {2:g}".format(eval_hierarchical_pre, eval_hierarchical_rec, eval_hierarchical_F1))
     print("\n")
     # Predict by topK
     print("Predict by topK:")
     for top_num in range(topK):
         print("Top{0}: Micro Precision {1:g}, Micro Recall {2:g}, Micro F1 {3:g}, EMR {4:g}".format(top_num+1, eval_micro_pre_tk[top_num], eval_micro_rec_tk[top_num], eval_micro_F1_tk[top_num],eval_emr_tk[top_num]))
         print("Top{0}: Macro Precision {1:g}, Macro Recall {2:g}, Macro F1 {3:g}".format(top_num+1, eval_macro_pre_tk[top_num], eval_macro_rec_tk[top_num], eval_macro_F1_tk[top_num]))   
+        print("Top{0}: Hierarchical Precision {1:g}, Hierarchical Recall {2:g}, Hierarchical F1 {3:g}".format(top_num+1,eval_hierarchical_pre_tk[top_num],eval_hierarchical_rec[top_num],eval_hierarchical_F1[top_num]))
     print("\n")
     # Predict by threshold per layer
     print("Thresholding Prediction by Layer:")
@@ -1084,62 +1099,77 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             end_index = min((batch_num + 1) * batch_size, data_size)
             yield shuffled_data[start_index:end_index]
 
-def hierarchical_precision_recall_f1_score(binary_predictions, labels, hierarchy):
-    def calculate_ancestors(class_graph, class_label):
-        ancestors = set()
-        queue = [class_label]
+def find_ancestors(label, matrix):
+    """
+    Find ancestors of a label using the given matrix.
 
-        while queue:
-            current_class = queue.pop(0)
-            if current_class != 'root':
-                ancestors.add(current_class)
-                queue.extend(class_graph[current_class])
+    Args:
+    label: The index of the label.
+    matrix: The class-relation matrix.
 
-        return ancestors
+    Returns:
+    A set containing the ancestors of the label.
+    """
+    ancestors = set()
+    stack = [label]
+
+    while stack:
+        current_label = stack.pop()
+        ancestors.add(current_label)
+
+        for i, rel in enumerate(matrix[:, current_label]):
+            if rel == 1 and i not in ancestors:
+                stack.append(i)
+
+    return ancestors
+
+def hierarchical_precision_recall_f1_score(predicted, true_labels, matrix,beta=1):
+    """
+    Calculate hierarchical precision (hP) and hierarchical recall (hR).
+
+    Args:
+    predicted: A batch of binary tensors representing predicted labels.
+    true_labels: A batch of binary tensors representing true labels.
+    matrix: The class-relation matrix.
+
+    Returns:
+    Batch of hierarchical precision and hierarchical recall.
+    """
+    nom_total = 0
+    denom_pred_total = 0
+    denom_true_total = 0
+    batch_size = predicted.size(0)
+    hP_batch = []
+    hR_batch = []
+
+    for b in range(batch_size):
+        true_ancestors = []
+        predicted_ancestors = []
+
+        for i, true_label in enumerate(true_labels[b]):
+            if true_label.item() == 1:
+                true_ancestors_temp = find_ancestors(i, matrix)
+                true_ancestors.extend(true_ancestors_temp)
+
+        for i, pred_label in enumerate(predicted[b]):
+            if pred_label.item() == 1:
+                predicted_ancestors_temp = find_ancestors(i, matrix)
+                predicted_ancestors.extend(predicted_ancestors_temp)
+
+        true_ancestors = set(true_ancestors)
+        predicted_ancestors = set(predicted_ancestors)
+        nom_total+=len(true_ancestors.intersection(predicted_ancestors)) 
+        denom_pred_total+=len(predicted_ancestors)
+        denom_true_total+=len(true_ancestors)
+
+    hP = nom_total/denom_pred_total
+    hR = nom_total/denom_true_total
+    numerator = (beta ** 2 + 1) * hP * hR
+    denominator = (beta ** 2 * hP) + hR
+    hF = numerator / denominator
+    return hP, hR, hF
 
 
-    def hPrecision(true_labels, predicted_labels, class_graph):
-        total_intersection = 0
-        total_predicted = 0
-
-        for true_label, predicted_label in zip(true_labels, predicted_labels):
-            true_ancestors = calculate_ancestors(class_graph, true_label)
-            predicted_ancestors = calculate_ancestors(class_graph, predicted_label)
-
-            intersection = len(true_ancestors.intersection(predicted_ancestors))
-            total_intersection += intersection
-            total_predicted += len(predicted_ancestors)
-
-        h_precision = total_intersection / total_predicted if total_predicted > 0 else 0
-        return h_precision
-
-
-    def hRecall(true_labels, predicted_labels, class_graph):
-        total_intersection = 0
-        total_real = 0
-    
-        for true_label, predicted_label in zip(true_labels, predicted_labels):
-            true_ancestors = calculate_ancestors(class_graph, true_label)
-            predicted_ancestors = calculate_ancestors(class_graph, predicted_label)
-    
-            intersection = len(true_ancestors.intersection(predicted_ancestors))
-            total_intersection += intersection
-            total_real += len(true_ancestors)
-    
-        h_recall = total_intersection / total_real if total_real > 0 else 0
-        return h_recall
-    
-    
-    def hF1Score(true_labels, predicted_labels, class_graph, beta=1):
-        h_precision = hPrecision(true_labels, predicted_labels, class_graph)
-        h_recall = hRecall(true_labels, predicted_labels, class_graph)
-    
-        numerator = (beta ** 2 + 1) * h_precision * h_recall
-        denominator = (beta ** 2 * h_precision) + h_recall
-    
-        h_f1_score = numerator / denominator if denominator > 0 else 0
-        return h_f1_score
-    
 def precision_recall_f1_score(binary_predictions, labels, average='micro'):
     """
     Calculate precision, recall, and F1 score for multi-class classification.
@@ -1204,3 +1234,4 @@ def calculate_auc(y_true, y_score):
     average_auc = total_auc / batch_size
 
     return average_auc
+
