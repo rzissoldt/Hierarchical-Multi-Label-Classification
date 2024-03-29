@@ -43,8 +43,8 @@ def train_chmcnn(args):
     # Load Input Data
     hierarchy = xtree.load_xtree_json(args.hierarchy_file)
     hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
-    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)[:args.hierarchy_depth]
-    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy,args.hierarchy_depth)).to(device=device)
+    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts,args.image_count_threshold)[:args.hierarchy_depth]
+    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy,args.hierarchy_depth,image_count_threshold=args.image_count_threshold)).to(device=device)
     
     
     image_dir = args.image_dir
@@ -74,7 +74,7 @@ def train_chmcnn(args):
     criterion = ConstrainedFFNNModelLoss(l2_lambda=args.l2_lambda,device=device)
     
     # Create Training and Validation Dataset
-    training_dataset = CHMCNNDataset(args.train_file, args.hierarchy_file,args.hierarchy_depth,image_dir)
+    training_dataset = CHMCNNDataset(args.train_file, args.hierarchy_file,args.hierarchy_depth,image_dir,image_count_threshold=args.image_count_threshold)
     print('Trainset Size:',len(training_dataset))
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
