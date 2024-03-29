@@ -154,7 +154,7 @@ class BaselineDataset(Dataset):
     
     def _calc_total_classes(self):
         total_class_num = 0
-        for dict in self.hierarchy_dicts[:self.hierarchy_depth]:
+        for dict in self.filtered_hierarchy_dicts[:self.hierarchy_depth]:
             total_class_num+=len(dict.keys())
         return total_class_num
     
