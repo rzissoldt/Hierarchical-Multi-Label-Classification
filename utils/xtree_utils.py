@@ -144,7 +144,7 @@ def get_leaf_count(node):
     
     return leaf_count
 
-def filter_hierarchy_dict_with_threshold(hierarchy_dicts,image_count_threshold):
+def filter_hierarchy_dict_with_threshold(hierarchy_dicts,image_count_threshold,hierarchy_depth):
     filtered_hierarchy_dicts = []
     counter = 0
     for hierarchy_dict in hierarchy_dicts:
@@ -155,7 +155,7 @@ def filter_hierarchy_dict_with_threshold(hierarchy_dicts,image_count_threshold):
                 counter+=1
         counter = 0
         filtered_hierarchy_dicts.append(filtered_hierarchy_dict)
-    return filtered_hierarchy_dicts
+    return filtered_hierarchy_dicts[:hierarchy_depth]
 
 def generate_dicts_per_level(root):
     if not root:

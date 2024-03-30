@@ -22,7 +22,7 @@ class HCapsNetDataset(Dataset):
             self.image_dict = json.load(infile)
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
-        self.filtered_hierarchy_dicts = xtree.filter_hierarchy_dict_with_threshold(self.hierarchy_dicts,image_count_threshold=image_count_threshold)
+        self.filtered_hierarchy_dicts = xtree.filter_hierarchy_dict_with_threshold(self.hierarchy_dicts,image_count_threshold=image_count_threshold,hierarchy_depth=hierarchy_depth)
         self.image_dir = image_dir
         self.pil_image_transform = transforms.ToPILImage()
         # Define the transformation pipeline for image preprocessing.
@@ -143,7 +143,7 @@ class HCapsNetDataset(Dataset):
     
     def _calc_total_classes(self):
         total_class_num = 0
-        for dict in self.filtered_hierarchy_dicts[:self.hierarchy_depth]:
+        for dict in self.filtered_hierarchy_dicts:
             total_class_num+=len(dict.keys())
         return total_class_num
     

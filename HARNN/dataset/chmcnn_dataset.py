@@ -8,7 +8,6 @@ import numpy as np
 import json
 from skimage import color
 from torch.utils.data import Dataset
-import cv2
 import torch.multiprocessing
 #torch.multiprocessing.set_sharing_strategy('file_system')
 from torchvision import transforms
@@ -20,7 +19,7 @@ class CHMCNNDataset(Dataset):
             self.image_dict = json.load(infile)
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
-        self.filtered_hierarchy_dicts = xtree.filter_hierarchy_dict_with_threshold(self.hierarchy_dicts,image_count_threshold=image_count_threshold)
+        self.filtered_hierarchy_dicts = xtree.filter_hierarchy_dict_with_threshold(self.hierarchy_dicts,image_count_threshold=image_count_threshold,hierarchy_depth=hierarchy_depth)
         self.image_dir = image_dir
         self.hierarchy_depth = hierarchy_depth
         # Define the transformation pipeline for image preprocessing.
@@ -125,7 +124,7 @@ class CHMCNNDataset(Dataset):
     
     def _calc_total_classes(self):
         total_class_num = 0
-        for dict in self.filtered_hierarchy_dicts[:self.hierarchy_depth]:
+        for dict in self.filtered_hierarchy_dicts:
             total_class_num+=len(dict.keys())
         return total_class_num
     
