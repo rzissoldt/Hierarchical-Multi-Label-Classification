@@ -74,7 +74,7 @@ def train_chmcnn(args):
     criterion = ConstrainedFFNNModelLoss(l2_lambda=args.l2_lambda,device=device)
     
     # Create Training and Validation Dataset
-    training_dataset = CHMCNNDataset(args.train_file, args.hierarchy_file,args.hierarchy_depth,image_dir,image_count_threshold=args.image_count_threshold)
+    training_dataset = CHMCNNDataset(args.train_file, args.hierarchy_file,args.hierarchy_depth,image_dir=image_dir,image_count_threshold=args.image_count_threshold)
     print('Trainset Size:',len(training_dataset))
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
