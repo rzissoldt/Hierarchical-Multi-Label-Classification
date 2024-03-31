@@ -148,11 +148,10 @@ class DatasetAnalyzer():
             layer_distribution_dict = self.layer_distribution_dict[level]
             
             # Extract class names and counts
-            classes = [label[label.rfind('_')+1:] for label in layer_dict]
-            counts = [layer_distribution_dict[label] for label in layer_dict]
-            
-            for label, count in zip(classes, counts):
-                class_distribution_dict[label] = (count, level)  # Store class count and hierarchy level
+            for label in layer_dict:
+                if label in layer_distribution_dict:
+                    count = layer_distribution_dict[label]
+                    class_distribution_dict[label] = (count, level)  # Store class count and hierarchy level
             
             level += 1
         
