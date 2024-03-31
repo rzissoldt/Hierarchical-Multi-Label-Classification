@@ -2,7 +2,7 @@ import xtree_utils as xtree
 import param_parser as parser
 import json, os
 import matplotlib.pyplot as plt
-
+import matplotlib.cm as cm
 class DatasetAnalyzer():
     def __init__(self, annotation_file_path, hierarchy_file_path, hierarchy_depth,image_count_threshold,path_to_results,dataset_name):
         with open(annotation_file_path,'r') as infile:
@@ -140,27 +140,46 @@ class DatasetAnalyzer():
     def generate_global_distribution_plot(self):
         class_distriubtion_dict = {}
         level = 0
+
+        # Determine the number of hierarchy levels
+        num_levels = len(self.filtered_hierarchy_dicts)
+
+        # Choose a colormap
+        cmap = cm.get_cmap('tab10')  # You can choose any other colormap from Matplotlib
+
         for layer_dict in self.filtered_hierarchy_dicts:
             layer_distribution_dict = self.layer_distribution_dict[level]
-            
+
             for label in layer_dict:
-                class_distriubtion_dict[label] = layer_distribution_dict[layer_dict[label]]
-            level+=1
+                class_distriubtion_dict[label] = (layer_distribution_dict[layer_dict[label]], level)  # Store class count and hierarchy level
+            level += 1
+
         # Sort classes based on their counts
-        print(class_distriubtion_dict)
-        sorted_classes = sorted(class_distriubtion_dict.items(), key=lambda x: x[1], reverse=True)
+        sorted_classes = sorted(class_distriubtion_dict.items(), key=lambda x: x[1][0], reverse=True)
+
+        # Extract class names, counts, and hierarchy levels
         classes = [x[0][x[0].rfind('_')+1:] for x in sorted_classes]
-        counts = [x[1] for x in sorted_classes]
-        bars = plt.bar(classes, counts, color='skyblue')
+        counts = [x[1][0] for x in sorted_classes]
+        hierarchy_levels = [x[1][1] for x in sorted_classes]
+
+        # Generate colors dynamically based on the number of hierarchy levels
+        colors = [cmap(i) for i in range(num_levels)]
+
+        # Create bars with different colors for each hierarchy level
+        fig, ax = plt.subplots()
+        bars = ax.bar(classes, counts, color=[colors[level] for level in hierarchy_levels])
+
         plt.xlabel('Klassen')
         plt.ylabel('Anzahl')
         plt.title('Globale Verteilung der Klassen')
         plt.xticks([])  # Rotate class names for better readability if needed
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
-        fig_path = os.path.join(self.path_to_results,self.dataset_name+'_'+str(self.image_count_threshold))
-        fig_file_name='global_distribution_plot.png'
-        fig_file_path = os.path.join(fig_path,fig_file_name)
+
+        # Save the plot
+        fig_path = os.path.join(self.path_to_results, self.dataset_name + '_' + str(self.image_count_threshold))
+        fig_file_name = 'global_distribution_plot.png'
+        fig_file_path = os.path.join(fig_path, fig_file_name)
         os.makedirs(fig_path, exist_ok=True)
         plt.savefig(fig_file_path)
         plt.clf()
