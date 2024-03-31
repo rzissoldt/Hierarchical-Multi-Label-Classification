@@ -157,15 +157,13 @@ def create_prediction_file(output_file, data_id, true_labels, predict_labels, pr
                 ('predict_scores', [round(i, 4) for i in predict_scores[i]])
             ])
             fout.write(json.dumps(data_record, ensure_ascii=False) + '\n')
-def generate_hierarchy_matrix_from_tree(hierarchy_tree,hierarchy_depth,image_count_threshold):
-    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy_tree)[:hierarchy_depth]
+def generate_hierarchy_matrix_from_tree(hierarchy_dicts):
     total_hierarchy_dict =  {}
     counter = 0 
     for hierarchy_dict in hierarchy_dicts:
         for key in hierarchy_dict.keys():
-            if hierarchy_dict[key]['image_count']>image_count_threshold:
-                total_hierarchy_dict[key] = counter
-                counter+=1   
+            total_hierarchy_dict[key] = counter
+            counter+=1   
 
     hierarchy_matrix = np.zeros((len(total_hierarchy_dict),len(total_hierarchy_dict)))
     for key_parent,value_parent in total_hierarchy_dict.items():
@@ -896,13 +894,14 @@ def load_word2vec_matrix(word2vec_file):
             embedding_matrix[value] = wv[key]
     return word2idx, embedding_matrix
 
-def get_num_classes_from_hierarchy(hierarchy_dicts,image_count_threshold):
+def get_num_classes_from_hierarchy(hierarchy_dicts):
     counter=0
     num_classes_list = []
     for hierarchy_dict in hierarchy_dicts:
+        if len(list(hierarchy_dict.keys())) == 0:
+            break
         for key in hierarchy_dict.keys():
-            if hierarchy_dict[key]['image_count']>image_count_threshold:
-                counter+=1
+            counter+=1
         num_classes_list.append(counter)
         counter = 0
     return num_classes_list
