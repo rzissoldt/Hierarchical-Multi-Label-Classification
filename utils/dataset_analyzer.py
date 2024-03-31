@@ -26,6 +26,10 @@ class DatasetAnalyzer():
         self.global_hierarchy_dict = {}
         self.global_distribution_dict = {}
         self.initialize_distribution_dicts(self.filtered_hierarchy_dicts)
+        if hierarchy_depth == -1:
+            self.hierarchy_depth = len(self.filtered_hierarchy_dicts)
+        else:
+            self.hierarchy_depth = hierarchy_depth
         for file_name in self.image_dict.keys():
             labels = self.image_dict[file_name]        
             label_dict = self._find_labels_in_hierarchy_dicts(labels,self.filtered_hierarchy_dicts)
