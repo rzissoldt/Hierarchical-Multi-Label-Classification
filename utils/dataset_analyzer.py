@@ -172,7 +172,7 @@ class DatasetAnalyzer():
         plt.xlabel('Klassen')
         plt.ylabel('Anzahl')
         plt.title('Globale Verteilung der Klassen')
-        plt.xticks([])  # Rotate class names for better readability if needed
+        plt.xticks(rotation=90)  # Rotate class names for better readability if needed
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
 
