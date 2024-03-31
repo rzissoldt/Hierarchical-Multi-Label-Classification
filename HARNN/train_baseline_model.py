@@ -39,8 +39,8 @@ def train_baseline_model(args):
     
     # Checks if GPU Support ist active
     device = torch.device("cuda") if args.gpu else torch.device("cpu")
-   
     image_dir = args.image_dir
+    
      # Create Training and Validation Dataset
     training_dataset = BaselineDataset(args.train_file, args.hierarchy_file,args.hierarchy_depth,image_dir=image_dir,image_count_threshold=args.image_count_threshold)
     print('Trainset Size:',len(training_dataset))

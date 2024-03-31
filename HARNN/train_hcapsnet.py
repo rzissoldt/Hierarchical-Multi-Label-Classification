@@ -95,7 +95,8 @@ def train_hcapsnet(args):
     os.makedirs(path_to_model, exist_ok=True)
     with open(os.path.join(path_to_model,'model_config.json'),'w') as json_file:
         json.dump(args_dict, json_file,indent=4)
-    
+    with open(os.path.join(path_to_model, 'hierarchy_dicts.json'),'w') as json_file:
+        json.dump(hierarchy_dicts, json_file,indent=4)
     if args.is_k_crossfold_val:
         trainer.train_and_validate_k_crossfold(k_folds=args.k_folds)
     else:

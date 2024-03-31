@@ -39,15 +39,23 @@ def train_chmcnn(args):
     
     # Checks if GPU Support ist active
     device = torch.device("cuda") if args.gpu else torch.device("cpu")
-   
-    # Load Input Data
-    hierarchy = xtree.load_xtree_json(args.hierarchy_file)
-    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
-    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts,args.image_count_threshold)[:args.hierarchy_depth]
-    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy,args.hierarchy_depth,image_count_threshold=args.image_count_threshold)).to(device=device)
-    
-    
     image_dir = args.image_dir
+    
+    # Create Training and Validation Dataset
+    training_dataset = CHMCNNDataset(args.train_file, args.hierarchy_file,args.hierarchy_depth,image_dir=image_dir,image_count_threshold=args.image_count_threshold)
+    print('Trainset Size:',len(training_dataset))
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    if args.hyperparameter_search:
+        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_chmcnn/chmcnn_{timestamp}'
+    else:
+        path_to_model = f'runs/chmcnn_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_{timestamp}'
+    
+    hierarchy_dicts = training_dataset.filtered_hierarchy_dicts
+    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
+    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
+    
+    
+    
     total_class_num = sum(num_classes_list)
     
     
@@ -73,14 +81,8 @@ def train_chmcnn(args):
     # Define Loss for CHMCNN
     criterion = ConstrainedFFNNModelLoss(l2_lambda=args.l2_lambda,device=device)
     
-    # Create Training and Validation Dataset
-    training_dataset = CHMCNNDataset(args.train_file, args.hierarchy_file,args.hierarchy_depth,image_dir=image_dir,image_count_threshold=args.image_count_threshold)
-    print('Trainset Size:',len(training_dataset))
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    if args.hyperparameter_search:
-        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_chmcnn/chmcnn_{timestamp}'
-    else:
-        path_to_model = f'runs/chmcnn_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_{timestamp}'
+    
+    
     
     # Define Trainer for HmcNet
     trainer = CHMCNNTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
@@ -90,7 +92,8 @@ def train_chmcnn(args):
     os.makedirs(path_to_model, exist_ok=True)
     with open(os.path.join(path_to_model,'model_config.json'),'w') as json_file:
         json.dump(args_dict, json_file,indent=4)
-    
+    with open(os.path.join(path_to_model, 'hierarchy_dicts.json'),'w') as json_file:
+        json.dump(hierarchy_dicts, json_file,indent=4)
     if args.is_k_crossfold_val:
         trainer.train_and_validate_k_crossfold(k_folds=args.k_folds)
     else:
