@@ -155,7 +155,7 @@ class DatasetAnalyzer():
             level += 1
 
         # Sort classes based on their counts
-        sorted_classes = sorted(class_distriubtion_dict.items(), key=lambda x: x[1][0], reverse=True)
+        sorted_classes = [item for item in class_distriubtion_dict.items()]
         print(sorted_classes)
         # Extract class names, counts, and hierarchy levels
         classes = [x[0][x[0].rfind('_')+1:] for x in sorted_classes]
