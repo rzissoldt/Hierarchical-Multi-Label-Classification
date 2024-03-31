@@ -147,6 +147,7 @@ class DatasetAnalyzer():
                 class_distriubtion_dict[label] = layer_distribution_dict[layer_dict[label]]
             level+=1
         # Sort classes based on their counts
+        print(class_distriubtion_dict)
         sorted_classes = sorted(class_distriubtion_dict.items(), key=lambda x: x[1], reverse=True)
         classes = [x[0][x[0].rfind('_')+1:] for x in sorted_classes]
         counts = [x[1] for x in sorted_classes]
