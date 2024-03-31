@@ -19,6 +19,10 @@ class HierarchyDataset(Dataset):
             self.image_dict = json.load(infile)
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(root=self.hierarchy)
+        if hierarchy_depth == -1:
+            self.hierarchy_depth = len(self.hierarchy_dicts)
+        else:
+            self.hierarchy_depth = hierarchy_depth
         self.image_dir = image_dir
         self.image_count_threshold = image_count_threshold
         self.hierarchy_depth = hierarchy_depth
@@ -50,6 +54,10 @@ class HierarchyDataset(Dataset):
         
         print('Image dict size:',len(self.image_dict.keys()))
         self.filtered_hierarchy_dicts = self.filter_hierarchy_dicts_with_threshold()
+        if hierarchy_depth == -1:
+            self.hierarchy_depth = len(self.filtered_hierarchy_dicts)
+        else:
+            self.hierarchy_depth = hierarchy_depth
         self.layer_distribution_dict = []
         self.global_hierarchy_dict = {}
         self.global_distribution_dict = {}

@@ -139,8 +139,13 @@ class DatasetAnalyzer():
             level+=1
     def generate_global_distribution_plot(self):
         class_distriubtion_dict = {}
-        for label in self.global_hierarchy_dict:
-            class_distriubtion_dict[label] = self.global_distribution_dict[self.global_hierarchy_dict[label]]
+        level = 0
+        for layer_dict in self.filtered_hierarchy_dicts:
+            layer_distribution_dict = self.layer_distribution_dict[level]
+            
+            for label in layer_dict:
+                class_distriubtion_dict[label] = layer_distribution_dict[layer_dict[label]]
+            level+=1
         # Sort classes based on their counts
         sorted_classes = sorted(class_distriubtion_dict.items(), key=lambda x: x[1], reverse=True)
         classes = [x[0][x[0].rfind('_')+1:] for x in sorted_classes]
@@ -221,4 +226,4 @@ if __name__ == '__main__':
     dataset_analyzer = DatasetAnalyzer(annotation_file_path=args.train_file,hierarchy_file_path=args.hierarchy_file,hierarchy_depth=args.hierarchy_depth,image_count_threshold=args.image_count_threshold,path_to_results=args.path_to_results,dataset_name=args.dataset_name)
     #dataset_analyzer.eval_layer_distribution()
     dataset_analyzer.generate_distribution_per_layer_plot()
-    #dataset_analyzer.generate_global_distribution_plot()
+    dataset_analyzer.generate_global_distribution_plot()
