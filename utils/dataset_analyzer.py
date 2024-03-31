@@ -10,10 +10,13 @@ class DatasetAnalyzer():
         self.path_to_results = path_to_results
         self.image_count_threshold = image_count_threshold
         self.dataset_name = dataset_name
-        self.hierarchy_depth = hierarchy_depth
+        
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
-       
+        if hierarchy_depth == -1:
+            self.hierarchy_depth = len(self.hierarchy_dicts)
+        else:
+            self.hierarchy_depth = hierarchy_depth
         self.layer_distribution_dict = []
         self.global_hierarchy_dict = {}
         self.global_distribution_dict = {}
