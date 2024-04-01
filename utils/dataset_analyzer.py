@@ -18,8 +18,8 @@ class DatasetAnalyzer():
                 return
             self.load_hierarchy_dicts(hierarchy_file_path=hierarchy_file_path, hierarchy_depth=hierarchy_depth)
             hierarchy_dicts_path = os.path.join(self.path_to_results,self.dataset_name+'_'+str(self.image_count_threshold))
-            os.makedirs(os.path.join(hierarchy_dicts_file_path,'filtered_hierarchy_dicts.json'), exist_ok=True)
-            with open(hierarchy_dicts_file_path, 'w') as outfile:
+            os.makedirs(hierarchy_dicts_path, exist_ok=True)
+            with open(os.path.join(hierarchy_dicts_path,'filtered_hierarchy_dicts.json'), 'w') as outfile:
                 outfile.write(json.dump(self.filtered_hierarchy_dicts))
         else:
             self.load_hierarchy_dicts_from_file(hierarchy_dicts_file_path=hierarchy_dicts_file_path,hierarchy_depth=hierarchy_depth)
