@@ -4,19 +4,30 @@ import json, os
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 class DatasetAnalyzer():
-    def __init__(self, annotation_file_path, hierarchy_file_path, hierarchy_depth,image_count_threshold,path_to_results,dataset_name):
+    def __init__(self, annotation_file_path, hierarchy_depth,image_count_threshold,path_to_results,dataset_name, hierarchy_file_path=None,hierarchy_dicts_file_path=None):
         with open(annotation_file_path,'r') as infile:
             self.image_dict = json.load(infile)
         self.path_to_results = path_to_results
         self.image_count_threshold = image_count_threshold
         self.dataset_name = dataset_name
-        
-        self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
-        self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
+        self.filtered_hierarchy_dicts = None
+        self.hierarchy_dicts = None
+        if hierarchy_dicts_file_path is None:
+            if hierarchy_file_path is None:
+                print('Hierarchy file path and HierarchyDicts file path is None. Not valid!')
+                return
+            self.load_hierarchy_dicts(hierarchy_file_path=hierarchy_file_path, hierarchy_depth=hierarchy_depth)
+        else:
+            self.load_hierarchy_dicts_from_file(hierarchy_dicts_file_path=hierarchy_dicts_file_path,hierarchy_depth=hierarchy_depth)
+    
+    def load_hierarchy_dicts(self,hierarchy_file_path,hierarchy_depth):
         if hierarchy_depth == -1:
             self.hierarchy_depth = len(self.hierarchy_dicts)
         else:
             self.hierarchy_depth = hierarchy_depth
+        self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
+        self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
+        
         self.layer_distribution_dict = []
         self.global_hierarchy_dict = {}
         self.global_distribution_dict = {}
@@ -30,18 +41,15 @@ class DatasetAnalyzer():
             self.hierarchy_depth = len(self.filtered_hierarchy_dicts)
         else:
             self.hierarchy_depth = hierarchy_depth
-        for file_name in self.image_dict.keys():
-            labels = self.image_dict[file_name]        
-            label_dict = self._find_labels_in_hierarchy_dicts(labels,self.filtered_hierarchy_dicts)
-            level = 0
-            for layer_key in label_dict.keys():
-                for label_idx in label_dict[layer_key]:
-                    self.layer_distribution_dict[level][label_idx] += 1
-                level+=1
-            total_class_idxs = self._calc_total_class_labels(label_dict,self.filtered_hierarchy_dicts)
-            for total_class_idx in total_class_idxs:
-                self.global_distribution_dict[total_class_idx] +=1
-                
+        self.eval_distribution_dicts()
+    def load_hierarchy_dicts_from_file(self,hierarchy_dicts_file_path,hierarchy_depth):
+        with open(hierarchy_dicts_file_path,'r') as infile:
+            self.filtered_hierarchy_dicts = json.load(infile)
+        if hierarchy_depth == -1:
+            self.hierarchy_depth = len(self.filtered_hierarchy_dicts)
+        else:
+            self.hierarchy_depth = hierarchy_depth
+        self.eval_distribution_dicts()
     def initialize_distribution_dicts(self,hierarchy_dicts):
         for hierarchy_dict in hierarchy_dicts:
             layer_dict = {}
@@ -56,9 +64,20 @@ class DatasetAnalyzer():
                 self.global_distribution_dict[counter] = 0
                 counter+=1
     
-    def filter_hierarchy_dicts_with_threshold(self):
-                   
-        
+    def eval_distribution_dicts(self):
+        for file_name in self.image_dict.keys():
+            labels = self.image_dict[file_name]        
+            label_dict = self._find_labels_in_hierarchy_dicts(labels,self.filtered_hierarchy_dicts)
+            level = 0
+            for layer_key in label_dict.keys():
+                for label_idx in label_dict[layer_key]:
+                    self.layer_distribution_dict[level][label_idx] += 1
+                level+=1
+            total_class_idxs = self._calc_total_class_labels(label_dict,self.filtered_hierarchy_dicts)
+            for total_class_idx in total_class_idxs:
+                self.global_distribution_dict[total_class_idx] +=1
+    
+    def filter_hierarchy_dicts_with_threshold(self):        
         for file_name in self.image_dict.keys():
             labels = self.image_dict[file_name]        
             label_dict = self._find_labels_in_hierarchy_dicts(labels,self.hierarchy_dicts)
@@ -172,7 +191,7 @@ class DatasetAnalyzer():
         plt.xlabel('Klassen')
         plt.ylabel('Anzahl')
         plt.title('Globale Verteilung der Klassen')
-        plt.xticks(rotation=90)  # Rotate class names for better readability if needed
+        plt.xticks([])  # Rotate class names for better readability if needed
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
 
