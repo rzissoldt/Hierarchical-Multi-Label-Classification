@@ -23,12 +23,13 @@ class DatasetAnalyzer():
             self.load_hierarchy_dicts_from_file(hierarchy_dicts_file_path=hierarchy_dicts_file_path,hierarchy_depth=hierarchy_depth)
     
     def load_hierarchy_dicts(self,hierarchy_file_path,hierarchy_depth):
+        self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
+        self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
         if hierarchy_depth == -1:
             self.hierarchy_depth = len(self.hierarchy_dicts)
         else:
             self.hierarchy_depth = hierarchy_depth
-        self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
-        self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
+        
         
         self.layer_distribution_dict = []
         self.global_hierarchy_dict = {}
