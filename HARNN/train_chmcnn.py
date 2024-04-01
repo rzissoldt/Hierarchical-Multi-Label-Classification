@@ -46,9 +46,9 @@ def train_chmcnn(args):
     print('Trainset Size:',len(training_dataset))
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
-        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_chmcnn/chmcnn_{timestamp}'
+        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_image_count_threshold_{args.image_count_threshold}_chmcnn/chmcnn_{timestamp}'
     else:
-        path_to_model = f'runs/chmcnn_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_{timestamp}'
+        path_to_model = f'runs/chmcnn_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_image_count_threshold_{args.image_count_threshold}_{timestamp}'
     
     hierarchy_dicts = training_dataset.filtered_hierarchy_dicts
     num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)

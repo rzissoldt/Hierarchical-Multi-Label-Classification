@@ -82,9 +82,9 @@ def train_hcapsnet(args):
     print('Trainset Size:',len(training_dataset))
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
-        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_hcapsnet/hcapsnet_{timestamp}'
+        path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_image_count_threshold_{args.image_count_threshold}_hcapsnet/hcapsnet_{timestamp}'
     else:
-        path_to_model = f'runs/hcapsnet_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_{timestamp}'
+        path_to_model = f'runs/hcapsnet_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_image_count_threshold_{args.image_count_threshold}_{timestamp}'
     
     
     # Define Trainer for HmcNet
