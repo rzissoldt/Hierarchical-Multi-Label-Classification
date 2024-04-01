@@ -26,9 +26,9 @@ class HierarchyDataset(Dataset):
         self.image_dir = image_dir
         self.image_count_threshold = image_count_threshold
         self.hierarchy_depth = hierarchy_depth
-        self.layer_distribution_dict = []
-        self.global_hierarchy_dict = {}
-        self.global_distribution_dict = {}
+        self.layer_distribution_dict = None
+        self.global_hierarchy_dict = None
+        self.global_distribution_dict = None
         self.initialize_distribution_dicts(self.hierarchy_dicts)
         # Define the transformation pipeline for image preprocessing.
         self.train_transform = transforms.Compose([
@@ -52,15 +52,12 @@ class HierarchyDataset(Dataset):
         self.is_training = True
         self.image_label_tuple_list = []
         
-        print('Image dict size:',len(self.image_dict.keys()))
         self.filtered_hierarchy_dicts = self.filter_hierarchy_dicts_with_threshold()
         if hierarchy_depth == -1:
             self.hierarchy_depth = len(self.filtered_hierarchy_dicts)
         else:
             self.hierarchy_depth = hierarchy_depth
-        self.layer_distribution_dict = []
-        self.global_hierarchy_dict = {}
-        self.global_distribution_dict = {}
+        
         self.initialize_distribution_dicts(self.filtered_hierarchy_dicts)
         for file_name in self.image_dict.keys():
             data_tuple = []
@@ -80,8 +77,15 @@ class HierarchyDataset(Dataset):
                     
                 level+=1
             self.image_label_tuple_list.append(data_tuple)
-    
+        self.num_classes_list = [len(list(hierarchy_dict)) for hierarchy_dict in self.filtered_hierarchy_dicts]
+        self.total_class_num = sum(self.num_classes_list)
+        print('Dataset Size:',sum([image_count for image_count in self.layer_distribution_dict[0].values()]))
+        print('Num Classes List:',self.num_classes_list)
+        print('Total Class Num',self.total_class_num)
     def initialize_distribution_dicts(self,hierarchy_dicts):
+        self.layer_distribution_dict = []
+        self.global_hierarchy_dict = {}
+        self.global_distribution_dict = {}
         for hierarchy_dict in hierarchy_dicts:
             layer_dict = {}
             for key in hierarchy_dict:
@@ -141,9 +145,9 @@ class HierarchyDataset(Dataset):
             filtered_hierarchy_dicts.append(filtered_hierarchy_dict)
             counter = 0
         return filtered_hierarchy_dicts[:self.hierarchy_depth]
-    def _find_labels_in_hierarchy_dicts(self,labels, hierarchy_dicts):
+    def _find_labels_in_hierarchy_dicts(self,labels,hierarchy_dicts):
         for label in labels:
-            path = xtree.get_id_path(self.hierarchy,label)[:self.hierarchy_depth]
+            path = xtree.get_id_path(self.hierarchy,label)
             
             label_dict = {}
             labels_index = []
@@ -153,7 +157,7 @@ class HierarchyDataset(Dataset):
                 label_dict['layer-{0}'.format(level)] = []
                 level +=1
             level = 0
-            for i in range(1,len(path)):
+            for i in range(1,self.hierarchy_depth+1):
                 temp_key = '_'.join(path[:i+1])
                 temp_dict = hierarchy_dicts[i-1]
                 if temp_key not in temp_dict.keys():
