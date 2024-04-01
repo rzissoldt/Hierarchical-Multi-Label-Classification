@@ -33,14 +33,9 @@ class DatasetAnalyzer():
             self.hierarchy_depth = hierarchy_depth
         
         
-        self.layer_distribution_dict = []
-        self.global_hierarchy_dict = {}
-        self.global_distribution_dict = {}
         self.initialize_distribution_dicts(self.hierarchy_dicts)
         self.filtered_hierarchy_dicts = self.filter_hierarchy_dicts_with_threshold()
-        self.layer_distribution_dict = []
-        self.global_hierarchy_dict = {}
-        self.global_distribution_dict = {}
+        
         self.initialize_distribution_dicts(self.filtered_hierarchy_dicts)
         if hierarchy_depth == -1:
             self.hierarchy_depth = len(self.filtered_hierarchy_dicts)
@@ -58,6 +53,9 @@ class DatasetAnalyzer():
         self.initialize_distribution_dicts(self.filtered_hierarchy_dicts)
         self.eval_distribution_dicts()
     def initialize_distribution_dicts(self,hierarchy_dicts):
+        self.layer_distribution_dict = []
+        self.global_hierarchy_dict = {}
+        self.global_distribution_dict = {}
         for hierarchy_dict in hierarchy_dicts:
             layer_dict = {}
             for key in hierarchy_dict:
