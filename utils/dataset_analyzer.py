@@ -22,7 +22,7 @@ class DatasetAnalyzer():
             with open(os.path.join(hierarchy_dicts_path,'filtered_hierarchy_dicts.json'), 'w') as outfile:
                 json.dump(self.filtered_hierarchy_dicts, outfile)
         else:
-            self.load_hierarchy_dicts_from_file(hierarchy_dicts_file_path=hierarchy_dicts_file_path,hierarchy_depth=hierarchy_depth)
+            self.load_hierarchy_dicts_from_file(hierarchy_dicts_file_path=hierarchy_dicts_file_path,hierarchy_file_path=hierarchy_file_path,hierarchy_depth=hierarchy_depth)
     
     def load_hierarchy_dicts(self,hierarchy_file_path,hierarchy_depth):
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
@@ -47,7 +47,8 @@ class DatasetAnalyzer():
         else:
             self.hierarchy_depth = hierarchy_depth
         self.eval_distribution_dicts()
-    def load_hierarchy_dicts_from_file(self,hierarchy_dicts_file_path,hierarchy_depth):
+    def load_hierarchy_dicts_from_file(self,hierarchy_dicts_file_path,hierarchy_file_path,hierarchy_depth):
+        self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
         with open(hierarchy_dicts_file_path,'r') as infile:
             self.filtered_hierarchy_dicts = json.load(infile)
         if hierarchy_depth == -1:
