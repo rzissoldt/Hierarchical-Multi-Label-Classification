@@ -17,7 +17,9 @@ class DatasetAnalyzer():
                 print('Hierarchy file path and HierarchyDicts file path is None. Not valid!')
                 return
             self.load_hierarchy_dicts(hierarchy_file_path=hierarchy_file_path, hierarchy_depth=hierarchy_depth)
-            with open(os.path.join(self.path_to_results,self.dataset_name+'_'+str(self.image_count_threshold),'filtered_hierarchy_dicts.json')) as outfile:
+            hierarchy_dicts_file_path = os.path.join(self.path_to_results,self.dataset_name+'_'+str(self.image_count_threshold),'filtered_hierarchy_dicts.json')
+            os.makedirs(hierarchy_dicts_file_path, exist_ok=True)
+            with open(hierarchy_dicts_file_path, 'w') as outfile:
                 outfile.write(json.dump(self.filtered_hierarchy_dicts))
         else:
             self.load_hierarchy_dicts_from_file(hierarchy_dicts_file_path=hierarchy_dicts_file_path,hierarchy_depth=hierarchy_depth)
