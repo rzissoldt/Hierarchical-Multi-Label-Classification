@@ -264,7 +264,7 @@ def plot_distribution(label_dict,distribution_dict):
 
 if __name__ == '__main__':
     args = parser.dataset_analyzer_parser()    
-    dataset_analyzer = DatasetAnalyzer(annotation_file_path=args.train_file,hierarchy_file_path=args.hierarchy_file,hierarchy_depth=args.hierarchy_depth,image_count_threshold=args.image_count_threshold,path_to_results=args.path_to_results,dataset_name=args.dataset_name)
+    dataset_analyzer = DatasetAnalyzer(annotation_file_path=args.train_file,hierarchy_file_path=args.hierarchy_file,hierarchy_dicts_file_path=args.hierarchy_dicts_file,hierarchy_depth=args.hierarchy_depth,image_count_threshold=args.image_count_threshold,path_to_results=args.path_to_results,dataset_name=args.dataset_name)
     #dataset_analyzer.eval_layer_distribution()
     dataset_analyzer.generate_distribution_per_layer_plot()
     dataset_analyzer.generate_global_distribution_plot()
