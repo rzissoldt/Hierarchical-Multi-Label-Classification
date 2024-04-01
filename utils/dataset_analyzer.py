@@ -23,8 +23,11 @@ class DatasetAnalyzer():
                 json.dump(self.filtered_hierarchy_dicts, outfile)
         else:
             self.load_hierarchy_dicts_from_file(hierarchy_dicts_file_path=hierarchy_dicts_file_path,hierarchy_file_path=hierarchy_file_path,hierarchy_depth=hierarchy_depth)
-
+        self.num_classes_list = [len(list(hierarchy_dict)) for hierarchy_dict in self.filtered_hierarchy_dicts]
+        self.total_class_num = sum(self.num_classes_list)
         print('Dataset Size:',sum([image_count for image_count in self.layer_distribution_dict[0].values()]))
+        print('Num Classes List:',self.num_classes_list)
+        print('Total Class Num',self.total_class_num)
     def load_hierarchy_dicts(self,hierarchy_file_path,hierarchy_depth):
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
