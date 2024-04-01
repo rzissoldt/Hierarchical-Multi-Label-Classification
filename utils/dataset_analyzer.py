@@ -55,6 +55,7 @@ class DatasetAnalyzer():
             self.hierarchy_depth = len(self.filtered_hierarchy_dicts)
         else:
             self.hierarchy_depth = hierarchy_depth
+        self.initialize_distribution_dicts(self.filtered_hierarchy_dicts)
         self.eval_distribution_dicts()
     def initialize_distribution_dicts(self,hierarchy_dicts):
         for hierarchy_dict in hierarchy_dicts:
