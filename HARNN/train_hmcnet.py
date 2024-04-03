@@ -44,7 +44,7 @@ def train_hmcnet(args):
     device = torch.device("cuda") if args.gpu else torch.device("cpu")
     image_dir = args.image_dir
     # Create Training and Validation Dataset
-    training_dataset = HmcNetDataset(args.train_file, args.hierarchy_file, args.hierarchy_depth, image_dir,image_count_threshold=args.image_count_threshold)
+    training_dataset = HmcNetDataset(annotation_file_path=args.train_file, hierarchy_file_path=args.hierarchy_file, hierarchy_depth=args.hierarchy_depth, image_dir=image_dir,image_count_threshold=args.image_count_threshold)
     print('Trainset Size:',len(training_dataset))
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
