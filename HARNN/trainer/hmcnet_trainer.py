@@ -230,7 +230,7 @@ class HmcNetTrainer():
                 # Convert each tensor to a list of lists
                 for i in y_total_onehot:
                     true_onehot_labels_list.append(i)                
-        metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=true_onehot_labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device,eval_pcp=self.args.pcp_metrics_active)
+        metrics_dict = dh.calc_metrics(scores_list=scores_list,threshold=self.args.threshold,labels_list=true_onehot_labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device,eval_pcp=self.args.pcp_metrics_active)
         # Save Metrics in Summarywriter.
         for key,value in metrics_dict.items():
             self.tb_writer.add_scalar(key,value,epoch_index)
