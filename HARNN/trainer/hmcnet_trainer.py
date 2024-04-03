@@ -175,7 +175,7 @@ class HmcNetTrainer():
             inputs = inputs.to(self.device)
             y_total_onehot = labels[0].to(self.device)
             y_local_onehots = [label.to(self.device) for label in labels[1:]]
-            print(y_total_onehot.size())
+            print(y_total_onehot.size(),len(y_local_onehots))
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
 
