@@ -43,14 +43,15 @@ def train_hmcnet(args):
     # Checks if GPU Support ist active
     device = torch.device("cuda") if args.gpu else torch.device("cpu")
     image_dir = args.image_dir
-    # Create Training and Validation Dataset
-    training_dataset = HmcNetDataset(annotation_file_path=args.train_file, hierarchy_file_path=args.hierarchy_file, hierarchy_depth=args.hierarchy_depth, image_dir=image_dir,image_count_threshold=args.image_count_threshold)
-    print('Trainset Size:',len(training_dataset))
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
         path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_image_count_threshold_{args.image_count_threshold}_hmcnet/hmc_net_{timestamp}'
     else:
         path_to_model = f'runs/hmc_net_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_{timestamp}_image_count_threshold_{args.image_count_threshold}'
+    # Create Training and Validation Dataset
+    training_dataset = HmcNetDataset(annotation_file_path=args.train_file, hierarchy_file_path=args.hierarchy_file, path_to_model=path_to_model,hierarchy_depth=args.hierarchy_depth, image_dir=image_dir,image_count_threshold=args.image_count_threshold)
+    print('Trainset Size:',len(training_dataset))
+    
     hierarchy_dicts = training_dataset.filtered_hierarchy_dicts
     num_classes_list = training_dataset.num_classes_list
     explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
