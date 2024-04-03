@@ -15,7 +15,7 @@ from torchvision import transforms
 from dataset.hierarchy_dataset import HierarchyDataset
 class BaselineDataset(HierarchyDataset):
     def __init__(self, annotation_file_path, hierarchy_file_path, image_dir, image_count_threshold=0,hierarchy_dicts_file_path=None,hierarchy_depth=-1):
-        super(BaselineDataset,self).__init__(annotation_file_path, hierarchy_file_path, hierarchy_depth, image_dir, image_count_threshold,hierarchy_dicts_file_path=hierarchy_dicts_file_path)
+        super(BaselineDataset,self).__init__(annotation_file_path=annotation_file_path, hierarchy_file_path=hierarchy_file_path, hierarchy_depth=hierarchy_depth, image_dir=image_dir, image_count_threshold=image_count_threshold,hierarchy_dicts_file_path=hierarchy_dicts_file_path)
 
     def __getitem__(self, index):
         # You can customize the behavior here if needed
