@@ -174,6 +174,7 @@ class HmcNetTrainer():
             inputs, labels = copy.deepcopy(data)
             inputs = inputs.to(self.device)
             y_total_onehot = labels[0].to(self.device)
+            print(y_total_onehot)
             y_local_onehots = [label.to(self.device) for label in labels[1:]]
             print(y_local_onehots)
             # Zero your gradients for every batch!
