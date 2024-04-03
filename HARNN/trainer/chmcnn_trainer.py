@@ -230,7 +230,7 @@ class CHMCNNTrainer():
         
         self.tb_writer.add_scalar('Training/AUPRC',eval_auprc,epoch_index)
         print('\n')
-        return current_global_loss
+        return last_global_loss
     
     def validate(self,epoch_index,data_loader):
         # Set the model to evaluation mode, disabling dropout and using population
@@ -289,7 +289,7 @@ class CHMCNNTrainer():
             tb_x = epoch_index * num_of_val_batches + eval_counter + 1
             self.tb_writer.add_scalar('Validation/AveragePecision',eval_avg_precision,tb_x)
                 
-        return current_vglobal_loss
+        return last_vglobal_loss
     
     def test(self,epoch_index,data_loader):
         print(f"Evaluating best model of epoch {epoch_index}.")
