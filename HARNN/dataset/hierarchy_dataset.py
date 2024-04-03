@@ -100,7 +100,18 @@ class HierarchyDataset(Dataset):
         else:
             self.hierarchy_depth = hierarchy_depth
         self.eval_distribution_dicts()
-    
+    def eval_distribution_dicts(self):
+        for file_name in self.image_dict.keys():
+            labels = self.image_dict[file_name]        
+            label_dict = self._find_labels_in_hierarchy_dicts(labels,self.filtered_hierarchy_dicts)
+            level = 0
+            for layer_key in label_dict.keys():
+                for label_idx in label_dict[layer_key]:
+                    self.layer_distribution_dict[level][label_idx] += 1
+                level+=1
+            total_class_idxs = self._calc_total_class_labels(label_dict,self.filtered_hierarchy_dicts)
+            for total_class_idx in total_class_idxs:
+                self.global_distribution_dict[total_class_idx] +=1
     def load_hierarchy_dicts_from_file(self,hierarchy_dicts_file_path,hierarchy_file_path,hierarchy_depth):
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
         with open(hierarchy_dicts_file_path,'r') as infile:
