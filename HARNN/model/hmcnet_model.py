@@ -307,7 +307,6 @@ class HmcNetLoss(nn.Module):
 
         def _global_loss(global_logits,global_target):
             """Calculation of the Global loss."""
-            print(global_logits,global_target)
             global_scores = torch.sigmoid(global_logits)
             loss = F.binary_cross_entropy(global_scores,global_target)
             return loss

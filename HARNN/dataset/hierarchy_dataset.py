@@ -59,6 +59,7 @@ class HierarchyDataset(Dataset):
         
         
         self.num_classes_list = [len(list(hierarchy_dict)) for hierarchy_dict in self.filtered_hierarchy_dicts]
+        self.total_class_num = sum(self.num_classes_list)
         for file_name in self.image_dict.keys():
             data_tuple = []
             labels = self.image_dict[file_name]        
@@ -78,7 +79,7 @@ class HierarchyDataset(Dataset):
                 level+=1
             self.image_label_tuple_list.append(data_tuple)
         
-        self.total_class_num = sum(self.num_classes_list)
+        
         print('Dataset Size:',sum([image_count for image_count in self.layer_distribution_dict[0].values()]))
         print('Num Classes List:',self.num_classes_list)
         print('Total Class Num',self.total_class_num)
