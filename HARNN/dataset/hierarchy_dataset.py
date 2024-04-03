@@ -58,7 +58,7 @@ class HierarchyDataset(Dataset):
         # Define the transformation pipeline for image preprocessing.
         
         
-        
+        self.num_classes_list = [len(list(hierarchy_dict)) for hierarchy_dict in self.filtered_hierarchy_dicts]
         for file_name in self.image_dict.keys():
             data_tuple = []
             labels = self.image_dict[file_name]        
@@ -73,11 +73,11 @@ class HierarchyDataset(Dataset):
             data_tuple.append(torch.tensor(self._create_onehot_labels(total_class_labels, total_class_num),dtype=torch.float32))
             level = 0
             for key,labels in sliced_label_dict.items():
-                data_tuple.append(torch.tensor(self._create_onehot_labels(labels,len(self.filtered_hierarchy_dicts[level])),dtype=torch.float32))
+                data_tuple.append(torch.tensor(self._create_onehot_labels(labels,self.num_classes_list[level]),dtype=torch.float32))
                     
                 level+=1
             self.image_label_tuple_list.append(data_tuple)
-        self.num_classes_list = [len(list(hierarchy_dict)) for hierarchy_dict in self.filtered_hierarchy_dicts]
+        
         self.total_class_num = sum(self.num_classes_list)
         print('Dataset Size:',sum([image_count for image_count in self.layer_distribution_dict[0].values()]))
         print('Num Classes List:',self.num_classes_list)
