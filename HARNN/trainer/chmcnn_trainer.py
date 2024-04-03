@@ -273,6 +273,7 @@ class CHMCNNTrainer():
                 constr_out_list.extend(constr_output)
                 predicted_list.extend(predicted)
                 labels_list.extend(labels)
+                tb_x = epoch_index * num_of_val_batches + i + 1
                 self.tb_writer.add_scalar('Training/Loss', last_vloss, tb_x)
                 self.tb_writer.add_scalar('Training/GlobalLoss', last_vglobal_loss, tb_x)
                 self.tb_writer.add_scalar('Training/L2Loss', last_vl2_loss, tb_x)
