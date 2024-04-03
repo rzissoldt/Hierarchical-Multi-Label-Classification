@@ -18,7 +18,7 @@ from torch.nn.functional import one_hot
 from solt.core import DataContainer
 sys.path.append('../')
 from utils import xtree_utils as xtree 
-from torchmetrics.classification import MultilabelAUROC, MultilabelAveragePrecision
+from torchmetrics.classification import MultilabelAUROC, MultilabelAveragePrecision, BinaryAUROC, BinaryAveragePrecision
 def _option(pattern):
     """
     Get the option according to the pattern.
@@ -537,10 +537,16 @@ def get_per_layer_metrics(scores,labels, num_classes_list,device=None):
     
     eval_metrics_per_layer = []
     for i in range(len(num_classes_list)):
-        macro_auroc = MultilabelAUROC(num_labels=num_classes_list[i],average='macro')
-        macro_auprc = MultilabelAveragePrecision(num_labels=num_classes_list[i],average='macro')
-        micro_auroc = MultilabelAUROC(num_labels=num_classes_list[i],average='micro')
-        micro_auprc = MultilabelAveragePrecision(num_labels=num_classes_list[i],average='micro')
+        if len(num_classes_list[i]) == 1:
+            macro_auroc = BinaryAUROC()
+            macro_auprc = BinaryAveragePrecision()
+            micro_auroc = BinaryAUROC()
+            micro_auprc = BinaryAveragePrecision()
+        else:
+            macro_auroc = MultilabelAUROC(num_labels=num_classes_list[i],average='macro')
+            macro_auprc = MultilabelAveragePrecision(num_labels=num_classes_list[i],average='macro')
+            micro_auroc = MultilabelAUROC(num_labels=num_classes_list[i],average='micro')
+            micro_auprc = MultilabelAveragePrecision(num_labels=num_classes_list[i],average='micro')
         if i == 0:
             begin = 0
             end = num_classes_list[0]

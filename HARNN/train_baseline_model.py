@@ -61,8 +61,6 @@ def train_baseline_model(args):
     
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
-    print(f'Total Classes: {sum(num_classes_list)}')
-    print(f'Num Classes List: {num_classes_list}')
     
     # Define Optimzer and Scheduler
     if args.optimizer == 'adam':    
