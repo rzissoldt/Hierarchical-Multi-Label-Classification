@@ -13,7 +13,7 @@ import torch.multiprocessing
 #torch.multiprocessing.set_sharing_strategy('file_system')
 from torchvision import transforms
 class HierarchyDataset(Dataset):
-    def __init__(self, annotation_file_path, hierarchy_file_path, image_dir,image_count_threshold,hierarchy_dicts_file_path=None,hierarchy_depth=-1):
+    def __init__(self, annotation_file_path, hierarchy_file_path, image_dir,image_count_threshold,path_to_model,hierarchy_dicts_file_path=None,hierarchy_depth=-1):
         super(HierarchyDataset, self).__init__()
         self.train_transform = transforms.Compose([
             transforms.Resize((256, 256)),                    
@@ -34,6 +34,7 @@ class HierarchyDataset(Dataset):
                              std=[0.229, 0.224, 0.225])
         ])
         self.is_training = True
+        self.path_to_model = path_to_model
         self.image_label_tuple_list = []
         self.image_dir = image_dir
         self.image_count_threshold = image_count_threshold
@@ -48,9 +49,9 @@ class HierarchyDataset(Dataset):
                 print('Hierarchy file path and HierarchyDicts file path is None. Not valid!')
                 return
             self.load_hierarchy_dicts(hierarchy_file_path=hierarchy_file_path, hierarchy_depth=hierarchy_depth)
-            hierarchy_dicts_path = os.path.join(self.path_to_results,self.dataset_name+'_'+str(self.image_count_threshold))
-            os.makedirs(hierarchy_dicts_path, exist_ok=True)
-            with open(os.path.join(hierarchy_dicts_path,'filtered_hierarchy_dicts.json'), 'w') as outfile:
+            
+            os.makedirs(path_to_model, exist_ok=True)
+            with open(os.path.join(path_to_model,'filtered_hierarchy_dicts.json'), 'w') as outfile:
                 json.dump(self.filtered_hierarchy_dicts, outfile)
         else:
             self.load_hierarchy_dicts_from_file(hierarchy_dicts_file_path=hierarchy_dicts_file_path,hierarchy_file_path=hierarchy_file_path,hierarchy_depth=hierarchy_depth)
