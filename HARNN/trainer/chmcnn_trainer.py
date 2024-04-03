@@ -36,7 +36,8 @@ class CHMCNNTrainer():
     def train_and_validate(self):
         counter = 0
         best_epoch = 0
-        best_average_precision = 0.
+        #best_average_precision = 0.
+        best_vloss = 1_000_000
         is_fine_tuning = False
         
         # Generate one MultiLabelStratifiedShuffleSplit for normal Training.
@@ -56,27 +57,27 @@ class CHMCNNTrainer():
             train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
         for epoch in range(self.args.epochs):
-            avg_train_average_precision = self.train(epoch_index=epoch,data_loader=train_loader)
-            avg_val_average_precision = self.validate(epoch_index=epoch,data_loader=val_loader)
+            avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
+            avg_validation_loss = self.validate(epoch_index=epoch,data_loader=val_loader)
             self.tb_writer.flush()
-            print(f'Epoch {epoch+1}: Train Average Precision {avg_train_average_precision}, Validation Average Precision {avg_val_average_precision}')
+            print(f'Epoch {epoch+1}: Train Loss {avg_train_loss}, Validation Loss {avg_validation_loss}')
             
             # End Training if Max Epoch is reached
             if epoch == self.args.epochs-1:
-                if avg_val_average_precision > best_average_precision:
+                if avg_validation_loss > best_vloss:
                     best_epoch = epoch+1
                     self.best_model = copy.deepcopy(self.model)
-                    best_average_precision = avg_val_average_precision
+                    best_vloss = avg_validation_loss
                 print(f"Max Epoch count is reached. Best model was reached in {best_epoch}.")
                 break
             # Decay Learningrate if Step Count is reached
             if epoch % self.args.decay_steps == self.args.decay_steps-1:
                 self.scheduler.step()
             # Track best performance, and save the model's state
-            if avg_val_average_precision > best_average_precision:
+            if avg_validation_loss > best_vloss:
                 best_epoch = epoch+1
                 self.best_model = copy.deepcopy(self.model)
-                best_average_precision = avg_val_average_precision
+                best_vloss = avg_validation_loss
                 counter = 0
             else:
                 counter += 1
@@ -224,12 +225,12 @@ class CHMCNNTrainer():
         scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in constr_out_list],dim=0).to(self.device)
         labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
         eval_auprc = auprc(scores.to(dtype=torch.float32),labels.to(dtype=torch.long))
-        progress_info = f"Training: Epoch [{epoch_index+1}], AUPRC: {eval_auprc}"
+        progress_info = f"Training: Epoch [{epoch_index+1}], Loss: {last_global_loss},AUPRC: {eval_auprc}"
         
         
         self.tb_writer.add_scalar('Training/AUPRC',eval_auprc,epoch_index)
         print('\n')
-        return eval_auprc
+        return current_global_loss
     
     def validate(self,epoch_index,data_loader):
         # Set the model to evaluation mode, disabling dropout and using population
@@ -240,6 +241,9 @@ class CHMCNNTrainer():
         constr_out_list = []
         predicted_list = []
         labels_list = []
+        current_vloss = 0.
+        current_vglobal_loss = 0.
+        current_vl2_loss = 0.
         # Disable gradient computation and reduce memory consumption.
         with torch.no_grad():
             for i, vdata in enumerate(data_loader):
@@ -248,14 +252,30 @@ class CHMCNNTrainer():
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
 
-
                 # Make predictions for this batch
                 constr_output = self.model(inputs.float())
                 predicted = constr_output > 0.5
+
+                train_output = labels*constr_output.double() # h-strich
+                train_output = get_constr_out(train_output, self.explicit_hierarchy) # max (M dotproduct H-strich)
+                train_output = (1-labels)*constr_output.double() + labels*train_output # (1-y) dotproduct MCM + (y dotproduct max(M dotproduct H-strich))
+                x = train_output,labels.double(),self.model
                 
+                vloss,vglobal_loss,vl2_loss = self.criterion(x) #BCELoss((1-y) dotproduct MCM + (y dotproduct max(M dotproduct H-strich)),y)
+                current_vglobal_loss += vglobal_loss.item()
+                current_vloss += vloss.item()
+                current_vl2_loss += vl2_loss.item()
+                last_vloss = current_vloss/(i+1)
+                last_vglobal_loss = current_vglobal_loss/(i+1)
+                last_vl2_loss = current_vl2_loss/(i+1)
+                
+                predicted = constr_output.data > 0.5                
                 constr_out_list.extend(constr_output)
                 predicted_list.extend(predicted)
                 labels_list.extend(labels)
+                self.tb_writer.add_scalar('Training/Loss', last_vloss, tb_x)
+                self.tb_writer.add_scalar('Training/GlobalLoss', last_vglobal_loss, tb_x)
+                self.tb_writer.add_scalar('Training/L2Loss', last_vl2_loss, tb_x)
             # Gather data and report
             
             avg_precision = MultilabelAveragePrecision(num_labels=self.total_class_num,average='macro')
@@ -263,12 +283,12 @@ class CHMCNNTrainer():
             scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in constr_out_list],dim=0).to(self.device)
             labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
             eval_avg_precision = avg_precision(scores.to(dtype=torch.float32),labels.to(dtype=torch.long))
-            progress_info = f"Validation: Epoch [{epoch_index+1}], Average Precision: {eval_avg_precision}"
+            progress_info = f"Validation: Epoch [{epoch_index+1}], Loss: {last_vglobal_loss}, Average Precision: {eval_avg_precision}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_val_batches + eval_counter + 1
             self.tb_writer.add_scalar('Validation/AveragePecision',eval_avg_precision,tb_x)
                 
-        return eval_avg_precision
+        return current_vglobal_loss
     
     def test(self,epoch_index,data_loader):
         print(f"Evaluating best model of epoch {epoch_index}.")
