@@ -12,16 +12,16 @@ sys.path.append('../')
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
 from utils import param_parser as parser
-from HARNN.model.hmcnet_model import HmcNet
-from HARNN.dataset.hmcnet_dataset import HmcNetDataset
-from HARNN.tester.hmcnet_tester import HmcNetTester
+from HARNN.model.hcapsnet_model import HCapsNet
+from HARNN.dataset.hcapsnet_dataset import HCapsNetDataset
+from HARNN.tester.hcapsnet_tester import HCapsNetTester
 from HARNN.summarywriter_evaluator import analyze_summarywriter_dir
 import warnings
 
 # Ignore specific warning types
 warnings.filterwarnings("ignore", category=UserWarning)
 
-def test_hmcnet(args):
+def test_hcapsnet(args):
     # Check if CUDA is available
     if torch.cuda.is_available():
         print("CUDA is available!")
@@ -38,16 +38,18 @@ def test_hmcnet(args):
     device = torch.device("cuda") if args.gpu else torch.device("cpu")
     image_dir = args.image_dir
     
-    # Create Training and Validation Dataset
-    test_dataset = HmcNetDataset(args.test_file, args.hierarchy_file,image_dir,hierarchy_dicts_file_path=args.hierarchy_dicts_file)
-    test_dataset.is_training = False
-    
     # Evaluate best model.
     best_model_file_path, best_model_config = analyze_summarywriter_dir(args.hyperparameter_dir)
     best_model_file_name = os.path.basename(best_model_file_path)
-    os.makedirs(args.path_to_results)
     # Split the filename using '_' as the delimiter
     parts = best_model_file_name.split('_')
+    # Create Training and Validation Dataset
+    test_dataset = HCapsNetDataset(args.test_file, args.hierarchy_file,image_dir,target_shape=best_model_config.target_shape,hierarchy_dicts_file_path=args.hierarchy_dicts_file)
+    test_dataset.is_training = False
+    
+    
+    os.makedirs(args.path_to_results)
+    
 
      
     # Load Input Data
@@ -61,7 +63,7 @@ def test_hmcnet(args):
     
     
     # Define Model
-    model = HmcNet(feature_dim=best_model_config.feature_dim_backbone,attention_unit_size=best_model_config.attention_dim,backbone_fc_hidden_size=best_model_config.backbone_dim,fc_hidden_size=best_model_config.fc_dim,freeze_backbone=True,highway_fc_hidden_size=best_model_config.highway_fc_dim,highway_num_layers=best_model_config.highway_num_layers,num_classes_list=num_classes_list,total_classes=total_class_num,l2_reg_lambda=best_model_config.l2_lambda,dropout_keep_prob=best_model_config.dropout_rate,alpha=best_model_config.alpha,beta=best_model_config.beta,device=device).to(device=device)
+    model = HCapsNet(output_dim=total_class_num,R=explicit_hierarchy, args=best_model_config).to(device=device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     print(f'Total Classes: {sum(num_classes_list)}')
@@ -72,12 +74,13 @@ def test_hmcnet(args):
     model.load_state_dict(best_checkpoint)
         
     
+    
         
     # Define Trainer for HmcNet
-    tester = HmcNetTester(model=model,test_dataset=test_dataset,path_to_results=args.path_to_results,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
+    tester = HCapsNetTester(model=model,test_dataset=test_dataset,path_to_results=args.path_to_results,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
     
     tester.test()
 if __name__ == '__main__':
-    args = parser.hmcnet_parameter_parser()
-    test_hmcnet(args=args)
+    args = parser.hcapsnet_parameter_parser()
+    test_hcapsnet(args=args)
     

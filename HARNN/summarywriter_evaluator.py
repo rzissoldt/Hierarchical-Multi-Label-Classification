@@ -86,131 +86,260 @@ def get_metric_from_dir(model_dir):
         summary_value = summary_value[0]
         # Check if the attribute 'summary' exists
         if hasattr(summary_value, 'tag'):
-            if summary_value.tag == 'Validation/AverageAUC':
+            if summary_value.tag == 'Validation/MacroAverageAUC':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
-                    metric['AverageAUC'] = float_val
-            if summary_value.tag == 'Validation/AveragePrecision':
+                    metric['MacroAverageAUC'] = float_val
+            if summary_value.tag == 'Validation/MacroAveragePrecision':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
-                    metric['AveragePrecision'] = float_val
-            if summary_value.tag == 'Validation/Precision':
+                    metric['MacroAveragePrecision'] = float_val
+            if summary_value.tag == 'Validation/MacroPrecision':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
-                    metric['Precision'] = float_val
-            if summary_value.tag == 'Validation/Recall':
+                    metric['MacroPrecision'] = float_val
+            if summary_value.tag == 'Validation/MacroRecall':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
-                    metric['Recall'] = float_val
-            if summary_value.tag == 'Validation/F1':
+                    metric['MacroRecall'] = float_val
+            if summary_value.tag == 'Validation/MacroF1':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
-                    metric['F1'] = float_val
+                    metric['MacroF1'] = float_val
             if summary_value.tag == 'Validation/EMR':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
                     metric['EMR'] = float_val
+            if summary_value.tag == 'Validation/MicroAverageAUC':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['MicroAverageAUC'] = float_val
+            if summary_value.tag == 'Validation/MicroAveragePrecision':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['MicroAveragePrecision'] = float_val
+            if summary_value.tag == 'Validation/MicroPrecision':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['MicroPrecision'] = float_val
+            if summary_value.tag == 'Validation/MicroRecall':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['MicroRecall'] = float_val
+            if summary_value.tag == 'Validation/MicroF1':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['MicroF1'] = float_val
+            if summary_value.tag == 'Validation/HierarchicalPrecision':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['HierarchicalPrecision'] = float_val
+            if summary_value.tag == 'Validation/HierarchicalRecall':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['HierarchicalRecall'] = float_val
+            if summary_value.tag == 'Validation/HierarchicalF1':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['HierarchicalF1'] = float_val
             for i in range(5):
-                if summary_value.tag == f'Validation/PrecisionTopK/{i}':
+                if summary_value.tag == f'Validation/MacroPrecisionTopK/{i}':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'PrecisionTopK/{i+1}'] = float_val
-                if summary_value.tag == f'Validation/RecallTopK/{i}':
+                        metric[f'MacroPrecisionTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/MacroRecallTopK/{i}':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'RecallTopK/{i+1}'] = float_val
-                if summary_value.tag == f'Validation/F1TopK/{i}':
+                        metric[f'MacroRecallTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/MacroF1TopK/{i}':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'F1TopK/{i+1}'] = float_val
+                        metric[f'MacroF1TopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/MicroPrecisionTopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'MicroPrecisionTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/MicroRecallTopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'MicroRecallTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/MicroF1TopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'MicroF1TopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/HierarchicalPrecisionTopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'HierarchicalPrecisionTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/HierarchicalRecallTopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'HierarchicalRecallTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/HierarchicalF1TopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'HierarchicalF1TopK/{i+1}'] = float_val
                 if summary_value.tag == f'Validation/EMRTopK/{i}':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
                         metric[f'EMRTopK/{i+1}'] = float_val
             for i in range(hierarchy_depth):
-                if summary_value.tag == f'Validation/{i+1}-LayerPrecision':
+                if summary_value.tag == f'Validation/{i+1}-LayerMacroPrecision':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'{i+1}-LayerPrecision'] = float_val
-                if summary_value.tag == f'Validation/{i+1}-LayerRecall':
+                        metric[f'{i+1}-LayerMacroPrecision'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerMacroRecall':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'{i+1}-LayerRecall'] = float_val
-                if summary_value.tag == f'Validation/{i+1}-LayerF1':
+                        metric[f'{i+1}-LayerMacroRecall'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerMacroF1':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'{i+1}-LayerAUC'] = float_val
-                if summary_value.tag == f'Validation/{i+1}-LayerAUC':
+                        metric[f'{i+1}-LayerMacroF1'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerMacroAUC':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'{i+1}-LayerAUPRC'] = float_val
-                if summary_value.tag == f'Validation/{i+1}-LayerAUPRC':
+                        metric[f'{i+1}-LayerMacroAUC'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerMacroAUPRC':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'{i+1}-LayerAUPRC'] = float_val
-                if summary_value.tag == f'Validation/{i+1}-LayerPCPPrecision':
+                        metric[f'{i+1}-LayerMacroAUPRC'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerMicroPrecision':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'{i+1}-LayerPCPPrecision'] = float_val
-                if summary_value.tag == f'Validation/{i+1}-LayerPCPRecall':
+                        metric[f'{i+1}-LayerMicroPrecision'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerMicroRecall':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'{i+1}-LayerPCPRecall'] = float_val
-                if summary_value.tag == f'Validation/{i+1}-LayerPCPF1':
+                        metric[f'{i+1}-LayerMicroRecall'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerMicroF1':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'{i+1}-LayerPCPF1'] = float_val
-                if summary_value.tag == f'Validation/{i+1}-LayerPCPAUC':
+                        metric[f'{i+1}-LayerMicroF1'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerMicroAUC':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'{i+1}-LayerPCPAUC'] = float_val
-                if summary_value.tag == f'Validation/{i+1}-LayerPCPAUPRC':
+                        metric[f'{i+1}-LayerMicroAUC'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerMicroAUPRC':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'{i+1}-LayerPCPAUPRC'] = float_val
+                        metric[f'{i+1}-LayerMicroAUPRC'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPMacroPrecision':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPMacroPrecision'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPMacroRecall':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPMacroRecall'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPMacroF1':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPMacroF1'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPMacroAUC':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPMacroAUC'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPMacroAUPRC':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPMacroAUPRC'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPMicroPrecision':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPMicroPrecision'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPMicroRecall':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPMicroRecall'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPMicroF1':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPMicroF1'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPMicroAUC':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPMicroAUC'] = float_val
+                if summary_value.tag == f'Validation/{i+1}-LayerPCPMicroAUPRC':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'{i+1}-LayerPCPMicroAUPRC'] = float_val
                         
-            if summary_value.tag == 'Validation/PCPAverageAUC':
+            if summary_value.tag == 'Validation/PCPMacroAverageAUC':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
-                    metric['PCPAverageAUC'] = float_val
-            if summary_value.tag == 'Validation/PCPAveragePrecision':
+                    metric['PCPMacroAverageAUC'] = float_val
+            if summary_value.tag == 'Validation/PCPMacroAveragePrecision':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
-                    metric['PCPAveragePrecision'] = float_val
-            if summary_value.tag == 'Validation/PCPPrecision':
+                    metric['PCPMacroAveragePrecision'] = float_val
+            if summary_value.tag == 'Validation/PCPMacroPrecision':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
-                    metric['PCPPrecision'] = float_val
-            if summary_value.tag == 'Validation/PCPRecall':
+                    metric['PCPMacroPrecision'] = float_val
+            if summary_value.tag == 'Validation/PCPMacroRecall':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
-                    metric['PCPRecall'] = float_val
-            if summary_value.tag == 'Validation/PCPF1':
+                    metric['PCPMacroRecall'] = float_val
+            if summary_value.tag == 'Validation/PCPMacroF1':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
-                    metric['PCPF1'] = float_val
+                    metric['PCPMacroF1'] = float_val
+            if summary_value.tag == 'Validation/PCPMicroAverageAUC':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['PCPMicroAverageAUC'] = float_val
+            if summary_value.tag == 'Validation/PCPMicroAveragePrecision':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['PCPMicroAveragePrecision'] = float_val
+            if summary_value.tag == 'Validation/PCPMicroPrecision':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['PCPMicroPrecision'] = float_val
+            if summary_value.tag == 'Validation/PCPMicroRecall':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['PCPMicroRecall'] = float_val
+            if summary_value.tag == 'Validation/PCPMicroF1':
+                if hasattr(summary_value, 'tensor'):
+                    float_val = summary_value.tensor.float_val[0]
+                    metric['PCPMicroF1'] = float_val
             if summary_value.tag == 'Validation/PCPEMR':
                 if hasattr(summary_value, 'tensor'):
                     float_val = summary_value.tensor.float_val[0]
                     metric['PCPEMR'] = float_val
             for i in range(5):
-                if summary_value.tag == f'Validation/PCPPrecisionTopK/{i}':
+                if summary_value.tag == f'Validation/PCPMacroPrecisionTopK/{i}':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'PCPPrecisionTopK/{i+1}'] = float_val
-                if summary_value.tag == f'Validation/PCPRecallTopK/{i}':
+                        metric[f'PCPMacroPrecisionTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/PCPMacroRecallTopK/{i}':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'PCPRecallTopK/{i+1}'] = float_val
-                if summary_value.tag == f'Validation/PCPF1TopK/{i}':
+                        metric[f'PCPMacroRecallTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/PCPMacroF1TopK/{i}':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
-                        metric[f'PCPF1TopK/{i+1}'] = float_val
+                        metric[f'PCPMacroF1TopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/PCPMicroPrecisionTopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'PCPMicroPrecisionTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/PCPMicroRecallTopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'PCPMicroRecallTopK/{i+1}'] = float_val
+                if summary_value.tag == f'Validation/PCPMicroF1TopK/{i}':
+                    if hasattr(summary_value, 'tensor'):
+                        float_val = summary_value.tensor.float_val[0]
+                        metric[f'PCPMicroF1TopK/{i+1}'] = float_val
                 if summary_value.tag == f'Validation/PCPEMRTopK/{i}':
                     if hasattr(summary_value, 'tensor'):
                         float_val = summary_value.tensor.float_val[0]
                         metric[f'PCPEMRTopK/{i+1}'] = float_val
                         
+            
     return metric, model_config
                 
 def get_train_val_loss_from_event_file(event_file):

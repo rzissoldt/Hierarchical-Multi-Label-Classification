@@ -15,8 +15,8 @@ from torchvision import transforms
 from dataset.hierarchy_dataset import HierarchyDataset
      
 class HCapsNetDataset(HierarchyDataset):
-    def __init__(self, annotation_file_path, hierarchy_file_path, image_dir,target_shape,hierarchy_depth,image_count_threshold):
-        super(HCapsNetDataset,self).__init__(annotation_file_path, hierarchy_file_path, hierarchy_depth, image_dir, image_count_threshold)
+    def __init__(self, annotation_file_path, hierarchy_file_path, image_dir,target_shape, image_count_threshold=0,hierarchy_dicts_file_path=None,hierarchy_depth=-1):
+        super(HCapsNetDataset,self).__init__(annotation_file_path, hierarchy_file_path, hierarchy_depth, image_dir, image_count_threshold,hierarchy_dicts_file_path=hierarchy_dicts_file_path)
         self.target_shape = target_shape
         
     def __getitem__(self, idx):

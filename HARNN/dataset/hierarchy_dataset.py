@@ -13,24 +13,8 @@ import torch.multiprocessing
 #torch.multiprocessing.set_sharing_strategy('file_system')
 from torchvision import transforms
 class HierarchyDataset(Dataset):
-    def __init__(self, annotation_file_path, hierarchy_file_path, hierarchy_depth, image_dir,image_count_threshold):
+    def __init__(self, annotation_file_path, hierarchy_file_path, image_dir,image_count_threshold,hierarchy_dicts_file_path=None,hierarchy_depth=-1):
         super(HierarchyDataset, self).__init__()
-        with open(annotation_file_path,'r') as infile:
-            self.image_dict = json.load(infile)
-        self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
-        self.hierarchy_dicts = xtree.generate_dicts_per_level(root=self.hierarchy)
-        if hierarchy_depth == -1:
-            self.hierarchy_depth = len(self.hierarchy_dicts)
-        else:
-            self.hierarchy_depth = hierarchy_depth
-        self.image_dir = image_dir
-        self.image_count_threshold = image_count_threshold
-        self.hierarchy_depth = hierarchy_depth
-        self.layer_distribution_dict = None
-        self.global_hierarchy_dict = None
-        self.global_distribution_dict = None
-        self.initialize_distribution_dicts(self.hierarchy_dicts)
-        # Define the transformation pipeline for image preprocessing.
         self.train_transform = transforms.Compose([
             transforms.Resize((256, 256)),                    
             transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2), 
@@ -51,14 +35,29 @@ class HierarchyDataset(Dataset):
         ])
         self.is_training = True
         self.image_label_tuple_list = []
-        
-        self.filtered_hierarchy_dicts = self.filter_hierarchy_dicts_with_threshold()
-        if hierarchy_depth == -1:
-            self.hierarchy_depth = len(self.filtered_hierarchy_dicts)
+        self.image_dir = image_dir
+        self.image_count_threshold = image_count_threshold
+        self.hierarchy_depth = hierarchy_depth
+        self.layer_distribution_dict = None
+        self.global_hierarchy_dict = None
+        self.global_distribution_dict = None
+        with open(annotation_file_path,'r') as infile:
+            self.image_dict = json.load(infile)
+        if hierarchy_dicts_file_path is None:
+            if hierarchy_file_path is None:
+                print('Hierarchy file path and HierarchyDicts file path is None. Not valid!')
+                return
+            self.load_hierarchy_dicts(hierarchy_file_path=hierarchy_file_path, hierarchy_depth=hierarchy_depth)
+            hierarchy_dicts_path = os.path.join(self.path_to_results,self.dataset_name+'_'+str(self.image_count_threshold))
+            os.makedirs(hierarchy_dicts_path, exist_ok=True)
+            with open(os.path.join(hierarchy_dicts_path,'filtered_hierarchy_dicts.json'), 'w') as outfile:
+                json.dump(self.filtered_hierarchy_dicts, outfile)
         else:
-            self.hierarchy_depth = hierarchy_depth
+            self.load_hierarchy_dicts_from_file(hierarchy_dicts_file_path=hierarchy_dicts_file_path,hierarchy_file_path=hierarchy_file_path,hierarchy_depth=hierarchy_depth)
+        # Define the transformation pipeline for image preprocessing.
         
-        self.initialize_distribution_dicts(self.filtered_hierarchy_dicts)
+        
+        
         for file_name in self.image_dict.keys():
             data_tuple = []
             labels = self.image_dict[file_name]        
@@ -82,6 +81,36 @@ class HierarchyDataset(Dataset):
         print('Dataset Size:',sum([image_count for image_count in self.layer_distribution_dict[0].values()]))
         print('Num Classes List:',self.num_classes_list)
         print('Total Class Num',self.total_class_num)
+    
+    def load_hierarchy_dicts(self,hierarchy_file_path,hierarchy_depth):
+        self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
+        self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
+        if hierarchy_depth == -1:
+            self.hierarchy_depth = len(self.hierarchy_dicts)
+        else:
+            self.hierarchy_depth = hierarchy_depth
+        
+        
+        self.initialize_distribution_dicts(self.hierarchy_dicts)
+        self.filtered_hierarchy_dicts = self.filter_hierarchy_dicts_with_threshold()
+        
+        self.initialize_distribution_dicts(self.filtered_hierarchy_dicts)
+        if hierarchy_depth == -1:
+            self.hierarchy_depth = len(self.filtered_hierarchy_dicts)
+        else:
+            self.hierarchy_depth = hierarchy_depth
+        self.eval_distribution_dicts()
+    
+    def load_hierarchy_dicts_from_file(self,hierarchy_dicts_file_path,hierarchy_file_path,hierarchy_depth):
+        self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
+        with open(hierarchy_dicts_file_path,'r') as infile:
+            self.filtered_hierarchy_dicts = json.load(infile)
+        if hierarchy_depth == -1:
+            self.hierarchy_depth = len(self.filtered_hierarchy_dicts)
+        else:
+            self.hierarchy_depth = hierarchy_depth
+        self.initialize_distribution_dicts(self.filtered_hierarchy_dicts)
+        self.eval_distribution_dicts()
     def initialize_distribution_dicts(self,hierarchy_dicts):
         self.layer_distribution_dict = []
         self.global_hierarchy_dict = {}

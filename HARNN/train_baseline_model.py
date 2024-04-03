@@ -43,14 +43,14 @@ def train_baseline_model(args):
     
      # Create Training and Validation Dataset
     training_dataset = BaselineDataset(args.train_file, args.hierarchy_file,args.hierarchy_depth,image_dir=image_dir,image_count_threshold=args.image_count_threshold)
-    print('Trainset Size:',len(training_dataset))
+    
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.hyperparameter_search:
         path_to_model = f'runs/hyperparameter_search_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_image_count_threshold_{args.image_count_threshold}_baseline_model/baseline_model_{timestamp}'
     else:
         path_to_model = f'runs/baseline_model_{args.dataset_name}_hierarchy_depth_{args.hierarchy_depth}_image_count_threshold_{args.image_count_threshold}_{timestamp}'
     hierarchy_dicts = training_dataset.filtered_hierarchy_dicts
-    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
+    num_classes_list = training_dataset.num_classes_list
     explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
     
     total_class_num = sum(num_classes_list)

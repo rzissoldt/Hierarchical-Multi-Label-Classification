@@ -8,7 +8,7 @@ from utils import data_helpers as dh
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-class CHMCNNTester():
+class BaselineTester():
     def __init__(self,model,num_classes_list,test_dataset,explicit_hierarchy,path_to_results,args,device=None):
         self.model = model
         self.device = device
@@ -42,7 +42,7 @@ class CHMCNNTester():
                 output = self.best_model(inputs.float())
                 scores_list.extend(output)
                 labels_list.extend(labels) 
-        metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy.to('cpu').numpy(),pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device)
+        metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy.to('cpu').numpy(),pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device,eval_pcp=True)
         # Save Metrics in Summarywriter.
         for key,value in metrics_dict.items():
             self.tb_writer.add_scalar(key,value,0)

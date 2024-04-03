@@ -36,7 +36,12 @@ def test_chmcnn(args):
     
     # Checks if GPU Support ist active
     device = torch.device("cuda") if args.gpu else torch.device("cpu")
-   
+    image_dir = args.image_dir
+    
+    # Create Training and Validation Dataset
+    test_dataset = CHMCNNDataset(args.test_file, args.hierarchy_file,image_dir,hierarchy_dicts_file_path=args.hierarchy_dicts_file)
+    test_dataset.is_training = False
+    
     # Evaluate best model.
     best_model_file_path, best_model_config = analyze_summarywriter_dir(args.hyperparameter_dir)
     best_model_file_name = os.path.basename(best_model_file_path)
@@ -46,13 +51,12 @@ def test_chmcnn(args):
 
      
     # Load Input Data
-    hierarchy = xtree.load_xtree_json(args.hierarchy_file)
-    hierarchy_dicts = xtree.generate_dicts_per_level(hierarchy)
+    hierarchy_dicts = test_dataset.filtered_hierarchy_dicts
     num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
-    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy)).to(device=device)
+    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
     
     
-    image_dir = args.image_dir
+    
     total_class_num = sum(num_classes_list)
     
     
@@ -67,9 +71,7 @@ def test_chmcnn(args):
     best_checkpoint = torch.load(best_model_file_path)
     model.load_state_dict(best_checkpoint)
         
-    # Create Training and Validation Dataset
-    test_dataset = CHMCNNDataset(args.test_file, args.hierarchy_file,image_dir)
-    test_dataset.is_training = False
+    
     
         
     # Define Trainer for HmcNet
@@ -78,7 +80,5 @@ def test_chmcnn(args):
     tester.test()
 if __name__ == '__main__':
     args = parser.chmcnn_parameter_parser()
-    if not args.hyperparameter_search:
-        # Normal Trainingloop with specific args.
-        test_chmcnn(args=args)
+    test_chmcnn(args=args)
     
