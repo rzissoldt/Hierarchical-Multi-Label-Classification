@@ -64,7 +64,7 @@ class CHMCNNTrainer():
             
             # End Training if Max Epoch is reached
             if epoch == self.args.epochs-1:
-                if avg_validation_loss > best_vloss:
+                if avg_validation_loss < best_vloss:
                     best_epoch = epoch+1
                     self.best_model = copy.deepcopy(self.model)
                     best_vloss = avg_validation_loss
@@ -74,7 +74,7 @@ class CHMCNNTrainer():
             if epoch % self.args.decay_steps == self.args.decay_steps-1:
                 self.scheduler.step()
             # Track best performance, and save the model's state
-            if avg_validation_loss > best_vloss:
+            if avg_validation_loss < best_vloss:
                 best_epoch = epoch+1
                 self.best_model = copy.deepcopy(self.model)
                 best_vloss = avg_validation_loss
