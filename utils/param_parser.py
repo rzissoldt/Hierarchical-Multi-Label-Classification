@@ -404,3 +404,10 @@ def dataset_analyzer_parser():
     parser.add_argument("--image-count-threshold",  type=int, default=1000, help="Image count threshold for Hierarchy.")
     parser.add_argument("--path-to-results", nargs="?", default="../data/Train_sample.json", help="Path to analyze results.")
     return parser.parse_args()
+
+
+def evaluator_parser():
+    parser = argparse.ArgumentParser(description="Run Evaluator.")
+    parser.add_argument("--model-dir", nargs="?", default="", help="Hyperparameter model dir.")
+    
+    return parser.parse_args()

@@ -17,32 +17,32 @@ def analyze_summarywriter_dir(dir):
     model_dirs = get_subdirectories(dir)
     
     best_model_index = 0
-    best_auprc_score = 0.
+    best_hf1_score = 0.
     best_model_config= None
     model_list = []
     for i in range(len(model_dirs)):
         model_dir = model_dirs[i]
         model_metric, model_config = get_metric_from_dir(model_dir)
-        if 'AveragePrecision' in model_metric:
-            if model_metric['AveragePrecision'] > best_auprc_score:
-                best_auprc_score = model_metric['AveragePrecision']
+        if 'HierarchicalF1' in model_metric:
+            if model_metric['HierarchicalF1'] > best_hf1_score:
+                best_hf1_score = model_metric['HierarchicalF1']
                 model_list.append(
                     {
                         'model_dir':model_dir,
-                        'average_precision':model_metric['AveragePrecision']
+                        'hierarchical_f1':model_metric['HierarchicalF1']
                     }
                 )
                 best_model_index = i
 
     # Sort the list of dictionaries based on the 'age' key in descending order
-    sorted_list = sorted(model_list, key=lambda x: x['average_precision'], reverse=True)
+    sorted_list = sorted(model_list, key=lambda x: x['HierarchicalF1'], reverse=True)
     best_model_dir = model_dirs[best_model_index]
     print('Best model dir:',best_model_dir)
     with open(os.path.join(best_model_dir,'model_config.json')) as infile:
         best_model_config = SimpleNamespace(**json.load(infile))
     print("Top 5 Models:", sorted_list[:5])
     print(f'Model Config:{best_model_config} from {best_model_dir}')
-    print(f'Best AveragePrecision Score was {best_auprc_score}')
+    print(f'Best HierarchicalF1-Score was {best_hf1_score}')
     best_model_file_path = os.path.join(best_model_dir,'models',os.listdir(os.path.join(best_model_dir,'models'))[0])
     print('Best Model file path:', best_model_file_path)
     return best_model_file_path, best_model_config
@@ -405,7 +405,7 @@ def plot_train_val_loss_from_event_file(event_file):
 
 if __name__ == '__main__':
     args = parser.evaluator_parser()
-    analyze_summarywriter_dir(model_dir)
+    analyze_summarywriter_dir(args.model_dir)
         
         
     
