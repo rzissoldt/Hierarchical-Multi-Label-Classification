@@ -39,7 +39,7 @@ def test_baseline_model(args):
     image_dir = args.image_dir
     
     # Create Testdataset
-    test_dataset = BaselineDataset(annotation_file_path=args.test_file, hierarchy_file_path=args.hierarchy_file,image_dir=image_dir, hierarchy_dicts_file=args.hierarchy_dicts_file)
+    test_dataset = BaselineDataset(annotation_file_path=args.test_file, hierarchy_file_path=args.hierarchy_file,image_dir=image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file)
     test_dataset.is_training = False
     
     # Evaluate best model.
