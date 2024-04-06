@@ -38,14 +38,16 @@ def test_baseline_model(args):
     device = torch.device("cuda") if args.gpu else torch.device("cpu")
     image_dir = args.image_dir
     
-    # Create Testdataset
-    test_dataset = BaselineDataset(annotation_file_path=args.test_file, hierarchy_file_path=args.hierarchy_file,image_dir=image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file)
-    test_dataset.is_training = False
-    
     # Evaluate best model.
     best_model_file_path, best_model_config = analyze_summarywriter_dir(args.hyperparameter_dir)
     best_model_file_name = os.path.basename(best_model_file_path)
     os.makedirs(args.path_to_results)
+    
+    # Create Testdataset
+    test_dataset = BaselineDataset(annotation_file_path=args.test_file,path_to_model=best_model_file_path, hierarchy_file_path=args.hierarchy_file,image_dir=image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file)
+    test_dataset.is_training = False
+    
+    
     # Split the filename using '_' as the delimiter
     parts = best_model_file_name.split('_')
     
