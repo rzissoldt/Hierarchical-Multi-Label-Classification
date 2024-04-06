@@ -36,7 +36,7 @@ def analyze_summarywriter_dir(dir):
                 print(best_hf1_score)
 
     # Sort the list of dictionaries based on the 'age' key in descending order
-    sorted_list = sorted(model_list, key=lambda x: x['HierarchicalF1'], reverse=True)
+    sorted_list = sorted(model_list, key=lambda x: x['hierarchical_f1'], reverse=True)
     best_model_dir = model_dirs[best_model_index]
     print('Best model dir:',best_model_dir)
     with open(os.path.join(best_model_dir,'model_config.json')) as infile:
