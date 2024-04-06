@@ -42,9 +42,14 @@ def test_baseline_model(args):
     best_model_file_path, best_model_config = analyze_summarywriter_dir(args.hyperparameter_dir)
     best_model_file_name = os.path.basename(best_model_file_path)
     os.makedirs(args.path_to_results)
-    
+    # Split the path by "/"
+    path_parts = best_model_file_path.split("/")
+
+    # Navigate two folders upwards
+    path_to_model = "/".join(path_parts[:-3])
+    print(path_to_model)
     # Create Testdataset
-    test_dataset = BaselineDataset(annotation_file_path=args.test_file,path_to_model=best_model_file_path, hierarchy_file_path=args.hierarchy_file,image_dir=image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file)
+    test_dataset = BaselineDataset(annotation_file_path=args.test_file,path_to_model=path_to_model, hierarchy_file_path=args.hierarchy_file,image_dir=image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file)
     test_dataset.is_training = False
     
     
