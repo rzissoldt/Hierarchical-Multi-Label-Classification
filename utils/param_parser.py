@@ -128,6 +128,7 @@ def baseline_parameter_parser():
     parser.add_argument("--train-file", nargs="?", default="../data/Train_sample.json", help="Training data.")
     parser.add_argument("--test-file", nargs="?", default="../data/Test_sample.json", help="Testing data.")
     parser.add_argument("--hierarchy-file", nargs="?", default="../data/image_harnn/bauwerke", help="Hierarchy data.")
+    parser.add_argument("--hierarchy-dicts-file", nargs="?", default="../data/image_harnn/bauwerke", help="Hierarchy Dicts data.")
     parser.add_argument("--image-count-threshold",  type=int, default=1000, help="Image count threshold for Hierarchy.")
     parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
     parser.add_argument("--hierarchy-depth", type=int,default=-1, help="Defines hierarchy depth.")
