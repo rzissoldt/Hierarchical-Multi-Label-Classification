@@ -41,7 +41,7 @@ def test_baseline_model(args):
     # Evaluate best model.
     best_model_file_path, best_model_config = analyze_summarywriter_dir(args.hyperparameter_dir)
     best_model_file_name = os.path.basename(best_model_file_path)
-    os.makedirs(args.path_to_results)
+    os.makedirs(args.path_to_results,exist_ok=True)
     # Split the path by "/"
     path_parts = best_model_file_path.split("/")
 
