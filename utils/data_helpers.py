@@ -425,7 +425,7 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
     eval_macro_auprc = macro_auprc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
     eval_micro_auc = micro_auroc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
     eval_micro_auprc = micro_auprc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
-    #eval_hierarchical_auprc = hierarchical_average_precision(scores=scores_np,true_labels=true_onehot_labels,matrix=pcp_hierarchy,thresholds=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9])
+    #eval_hierarchical_auprc = hierarchical_average_precision(scores=scores_np,true_labels=true_onehot_labels,matrix=pcp_hierarchy,thresholds=[0.3,0.5,0.7])
     metric_dict['Validation/MacroAverageAUC'] = eval_macro_auc
     metric_dict['Validation/MacroAveragePrecision'] = eval_macro_auprc
     metric_dict['Validation/MicroAverageAUC'] = eval_micro_auc
