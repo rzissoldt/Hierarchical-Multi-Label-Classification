@@ -33,6 +33,7 @@ def analyze_summarywriter_dir(dir):
                     }
                 )
                 best_model_index = i
+                print(best_hf1_score)
 
     # Sort the list of dictionaries based on the 'age' key in descending order
     sorted_list = sorted(model_list, key=lambda x: x['HierarchicalF1'], reverse=True)
