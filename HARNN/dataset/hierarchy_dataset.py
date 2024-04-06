@@ -135,7 +135,7 @@ class HierarchyDataset(Dataset):
             self.layer_distribution_dict.append(layer_dict)
             
         counter = 0
-        for hierarchy_dict in self.hierarchy_dicts:
+        for hierarchy_dict in hierarchy_dicts:
             for key in hierarchy_dict:
                 self.global_hierarchy_dict[key] = counter
                 self.global_distribution_dict[counter] = 0
