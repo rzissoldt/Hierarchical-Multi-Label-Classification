@@ -57,8 +57,8 @@ class HierarchyDataset(Dataset):
             self.load_hierarchy_dicts_from_file(hierarchy_dicts_file_path=hierarchy_dicts_file_path,hierarchy_file_path=hierarchy_file_path,hierarchy_depth=hierarchy_depth)
         # Define the transformation pipeline for image preprocessing.
         
-        
-        self.num_classes_list = [len(list(hierarchy_dict)) for hierarchy_dict in self.filtered_hierarchy_dicts][:self.hierarchy_depth]
+        self.filtered_hierarchy_dicts = self.filtered_hierarchy_dicts[:self.hierarchy_depth]
+        self.num_classes_list = [len(list(hierarchy_dict)) for hierarchy_dict in self.filtered_hierarchy_dicts]
         self.total_class_num = sum(self.num_classes_list)
         for file_name in self.image_dict.keys():
             data_tuple = []
