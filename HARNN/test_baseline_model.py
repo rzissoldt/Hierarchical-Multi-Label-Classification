@@ -40,23 +40,18 @@ def test_baseline_model(args):
     
     # Evaluate best model.
     best_model_file_path, best_model_config = analyze_summarywriter_dir(args.hyperparameter_dir)
-    best_model_file_name = os.path.basename(best_model_file_path)
+    
     os.makedirs(args.path_to_results,exist_ok=True)
     # Split the path by "/"
     path_parts = best_model_file_path.split("/")
 
     # Navigate two folders upwards
     path_to_model = "/".join(path_parts[:-3])
-    print(path_to_model)
+    
     # Create Testdataset
     test_dataset = BaselineDataset(annotation_file_path=args.test_file,path_to_model=path_to_model, hierarchy_file_path=args.hierarchy_file,image_dir=image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file)
     test_dataset.is_training = False
-    
-    
-    # Split the filename using '_' as the delimiter
-    parts = best_model_file_name.split('_')
-    
-     
+        
     # Load Input Data
     hierarchy_dicts = test_dataset.filtered_hierarchy_dicts
     num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
