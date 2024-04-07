@@ -129,7 +129,7 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     plt.xticks(rotation=45)
     
     # Save the plot
-    plot_file_path = os.path.join(output_path, f'{metric_key}_level{level+1}.png')
+    plot_file_path = os.path.join(output_path,f'level{level+1}',f'{metric_key}_level{level+1}.png')
     plt.tight_layout()  # Adjust layout for better visualization
     plt.savefig(plot_file_path)
     plt.close()
