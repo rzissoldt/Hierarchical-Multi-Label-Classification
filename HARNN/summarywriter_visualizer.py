@@ -151,8 +151,8 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
 
     # Plotting
     fig, ax = plt.subplots(figsize=(10, 6))
-    bar_width = 0.8 / num_models  # Adjusted width per number of models
-    index = np.arange(num_models)
+    bar_width = 1.0  # Adjusted width to ensure bars touch each other
+    index = np.arange(num_models) - bar_width / 2  # Adjusted index to position bars
     cmap = plt.cm.viridis
     colors = cmap(np.linspace(0, 1, num_models))
     
@@ -162,7 +162,7 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     ax.set_title('Metrics per Hierarchy Level')
     ax.set_xlabel('Models')
     ax.set_ylabel(metric_key)
-    ax.set_xticks(index)
+    ax.set_xticks(np.arange(num_models))
     ax.set_xticklabels(model_names, rotation=45, ha='right')
 
     # Create directory for the plot if it doesn't exist
