@@ -178,17 +178,17 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
 def save_hierarchy_metric_plot(hierarchy_level_metrics,metric_key,hierarchy_depth,output_path):
     # Sample data (replace with your actual data)
     data = {
-        'Model': list(hierarchy_level_metrics.keys()),
+        'Hierarchy_Level': [f'Level-{i+1}' for i in range(hierarchy_depth)],
         
     }
     
-    
-    for i in range(hierarchy_depth):
+    for model_name in hierarchy_level_metrics.keys():
         temp_metric_list = []
-        for model_name in hierarchy_level_metrics.keys():
+        for i in range(hierarchy_depth): 
             metric_dict = hierarchy_level_metrics[model_name]
             temp_metric_list.append(metric_dict[metric_key][i])
-        data[f'Hierarchy_Level_{i}'] = temp_metric_list
+        data[f'{model_name}'] = temp_metric_list
+    
         
     # Convert data to pandas DataFrame
     df = pd.DataFrame(data)
