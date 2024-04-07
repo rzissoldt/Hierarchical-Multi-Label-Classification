@@ -119,9 +119,10 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     # Set 'Model' column as index
     df.set_index('Model', inplace=True)
     
-    # Define color for each bar
+    # Define color for each bar using a dynamic color gradient
     num_models = len(df)
-    colors = plt.cm.tab10.colors[:num_models]
+    cmap = plt.cm.viridis
+    colors = cmap(np.linspace(0, 1, num_models))
     
     # Plotting
     ax = df.plot(kind='bar', width=0.9, color=colors, legend=False)
@@ -139,7 +140,6 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     plt.tight_layout()  # Adjust layout for better visualization
     plt.savefig(plot_file_path)
     plt.close()
-
 
 def visualize_test_results(args):
     if len(args.result_model_dirs) != len(args.model_names):
