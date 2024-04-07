@@ -151,7 +151,7 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
 
     # Plotting
     fig, ax = plt.subplots(figsize=(10, 6))
-    bar_width = 0.35
+    bar_width = 0.8 / num_models  # Adjusted width per number of models
     index = np.arange(num_models)
     cmap = plt.cm.viridis
     colors = cmap(np.linspace(0, 1, num_models))
