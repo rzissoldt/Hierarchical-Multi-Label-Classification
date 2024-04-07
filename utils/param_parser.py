@@ -419,6 +419,6 @@ def evaluator_parser():
     parser = argparse.ArgumentParser(description="Run Evaluator.")
     parser.add_argument("--result-model-dirs", nargs="+", default=[], help="Result model dirs.")
     parser.add_argument("--model-names", nargs="+", default=[], help="Result model names.")
-    parser.add_argument("--output-dir", nargs="+", default=[], help="Plot output dir.")
+    parser.add_argument("--output-dir", nargs="?", default='', help="Plot output dir.")
     parser.add_argument("--hierarchy-depth", type=int,default=5, help="Hierarchy depth.")
     return parser.parse_args()
