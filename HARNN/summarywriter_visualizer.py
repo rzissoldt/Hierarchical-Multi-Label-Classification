@@ -101,13 +101,6 @@ def get_level_metrics_from_event_file(event_file_path,hierarchy_depth):
     }         
     return metrics
 
-import pandas as pd
-import matplotlib.pyplot as plt
-import os
-
-import pandas as pd
-import matplotlib.pyplot as plt
-import os
 
 def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level, output_path):
     temp_metric_list = []
