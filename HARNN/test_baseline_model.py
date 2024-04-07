@@ -53,8 +53,8 @@ def test_baseline_model(args):
     test_dataset.is_training = False
         
     # Load Input Data
-    hierarchy_dicts = test_dataset.filtered_hierarchy_dicts
-    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
+    hierarchy_dicts = test_dataset.filtered_hierarchy_dicts[:best_model_config.hierarchy_depth]
+    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)[:best_model_config.hierarchy_depth]
     explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
     
     
