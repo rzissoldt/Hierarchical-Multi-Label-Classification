@@ -48,7 +48,7 @@ def test_chmcnn(args):
     # Navigate two folders upwards
     path_to_model = "/".join(path_parts[:-3])
     # Create Training and Validation Dataset
-    test_dataset = CHMCNNDataset(annotation_file_path=args.test_file, path_to_model=path_to_model,hierarchy_file_path=args.hierarchy_file,image_dir=image_dir,hierarchy_dicts_file_path=args.hierarchy_dicts_file,hierarchy_depth=best_model_config.hierarchy_dpeth)
+    test_dataset = CHMCNNDataset(annotation_file_path=args.test_file, path_to_model=path_to_model,hierarchy_file_path=args.hierarchy_file,image_dir=image_dir,hierarchy_dicts_file_path=args.hierarchy_dicts_file,hierarchy_depth=best_model_config.hierarchy_depth)
     test_dataset.is_training = False
     
     

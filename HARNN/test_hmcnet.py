@@ -49,7 +49,7 @@ def test_hmcnet(args):
     # Navigate two folders upwards
     path_to_model = "/".join(path_parts[:-3])
     # Create Training and Validation Dataset
-    test_dataset = HmcNetDataset(annotation_file_path=args.test_file,hierarchy_file_path=args.hierarchy_file,image_dir=image_dir,path_to_model=path_to_model,hierarchy_dicts_file_path=args.hierarchy_dicts_file,hierarchy_depth=best_model_config.hierarchy_dpeth)
+    test_dataset = HmcNetDataset(annotation_file_path=args.test_file,hierarchy_file_path=args.hierarchy_file,image_dir=image_dir,path_to_model=path_to_model,hierarchy_dicts_file_path=args.hierarchy_dicts_file,hierarchy_depth=best_model_config.hierarchy_depth)
     test_dataset.is_training = False
     
    

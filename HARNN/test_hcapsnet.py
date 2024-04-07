@@ -46,7 +46,7 @@ def test_hcapsnet(args):
     # Navigate two folders upwards
     path_to_model = "/".join(path_parts[:-3])
     # Create Training and Validation Dataset
-    test_dataset = HCapsNetDataset(annotation_file_path=args.test_file, hierarchy_file_path=args.hierarchy_file,path_to_model=path_to_model,image_dir=image_dir,target_shape=best_model_config.target_shape,hierarchy_dicts_file_path=args.hierarchy_dicts_file)
+    test_dataset = HCapsNetDataset(annotation_file_path=args.test_file, hierarchy_file_path=args.hierarchy_file,path_to_model=path_to_model,image_dir=image_dir,target_shape=best_model_config.target_shape,hierarchy_dicts_file_path=args.hierarchy_dicts_file,hierarchy_depth=best_model_config.hierarchy_depth)
     test_dataset.is_training = False
     
     
