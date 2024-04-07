@@ -175,11 +175,10 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     plt.savefig(plot_file_path)
     plt.close()
 
-def save_hierarchy_metric_plot(hierarchy_level_metrics,metric_key,hierarchy_depth,plot_name,output_path):
+def save_hierarchy_metric_plot(hierarchy_level_metrics, metric_key, hierarchy_depth, plot_name, output_path):
     # Sample data (replace with your actual data)
     data = {
         'Hierarchy_Level': [f'Level-{i+1}' for i in range(hierarchy_depth)],
-        
     }
     
     for model_name in hierarchy_level_metrics.keys():
@@ -189,7 +188,6 @@ def save_hierarchy_metric_plot(hierarchy_level_metrics,metric_key,hierarchy_dept
             temp_metric_list.append(metric_dict[metric_key][i])
         data[f'{model_name}'] = temp_metric_list
     
-        
     # Convert data to pandas DataFrame
     df = pd.DataFrame(data)
 
@@ -197,12 +195,15 @@ def save_hierarchy_metric_plot(hierarchy_level_metrics,metric_key,hierarchy_dept
     df.set_index('Hierarchy_Level', inplace=True)
 
     # Plotting
-    df.plot(kind='bar')
-    plt.title(f'{metric_key} für {plot_name}',fontsize=10)
+    ax = df.plot(kind='bar')
+    plt.title(f'{metric_key} für {plot_name}', fontsize=10)
     plt.xlabel('Models')
     plt.ylabel(metric_key)
     plt.xticks(rotation=45)
+    
+    # Move legend outside the plot
     plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
     # Create directory for the plot if it doesn't exist
     plot_dir = os.path.join(output_path)
     os.makedirs(plot_dir, exist_ok=True)
@@ -211,7 +212,7 @@ def save_hierarchy_metric_plot(hierarchy_level_metrics,metric_key,hierarchy_dept
     plot_file_path = os.path.join(plot_dir, f'{metric_key}.png')
     
     # Save the figure
-    plt.savefig(plot_file_path)
+    plt.savefig(plot_file_path, bbox_inches='tight')
 
     # Show the plot
     plt.close()
