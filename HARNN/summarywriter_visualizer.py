@@ -151,19 +151,19 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
 
     # Plotting
     fig, ax = plt.subplots(figsize=(10, 6))
-    bar_width = 1.0  # Adjusted width to ensure bars touch each other
-    index = np.arange(num_models) - bar_width / 2  # Adjusted index to position bars
+    bar_width = 0.5  # Adjusted width to make bars half the width
+    index = np.arange(num_models)  # Positions of the bars
     cmap = plt.cm.viridis
     colors = cmap(np.linspace(0, 1, num_models))
     
-    ax.bar(index, temp_metric_list, bar_width, color=colors)
+    ax.bar(index, temp_metric_list, bar_width, color=colors, align='edge')
     
     # Customize plot
     ax.set_title('Metrics per Hierarchy Level')
     ax.set_xlabel('Models')
     ax.set_ylabel(metric_key)
-    ax.set_xticks(np.arange(num_models))
-    ax.set_xticklabels(model_names, rotation=45, ha='right')
+    ax.set_xticks(index + bar_width / 2)  # Positions of the model names
+    ax.set_xticklabels(model_names, rotation=45, ha='right', fontsize=8)  # Labels under the center of bars
 
     # Create directory for the plot if it doesn't exist
     plot_dir = os.path.join(output_path, f'level{level+1}')
