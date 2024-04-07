@@ -197,7 +197,7 @@ def save_hierarchy_metric_plot(hierarchy_level_metrics, metric_key, hierarchy_de
     # Plotting
     ax = df.plot(kind='bar')
     plt.title(f'{metric_key} für {plot_name}', fontsize=10)
-    plt.xlabel('Models')
+    plt.xlabel('Hierarchy Level')
     plt.ylabel(metric_key)
     plt.xticks(rotation=45)
     
