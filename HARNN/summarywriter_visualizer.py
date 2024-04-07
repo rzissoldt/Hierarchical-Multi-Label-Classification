@@ -125,9 +125,9 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics,metric_key,level,ou
     plt.xlabel('Models')
     plt.ylabel(f'{metric_key}')
     plt.xticks(rotation=45)
-    plot_file_path = os.path.join(output_path,f'{metric_key}.png')
+    plot_file_path = os.path.join(output_path,f'{metric_key}_{level+1}.png')
     plt.savefig(plot_file_path)
-    
+    plt.close()
 def visualize_test_results(args):
     if len(args.result_model_dirs) != len(args.model_names):
         print('Model dirs list and model names list must have same size!')
