@@ -101,7 +101,7 @@ def get_level_metrics_from_event_file(event_file_path,hierarchy_depth):
     }         
     return metrics
 
-
+"""
 def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level, output_path):
     temp_metric_list = []
     for model_name in hierarchy_level_metrics.keys():
@@ -140,7 +140,41 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     plt.tight_layout()  # Adjust layout for better visualization
     plt.savefig(plot_file_path)
     plt.close()
+    """
+def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level, output_path):
+    temp_metric_list = []
+    model_names = list(hierarchy_level_metrics.keys())
+    num_models = len(model_names)
+    for model_name in model_names:
+        metric_dict = hierarchy_level_metrics[model_name]
+        temp_metric_list.append(metric_dict[metric_key][level])
 
+    # Plotting
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bar_width = 0.35
+    index = np.arange(num_models)
+    cmap = plt.cm.viridis
+    colors = cmap(np.linspace(0, 1, num_models))
+    
+    ax.bar(index, temp_metric_list, bar_width, color=colors)
+    
+    # Customize plot
+    ax.set_title('Metrics per Hierarchy Level')
+    ax.set_xlabel('Models')
+    ax.set_ylabel(metric_key)
+    ax.set_xticks(index)
+    ax.set_xticklabels(model_names, rotation=45, ha='right')
+
+    # Create directory for the plot if it doesn't exist
+    plot_dir = os.path.join(output_path, f'level{level+1}')
+    os.makedirs(plot_dir, exist_ok=True)
+    
+    # Save the plot
+    plot_file_path = os.path.join(plot_dir, f'{metric_key}_level{level+1}.png')
+    plt.tight_layout()  # Adjust layout for better visualization
+    plt.savefig(plot_file_path)
+    plt.close()
+    
 def visualize_test_results(args):
     if len(args.result_model_dirs) != len(args.model_names):
         print('Model dirs list and model names list must have same size!')
