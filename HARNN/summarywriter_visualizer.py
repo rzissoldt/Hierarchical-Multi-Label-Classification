@@ -105,6 +105,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
+import pandas as pd
+import matplotlib.pyplot as plt
+import os
+
 def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level, output_path):
     temp_metric_list = []
     for model_name in hierarchy_level_metrics.keys():
@@ -122,11 +126,12 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     # Set 'Model' column as index
     df.set_index('Model', inplace=True)
     
-    # Define color palette for bars
-    colors = plt.cm.tab10.colors
+    # Define color for each bar
+    num_models = len(df)
+    colors = plt.cm.tab10.colors[:num_models]
     
     # Plotting
-    ax = df.plot(kind='bar', width=0.8, color=colors, legend=False)
+    ax = df.plot(kind='bar', width=0.9, color=colors, legend=False)
     plt.title('Metrics per Hierarchy Level')
     plt.xlabel('Models')
     plt.ylabel(f'{metric_key}')
@@ -141,6 +146,7 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     plt.tight_layout()  # Adjust layout for better visualization
     plt.savefig(plot_file_path)
     plt.close()
+
 
 def visualize_test_results(args):
     if len(args.result_model_dirs) != len(args.model_names):
