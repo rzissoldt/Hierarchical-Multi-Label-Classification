@@ -40,15 +40,17 @@ def test_hcapsnet(args):
     
     # Evaluate best model.
     best_model_file_path, best_model_config = analyze_summarywriter_dir(args.hyperparameter_dir)
-    best_model_file_name = os.path.basename(best_model_file_path)
-    # Split the filename using '_' as the delimiter
-    parts = best_model_file_name.split('_')
+    # Split the path by "/"
+    path_parts = best_model_file_path.split("/")
+
+    # Navigate two folders upwards
+    path_to_model = "/".join(path_parts[:-3])
     # Create Training and Validation Dataset
-    test_dataset = HCapsNetDataset(args.test_file, args.hierarchy_file,image_dir,target_shape=best_model_config.target_shape,hierarchy_dicts_file_path=args.hierarchy_dicts_file)
+    test_dataset = HCapsNetDataset(annotation_file_path=args.test_file, hierarchy_file_path=args.hierarchy_file,path_to_model=path_to_model,image_dir=image_dir,target_shape=best_model_config.target_shape,hierarchy_dicts_file_path=args.hierarchy_dicts_file)
     test_dataset.is_training = False
     
     
-    os.makedirs(args.path_to_results)
+    os.makedirs(args.path_to_results,exist_ok=True)
     
 
      
