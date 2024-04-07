@@ -122,7 +122,7 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     # Define color for each bar using a dynamic color gradient
     num_models = len(df)
     cmap = plt.cm.viridis
-    colors = cmap(np.linspace(0, 1, num_models))
+    colors = ['red','yellow','blue']
     
     # Plotting
     ax = df.plot(kind='bar', width=0.9, color=colors, legend=False)
