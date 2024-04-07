@@ -101,6 +101,10 @@ def get_level_metrics_from_event_file(event_file_path,hierarchy_depth):
     }         
     return metrics
 
+import pandas as pd
+import matplotlib.pyplot as plt
+import os
+
 def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level, output_path):
     temp_metric_list = []
     for model_name in hierarchy_level_metrics.keys():
@@ -122,19 +126,22 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     colors = plt.cm.tab10.colors
     
     # Plotting
-    ax = df.plot(kind='bar', width=0.8, color=colors)
+    ax = df.plot(kind='bar', width=0.8, color=colors, legend=False)
     plt.title('Metrics per Hierarchy Level')
     plt.xlabel('Models')
     plt.ylabel(f'{metric_key}')
     plt.xticks(rotation=45)
     
+    # Create directory for the plot if it doesn't exist
+    plot_dir = os.path.join(output_path, f'level{level+1}')
+    os.makedirs(plot_dir, exist_ok=True)
+    
     # Save the plot
-    plot_dir = os.path.join(output_path,f'level{level+1}')
-    os.makedirs(plot_dir,exist_ok=True)
-    plot_file_path = os.path.join(plot_dir,f'{metric_key}_level{level+1}.png')
+    plot_file_path = os.path.join(plot_dir, f'{metric_key}_level{level+1}.png')
     plt.tight_layout()  # Adjust layout for better visualization
     plt.savefig(plot_file_path)
     plt.close()
+
 def visualize_test_results(args):
     if len(args.result_model_dirs) != len(args.model_names):
         print('Model dirs list and model names list must have same size!')
