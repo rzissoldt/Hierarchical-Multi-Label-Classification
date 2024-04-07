@@ -202,7 +202,7 @@ def save_hierarchy_metric_plot(hierarchy_level_metrics,metric_key,hierarchy_dept
     plt.xlabel('Models')
     plt.ylabel(metric_key)
     plt.xticks(rotation=45)
-
+    plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
     # Create directory for the plot if it doesn't exist
     plot_dir = os.path.join(output_path)
     os.makedirs(plot_dir, exist_ok=True)
