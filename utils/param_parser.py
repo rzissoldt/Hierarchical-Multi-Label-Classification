@@ -409,14 +409,14 @@ def dataset_analyzer_parser():
     parser.add_argument("--path-to-results", nargs="?", default="../data/Train_sample.json", help="Path to analyze results.")
     return parser.parse_args()
 
-def visualizer_parser():
-    parser = argparse.ArgumentParser(description="Run Visualizer.")
+def evaluator_parser():
+    parser = argparse.ArgumentParser(description="Run Evaluator.")
     parser.add_argument("--model-dir", nargs="?", default="", help="Hyperparameter model dir.")
     
     return parser.parse_args()
 
-def evaluator_parser():
-    parser = argparse.ArgumentParser(description="Run Evaluator.")
+def visualizer_parser():
+    parser = argparse.ArgumentParser(description="Run Visualizer.")
     parser.add_argument("--result-model-dirs", nargs="+", default=[], help="Result model dirs.")
     parser.add_argument("--model-names", nargs="+", default=[], help="Result model names.")
     parser.add_argument("--output-dir", nargs="?", default='', help="Plot output dir.")
