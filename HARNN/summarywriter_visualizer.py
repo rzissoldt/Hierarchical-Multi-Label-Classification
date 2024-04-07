@@ -101,7 +101,7 @@ def get_level_metrics_from_event_file(event_file_path,hierarchy_depth):
     }         
     return metrics
 
-def save_hierarchy_level_metric_plot(hierarchy_level_metrics,metric_key,level,output_path):
+def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level, output_path):
     temp_metric_list = []
     for model_name in hierarchy_level_metrics.keys():
         metric_dict = hierarchy_level_metrics[model_name]
@@ -110,7 +110,6 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics,metric_key,level,ou
     data = {
         'Model': list(hierarchy_level_metrics.keys()),
         f'Hierarchy_Level_{level+1}': temp_metric_list,
-        
     }
     
     # Convert data to pandas DataFrame
@@ -119,13 +118,19 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics,metric_key,level,ou
     # Set 'Model' column as index
     df.set_index('Model', inplace=True)
     
+    # Define color palette for bars
+    colors = plt.cm.tab10.colors
+    
     # Plotting
-    df.plot(kind='bar')
+    ax = df.plot(kind='bar', width=0.8, color=colors)
     plt.title('Metrics per Hierarchy Level')
     plt.xlabel('Models')
     plt.ylabel(f'{metric_key}')
     plt.xticks(rotation=45)
-    plot_file_path = os.path.join(output_path,f'{metric_key}_{level+1}.png')
+    
+    # Save the plot
+    plot_file_path = os.path.join(output_path, f'{metric_key}_level{level+1}.png')
+    plt.tight_layout()  # Adjust layout for better visualization
     plt.savefig(plot_file_path)
     plt.close()
 def visualize_test_results(args):
