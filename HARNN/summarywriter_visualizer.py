@@ -194,7 +194,7 @@ def save_hierarchy_metric_plot(hierarchy_level_metrics,metric_key,hierarchy_dept
     df = pd.DataFrame(data)
 
     # Set 'Model' column as index
-    df.set_index('Model', inplace=True)
+    df.set_index('Hierarchy_Level', inplace=True)
 
     # Plotting
     df.plot(kind='bar')
