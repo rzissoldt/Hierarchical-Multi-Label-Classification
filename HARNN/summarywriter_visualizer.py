@@ -174,7 +174,47 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     plt.tight_layout()  # Adjust layout for better visualization
     plt.savefig(plot_file_path)
     plt.close()
+
+def save_hierarchy_metric_plot(hierarchy_level_metrics,metric_key,hierarchy_depth,output_path):
+    # Sample data (replace with your actual data)
+    data = {
+        'Model': list(hierarchy_level_metrics.keys()),
+        
+    }
     
+    
+    for i in range(hierarchy_depth):
+        temp_metric_list = []
+        for model_name in hierarchy_level_metrics.keys():
+            metric_dict = hierarchy_level_metrics[model_name]
+            temp_metric_list.append(metric_dict[metric_key][i])
+        data[f'Hierarchy_Level_{i}'] = temp_metric_list
+        
+    # Convert data to pandas DataFrame
+    df = pd.DataFrame(data)
+
+    # Set 'Model' column as index
+    df.set_index('Model', inplace=True)
+
+    # Plotting
+    df.plot(kind='bar')
+    plt.title('Metrics per Hierarchy Level')
+    plt.xlabel('Models')
+    plt.ylabel(metric_key)
+    plt.xticks(rotation=45)
+
+    # Create directory for the plot if it doesn't exist
+    plot_dir = os.path.join(output_path)
+    os.makedirs(plot_dir, exist_ok=True)
+    
+    # Save the plot
+    plot_file_path = os.path.join(plot_dir, f'{metric_key}.png')
+    
+    # Save the figure
+    plt.savefig(plot_file_path)
+
+    # Show the plot
+    plt.close()
 def visualize_test_results(args):
     if len(args.result_model_dirs) != len(args.model_names):
         print('Model dirs list and model names list must have same size!')
@@ -200,7 +240,7 @@ def visualize_test_results(args):
     os.makedirs(args.output_dir, exist_ok=True)
     for level in range(args.hierarchy_depth):
         for metric_key in metric_keys:
-            save_hierarchy_level_metric_plot(models_metric_dict,metric_key,level,args.output_dir)
+            save_hierarchy_metric_plot(models_metric_dict,metric_key,args.hierarchy_depth,args.output_dir)
 if __name__ == '__main__':
     args = parser.visualizer_parser()
     # Sample data (replace with your actual data)
