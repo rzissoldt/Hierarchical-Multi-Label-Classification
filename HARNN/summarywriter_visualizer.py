@@ -135,7 +135,8 @@ def visualize_test_results(args):
     counter = 0
     models_metric_dict = {}
     for result_model_dir in args.result_model_dirs:
-        models_metric_dict[args.model_names[counter]] = get_level_metrics_from_event_file(result_model_dir,args.hierarchy_depth)
+        result_model_file_path = get_event_file_from_dir(result_model_dir)
+        models_metric_dict[args.model_names[counter]] = get_level_metrics_from_event_file(result_model_file_path,args.hierarchy_depth)
         counter+=1
     metric_keys = [
         'micro_precision',
