@@ -175,7 +175,7 @@ def save_hierarchy_level_metric_plot(hierarchy_level_metrics, metric_key, level,
     plt.savefig(plot_file_path)
     plt.close()
 
-def save_hierarchy_metric_plot(hierarchy_level_metrics,metric_key,hierarchy_depth,output_path):
+def save_hierarchy_metric_plot(hierarchy_level_metrics,metric_key,hierarchy_depth,plot_name,output_path):
     # Sample data (replace with your actual data)
     data = {
         'Hierarchy_Level': [f'Level-{i+1}' for i in range(hierarchy_depth)],
@@ -198,7 +198,7 @@ def save_hierarchy_metric_plot(hierarchy_level_metrics,metric_key,hierarchy_dept
 
     # Plotting
     df.plot(kind='bar')
-    plt.title('Metrics per Hierarchy Level')
+    plt.title(f'{plot_name} for {metric_key}')
     plt.xlabel('Models')
     plt.ylabel(metric_key)
     plt.xticks(rotation=45)
@@ -240,7 +240,7 @@ def visualize_test_results(args):
     os.makedirs(args.output_dir, exist_ok=True)
     for level in range(args.hierarchy_depth):
         for metric_key in metric_keys:
-            save_hierarchy_metric_plot(models_metric_dict,metric_key,args.hierarchy_depth,args.output_dir)
+            save_hierarchy_metric_plot(models_metric_dict,metric_key,args.hierarchy_depth,args.plot_name,args.output_dir)
 if __name__ == '__main__':
     args = parser.visualizer_parser()
     # Sample data (replace with your actual data)
