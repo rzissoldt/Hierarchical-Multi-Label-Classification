@@ -149,6 +149,7 @@ def visualize_test_results(args):
         'macro_auroc',
         'macro_auprc'
     ]
+    os.makedirs(args.output_dir, exist_ok=True)
     for level in range(args.hierarchy_depth):
         for metric_key in metric_keys:
             save_hierarchy_level_metric_plot(models_metric_dict,metric_key,level,args.output_dir)
