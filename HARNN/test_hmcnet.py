@@ -59,14 +59,14 @@ def test_hmcnet(args):
     hierarchy_dicts = test_dataset.filtered_hierarchy_dicts
     num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
     explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
-    
+    total_class_num = sum(num_classes_list)
     
     
     total_class_num = sum(num_classes_list)
     
     
     # Define Model
-    model = HmcNet(feature_dim=best_model_config.feature_dim_backbone,attention_unit_size=best_model_config.attention_dim,backbone_fc_hidden_size=best_model_config.backbone_dim,fc_hidden_size=best_model_config.fc_dim,freeze_backbone=True,highway_fc_hidden_size=best_model_config.highway_fc_dim,highway_num_layers=best_model_config.highway_num_layers,num_classes_list=num_classes_list,total_classes=total_class_num,l2_reg_lambda=best_model_config.l2_lambda,dropout_keep_prob=best_model_config.dropout_rate,alpha=best_model_config.alpha,beta=best_model_config.beta,device=device).to(device=device)
+    model = HmcNet(global_average_pooling_active=args.is_backbone_global_average_pooling_active,feature_dim=best_model_config.feature_dim_backbone,attention_unit_size=best_model_config.attention_dim,backbone_fc_hidden_size=best_model_config.backbone_dim,fc_hidden_size=best_model_config.fc_dim,freeze_backbone=True,highway_fc_hidden_size=best_model_config.highway_fc_dim,highway_num_layers=best_model_config.highway_num_layers,num_classes_list=num_classes_list,total_classes=total_class_num,l2_reg_lambda=best_model_config.l2_lambda,dropout_keep_prob=best_model_config.dropout_rate,alpha=best_model_config.alpha,beta=best_model_config.beta,device=device,is_backbone_embedding_active=args.is_backbone_embedding_active).to(device=device)
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     print(f'Total Classes: {sum(num_classes_list)}')
