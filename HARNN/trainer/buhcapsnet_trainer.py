@@ -192,7 +192,7 @@ class BUHCapsNetTrainer():
                 for i in y_global_onehots:
                     true_onehot_labels_list.append(i)
             print('\n')
-            macro_aurpc_per_layer=dh.get_per_layer_auprc(scores=scores_list,labels=true_onehot_labels_list)
+            macro_aurpc_per_layer=dh.get_per_layer_auprc(scores=scores_list,labels=true_onehot_labels_list,num_classes_list=self.num_classes_list)
             self.criterion.update_loss_weights(macro_aurpc_per_layer)
             print(f'Current Loss Weights: {self.criterion.current_loss_weights}')             
             return last_vmargin_loss
