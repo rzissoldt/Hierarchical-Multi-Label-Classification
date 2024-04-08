@@ -5,12 +5,9 @@ import numpy as np
 sys.path.append('../')
 from utils import data_helpers as dh
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit,MultilabelStratifiedKFold
-
-from torchmetrics.classification import  MultilabelAveragePrecision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from HARNN.model.chmcnn_model import get_constr_out
-from sklearn.metrics import average_precision_score
+
 
 class BUHCapsNetTrainer():
     def __init__(self,model,criterion,optimizer,scheduler,training_dataset,explicit_hierarchy,num_classes_list,path_to_model,args,device=None):

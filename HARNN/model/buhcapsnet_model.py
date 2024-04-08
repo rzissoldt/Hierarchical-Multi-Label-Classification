@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from hcapsnet_model import squash, safe_norm, SecondaryCapsule, LengthLayer, MarginLoss, L2Loss
+from model.hcapsnet_model import squash, safe_norm, SecondaryCapsule, LengthLayer, MarginLoss, L2Loss
 
 
 class FeatureExtractor(nn.Module):
