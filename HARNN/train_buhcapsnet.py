@@ -76,7 +76,7 @@ def train_buhcapsnet(args):
     
     # Define Loss for CHMCNN
     # Define Loss for HmcNet.
-    criterion = BUHCapsNetLoss(device=device,l2_reg_lambda=args.l2_lambda)
+    criterion = BUHCapsNetLoss(device=device,l2_reg_lambda=args.l2_lambda,num_classes_list=num_classes_list)
     
    
     
