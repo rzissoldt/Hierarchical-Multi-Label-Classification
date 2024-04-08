@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 from model.hcapsnet_model import squash, safe_norm, SecondaryCapsule, LengthLayer, MarginLoss, L2Loss
 from model.backbone import Backbone
-
+from scipy.stats import chi2
 class FeatureExtractor(nn.Module):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
@@ -146,18 +146,28 @@ class BUHCapsNetLoss(nn.Module):
         taus = [(1-layer_accuracies[i]) * self.initial_loss_weights[i] for i in range(len(self.current_loss_weights))]
         for i in range(len(taus)):
             self.current_loss_weights[i] = taus[i]/sum(taus)
+
         
-"""if __name__ == "__main__":
-    # Initialize the FeatureExtractor
-    pcap_n_dims = 8
-    scap_n_dims = 16
-    num_classes_list = [3,6,12,24]
-    # Test with random input tensor
-    input_tensor = torch.randn(1, 3, 224, 224)  # Assuming input size of 224x224 RGB image
-    buhcapsnet_model = BUHCapsNet(pcap_n_dims=pcap_n_dims,scap_n_dims=scap_n_dims,num_classes_list=num_classes_list)
-    output = buhcapsnet_model(input_tensor)
-    print(output)
-    model_param_count = sum(p.numel() for p in buhcapsnet_model.parameters() if p.requires_grad)
-    print(f'Model Parameter Count:{model_param_count}')
-    print(f'Total Classes: {sum(num_classes_list)}')
-    print(f'Num Classes List: {num_classes_list}')"""
+class LambdaUpdater():
+    def __init__(self, num_layers, initial_k, final_k, num_epochs):
+        self.num_layers = num_layers
+        self.initial_k = initial_k
+        self.final_k = final_k
+        self.current_epoch = 0
+        self.k = initial_k
+        self.num_epochs = num_epochs
+        self.step_size = (self.final_k - self.initial_k) / num_epochs
+
+    def update_lambdas(self):
+        if self.current_epoch < self.num_epochs:
+            self.k = self.initial_k + self.step_size * self.current_epoch
+
+    def get_lambda_values(self):
+        x_values = np.linspace(10**-16, self.final_k, self.num_layers)  # Generate x values
+        density_values = chi2.pdf(x_values, self.k)  # Evaluate density function at x values
+        lambda_values = density_values / np.sum(density_values)  # Normalize density values
+        return lambda_values
+
+    def next_epoch(self):
+        self.current_epoch += 1
+

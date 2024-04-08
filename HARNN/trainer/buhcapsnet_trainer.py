@@ -10,11 +10,12 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 class BUHCapsNetTrainer():
-    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,explicit_hierarchy,num_classes_list,path_to_model,args,device=None):
+    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,explicit_hierarchy,num_classes_list,path_to_model,lambda_updater,args,device=None):
         self.model = model
         self.criterion = criterion
         self.scheduler = scheduler
         self.optimizer = optimizer
+        self.lambda_updater = lambda_updater
         self.device = device
         self.best_model = copy.deepcopy(model)
         self.explicit_hierarchy= explicit_hierarchy
@@ -28,8 +29,8 @@ class BUHCapsNetTrainer():
         # Create Dataloader for Training and Validation Dataset
         kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': args.pin_memory} if self.args.gpu else {}
         self.data_loader = DataLoader(training_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)  
-        
-    
+        lambda_values = self.lambda_updater.get_lambda_values()
+        self.criterion.initial_loss_weights = lambda_values
     def train_and_validate(self):
         counter = 0
         best_epoch = 0
@@ -144,6 +145,12 @@ class BUHCapsNetTrainer():
             self.tb_writer.add_scalar('Training/MarginLoss', last_margin_loss, tb_x)
             self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
             self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
+            
+        # Changed Lambda Weights
+        self.lambda_updater.next_epoch()
+        self.lambda_updater.update_lambdas()
+        lambda_values = self.lambda_updater.get_lambda_values()
+        self.criterion.initial_loss_weights = lambda_values
             
         print('\n')
         return  last_margin_loss

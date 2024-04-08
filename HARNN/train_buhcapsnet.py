@@ -13,7 +13,7 @@ sys.path.append('../')
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
 from utils import param_parser as parser
-from HARNN.model.buhcapsnet_model import BUHCapsNet,BUHCapsNetLoss
+from HARNN.model.buhcapsnet_model import BUHCapsNet,BUHCapsNetLoss, LambdaUpdater
 from HARNN.dataset.buhcapsnet_dataset import BUHCapsNetDataset
 from HARNN.trainer.buhcapsnet_trainer import BUHCapsNetTrainer
 
@@ -70,7 +70,9 @@ def train_buhcapsnet(args):
     else:
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
-          
+    
+    lambda_updater = LambdaUpdater(num_layers=len(num_classes_list),initial_k=1,final_k=10,num_epochs=40)    
+    
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.decay_rate)
     model.eval().to(device)
     
@@ -81,7 +83,7 @@ def train_buhcapsnet(args):
    
     
     # Define Trainer for HmcNet
-    trainer = BUHCapsNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
+    trainer = BUHCapsNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device,lambda_updater=lambda_updater)
     
     # Save Model ConfigParameters
     args_dict = vars(args)
