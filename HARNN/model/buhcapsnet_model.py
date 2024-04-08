@@ -94,7 +94,7 @@ class PrimaryCapsule(nn.Module):
 
 
 class BUHCapsNet(nn.Module):
-    def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,args,device=None):
+    def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,routings,args,device=None):
         super(BUHCapsNet, self).__init__()
         self.backbone = Backbone(global_average_pooling_active=False)
         if args.freeze_backbone:
@@ -103,8 +103,8 @@ class BUHCapsNet(nn.Module):
             self.backbone.eval()
         self.primary_capsule = PrimaryCapsule(pcap_n_dims)  # Assuming 8 primary capsules
         secondary_capsules_list = []
-        secondary_capsules_list.append(SecondaryCapsule(in_channels=12544,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[-1],n_dims=scap_n_dims,device=device))
-        secondary_capsules_list.extend([SecondaryCapsule(in_channels=num_classes_list[i+1],pcap_n_dims=scap_n_dims,n_caps=num_classes_list[i],n_dims=scap_n_dims,device=device) for i in range(len(num_classes_list)-2,-1,-1)])
+        secondary_capsules_list.append(SecondaryCapsule(in_channels=12544,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[-1],routings=routings,n_dims=scap_n_dims,device=device))
+        secondary_capsules_list.extend([SecondaryCapsule(in_channels=num_classes_list[i+1],pcap_n_dims=scap_n_dims,n_caps=num_classes_list[i],routings=routings,n_dims=scap_n_dims,device=device) for i in range(len(num_classes_list)-2,-1,-1)])
         print(secondary_capsules_list)
         self.secondary_capsules = nn.ModuleList(secondary_capsules_list)
         self.length_layer = LengthLayer()

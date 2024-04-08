@@ -304,12 +304,9 @@ def buhcapsnet_parameter_parser():
     parser.add_argument("--path-to-results", nargs="?", default="../data/Train_sample.json", help="Path to results of best model on testset metrics.")
     # Model Hyperparameter
     parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
-    parser.add_argument("--feature-dim-backbone", type=tuple_argument, default=(2048,1), help="Dimensionality of the Feature Output of backbone.")
-    parser.add_argument("--fc-dim", type=int, default=512, help="Dimensionality for FC neurons.")
-    parser.add_argument("--num-layers", type=int, default=2, help="Layer count of FC Layers.")
-    parser.add_argument("--dropout-rate", type=float, default=0.2, help="Dropout keep probability.")
     parser.add_argument("--pcap-n-dims", type=int, default=8, help="Count of Primary Capsules")
-    parser.add_argument("--scap-n-dims", type=int, default=16, help="Count of Secondary Capsules")  
+    parser.add_argument("--scap-n-dims", type=int, default=16, help="Count of Secondary Capsules")
+    parser.add_argument("--routing-iterations", type=int, default=3, help="Routing Iterations")
     # Training Parameters
     parser.add_argument("--pcp-metrics-active", type=bool_argument, default=False, help="Is pcp-Metrics active?")
     parser.add_argument("--hyperparameter-search", type=bool_argument, default=False, help="Is random Hyperparameter search active?")
