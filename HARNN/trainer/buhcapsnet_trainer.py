@@ -96,7 +96,7 @@ class BUHCapsNetTrainer():
         current_l2_loss = 0.
         last_loss = 0.
         self.model.train(True)
-        self.model.set_training(True)
+        
         num_of_train_batches = len(data_loader)
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
@@ -147,7 +147,6 @@ class BUHCapsNetTrainer():
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
         self.model.eval()
-        self.model.set_training(False)
         eval_counter = 0
         num_of_val_batches = len(data_loader)
         
