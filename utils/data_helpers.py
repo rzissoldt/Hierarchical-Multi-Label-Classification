@@ -608,7 +608,7 @@ def get_per_layer_auprc(scores,labels, num_classes_list,device=None):
         else:
             begin += num_classes_list[i-1]
             end += num_classes_list[i]
-        print(begin,end)
+        #print(begin,end)
         per_layer_pred = scores[:,begin:end]
         per_layer_pred = per_layer_pred.to(device=device)
         per_layer_labels = labels[:,begin:end]
