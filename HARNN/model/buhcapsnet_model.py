@@ -119,12 +119,13 @@ class BUHCapsNet(nn.Module):
         return output_list[::-1]
     
 class BUHCapsNetLoss(nn.Module):
-    def __init__(self,l2_reg_lambda, m_plus=0.9, m_minus=0.1, lambda_=0.5,device=None):
+    def __init__(self,l2_reg_lambda,num_classes_list, m_plus=0.9, m_minus=0.1, lambda_=0.5,device=None):
         super(BUHCapsNetLoss, self).__init__()
         self.margin_loss = MarginLoss(m_plus = m_plus,m_minus = m_minus,lambda_ = lambda_)
         self.l2_loss = L2Loss(l2_reg_lambda=l2_reg_lambda,device=device)
-        
         self.device = device
+        self.initial_loss_weights = [1./len(num_classes_list) for i in range(len(num_classes_list))]
+        self.current_loss_weights = [1./len(num_classes_list) for i in range(len(num_classes_list))]
     def forward(self,x):
         y_pred,y_true,model= x
         margin_losses = torch.zeros(len(y_pred)).to(self.device)
@@ -132,11 +133,16 @@ class BUHCapsNetLoss(nn.Module):
         for i in range(len(y_pred)):
             x_margin_loss = y_pred[i],y_true[i]
             margin_loss = self.margin_loss(x_margin_loss)
-            margin_losses[i] = margin_loss
+            margin_losses[i] = margin_loss*self.current_loss_weights[i]
         
-        margin_loss_sum = torch.mean(margin_losses)
+        margin_loss_sum = torch.sum(margin_losses)
         global_loss = torch.add(margin_loss_sum,l2_loss)
         return global_loss,margin_loss_sum,l2_loss
+    def update_loss_weights(self,layer_accuracies):
+        taus = [(1-layer_accuracies[i]) * self.initial_loss_weights[i] for i in range(len(self.current_loss_weights))]
+        for i in range(len(taus)):
+            self.current_loss_weights = taus[i]/sum(taus)
+        
 """if __name__ == "__main__":
     # Initialize the FeatureExtractor
     pcap_n_dims = 8

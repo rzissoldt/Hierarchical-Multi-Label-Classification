@@ -143,7 +143,8 @@ class BUHCapsNetTrainer():
         current_global_loss = 0.
         current_margin_loss = 0.
         current_l2_loss = 0.
-        
+        scores_list = []
+        true_onehot_labels_list = []
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
         self.model.eval()
@@ -156,6 +157,7 @@ class BUHCapsNetTrainer():
                 vinputs, vlabels = copy.deepcopy(vdata)
                 vinputs = vinputs.to(self.device)
                 y_local_onehots = [label.to(self.device) for label in vlabels]
+                y_global_onehots = torch.cat(y_local_onehots,dim=1)
                 # Zero your gradients for every batch!
                 self.optimizer.zero_grad()
                 
@@ -183,9 +185,18 @@ class BUHCapsNetTrainer():
                 self.tb_writer.add_scalar('Validation/MarginLoss',last_vmargin_loss,tb_x)
                 self.tb_writer.add_scalar('Validation/L2Loss',last_vl2_loss,tb_x)
                 eval_counter+=1
-            print('\n')                
+                global_scores = torch.cat(local_scores,dim=1)
+                for j in global_scores:
+                    scores_list.append(j)
+                # Convert each tensor to a list of lists
+                for i in y_global_onehots:
+                    true_onehot_labels_list.append(i)
+            print('\n')
+            macro_aurpc_per_layer=dh.get_per_layer_auprc(scores=scores_list,labels=true_onehot_labels_list)
+            self.criterion.update_loss_weights(macro_aurpc_per_layer)
+            print(f'Current Loss Weights: {self.criterion.current_loss_weights}')             
             return last_vmargin_loss
-    
+        
     def test(self,epoch_index,data_loader):
         print(f"Evaluating best model of epoch {epoch_index}.")
         scores_list = []

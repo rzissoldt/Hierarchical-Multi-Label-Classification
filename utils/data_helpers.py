@@ -18,7 +18,7 @@ from torch.nn.functional import one_hot
 from solt.core import DataContainer
 sys.path.append('../')
 from utils import xtree_utils as xtree 
-from torchmetrics.classification import MultilabelAUROC, MultilabelAveragePrecision, BinaryAUROC, BinaryAveragePrecision
+from torchmetrics.classification import MultilabelAUROC, MultilabelAveragePrecision, BinaryAUROC, BinaryAveragePrecision,MultilabelAccuracy
 def _option(pattern):
     """
     Get the option according to the pattern.
@@ -583,8 +583,31 @@ def get_per_layer_metrics(scores,labels, num_classes_list,device=None):
         })
     return eval_metrics_per_layer
 
-
+def get_per_layer_auprc(scores,labels, num_classes_list,device=None):
+    # Calculate Precision & Recall & F1 per Hierarchy-Layer
+    begin = 0
+    end = 0
     
+    eval_macro_auprc_per_layer = []
+    for i in range(len(num_classes_list)):
+        if num_classes_list[i] == 1:
+            macro_auprc = BinaryAveragePrecision()
+        else:
+            macro_auprc = MultilabelAveragePrecision(num_labels=num_classes_list[i],average='macro')
+            
+        if i == 0:
+            begin = 0
+            end = num_classes_list[0]
+        else:
+            begin += num_classes_list[i-1]
+            end += num_classes_list[i]
+        per_layer_pred = scores[:,begin:end]
+        per_layer_pred_tresholded = torch.where(per_layer_pred < 0.5, torch.tensor(0.0), torch.tensor(1.0)).to(device=device)
+        per_layer_pred = per_layer_pred.to(device=device)
+        per_layer_labels = labels[:,begin:end]
+        eval_macro_auprc_layer = macro_auprc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
+        eval_macro_auprc_per_layer.append(eval_macro_auprc_layer)
+    return eval_macro_auprc_layer
 def get_onehot_label_topk(scores, top_num=1):
     """
     Get the predicted one-hot labels based on the topK.
