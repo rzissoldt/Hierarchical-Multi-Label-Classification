@@ -300,6 +300,9 @@ class L2Loss(nn.Module):
             if param.requires_grad == True:
                 l2_loss += torch.norm(param,p=2)**2
         return torch.tensor(l2_loss*self.l2_reg_lambda,dtype=torch.float32)
+
+    
+    
 class HCapsNet(nn.Module):
     def __init__(self,feature_dim,input_shape,filter_list,num_classes_list,secondary_capsule_input_dim,pcap_n_dims,scap_n_dims,fc_hidden_size,num_layers,target_shape,device=None):
         super(HCapsNet,self).__init__()
