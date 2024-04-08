@@ -96,7 +96,6 @@ class BUHCapsNetTrainer():
     def train(self,epoch_index,data_loader):
         current_global_loss = 0.
         current_margin_loss = 0.
-        current_reconstruction_loss = 0.
         current_l2_loss = 0.
         last_loss = 0.
         self.model.train(True)
@@ -146,14 +145,13 @@ class BUHCapsNetTrainer():
     def validate(self,epoch_index,data_loader):
         current_global_loss = 0.
         current_margin_loss = 0.
-        current_reconstruction_loss = 0.
         current_l2_loss = 0.
         
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
         self.model.eval()
         self.model.set_training(False)
-        eval_counter, eval_loss = 0, 0.0
+        eval_counter = 0
         num_of_val_batches = len(data_loader)
         
         # Disable gradient computation and reduce memory consumption.
@@ -166,7 +164,7 @@ class BUHCapsNetTrainer():
                 self.optimizer.zero_grad()
                 model_inputs = vinputs, y_local_onehots
                 # Make predictions for this batch
-                local_scores, final_outputs = self.model(model_inputs)
+                local_scores = self.model(model_inputs)
 
                 # Compute the loss and its gradients            
                 x = (local_scores,y_local_onehots,self.model)
@@ -208,7 +206,7 @@ class BUHCapsNetTrainer():
                 self.optimizer.zero_grad()
                 model_inputs = vinputs, y_local_onehots
                 # Make predictions for this batch
-                local_scores, final_outputs = self.model(model_inputs)
+                local_scores = self.model(model_inputs)
                 global_scores = torch.cat(local_scores,dim=1)
                 for j in global_scores:
                     scores_list.append(j)
