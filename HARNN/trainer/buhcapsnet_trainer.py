@@ -101,13 +101,13 @@ class BUHCapsNetTrainer():
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
             inputs, labels = copy.deepcopy(data)
-            inputs,  inputs.to(self.device)
+            inputs= inputs.to(self.device)
             y_local_onehots = [label.to(self.device) for label in labels]
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
-            model_inputs = inputs, y_local_onehots
+            
             # Make predictions for this batch
-            local_scores = self.model(model_inputs)
+            local_scores = self.model(inputs)
             
             # Compute the loss and its gradients            
             x = (local_scores,y_local_onehots,self.model)
@@ -158,9 +158,9 @@ class BUHCapsNetTrainer():
                 y_local_onehots = [label.to(self.device) for label in vlabels]
                 # Zero your gradients for every batch!
                 self.optimizer.zero_grad()
-                model_inputs = vinputs, y_local_onehots
+                
                 # Make predictions for this batch
-                local_scores = self.model(model_inputs)
+                local_scores = self.model(vinputs)
 
                 # Compute the loss and its gradients            
                 x = (local_scores,y_local_onehots,self.model)
@@ -200,9 +200,8 @@ class BUHCapsNetTrainer():
                 y_global_onehots = torch.cat(y_local_onehots,dim=1)
                 # Zero your gradients for every batch!
                 self.optimizer.zero_grad()
-                model_inputs = vinputs, y_local_onehots
                 # Make predictions for this batch
-                local_scores = self.model(model_inputs)
+                local_scores = self.model(vinputs)
                 global_scores = torch.cat(local_scores,dim=1)
                 for j in global_scores:
                     scores_list.append(j)

@@ -16,6 +16,20 @@ class BUHCapsNetDataset(HierarchyDataset):
     def __init__(self, annotation_file_path,path_to_model, hierarchy_file_path, image_dir, image_count_threshold=0,hierarchy_dicts_file_path=None,hierarchy_depth=-1):
         super(BUHCapsNetDataset,self).__init__(annotation_file_path=annotation_file_path,path_to_model=path_to_model, hierarchy_file_path=hierarchy_file_path, hierarchy_depth=hierarchy_depth, image_dir=image_dir, image_count_threshold=image_count_threshold,hierarchy_dicts_file_path=hierarchy_dicts_file_path)
 
-    def __getitem__(self, index):
-        # You can customize the behavior here if needed
-        return super().__getitem__(index)
+    def __getitem__(self, idx):
+        img_path = self.image_label_tuple_list[idx][0]
+        image = Image.open(img_path)
+
+        # Convert to RGB if it isn't already
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+
+        pil_image = image  # Initialize pil_image with the original image
+
+        if self.is_training:
+            pil_image = self.train_transform(image)
+        else:
+            pil_image = self.validation_transform(image)
+        labels = self.image_label_tuple_list[idx][2:]
+        image.close()
+        return pil_image, labels
