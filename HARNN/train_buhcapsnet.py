@@ -56,7 +56,7 @@ def train_buhcapsnet(args):
     total_class_num = sum(num_classes_list)
     
     # Define Model
-    model = BUHCapsNet(pcap_n_dims=args.pcap_n_dims,scap_n_dims=args.scap_n_dims,num_classes_list=num_classes_list)
+    model = BUHCapsNet(pcap_n_dims=args.pcap_n_dims,scap_n_dims=args.scap_n_dims,num_classes_list=num_classes_list,device=device)
     
     
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -91,10 +91,7 @@ def train_buhcapsnet(args):
     with open(os.path.join(path_to_model, 'hierarchy_dicts.json'),'w') as json_file:
         json.dump(hierarchy_dicts, json_file,indent=4)
     
-    if args.is_k_crossfold_val:
-        trainer.train_and_validate_k_crossfold(k_folds=args.k_folds)
-    else:
-        trainer.train_and_validate()
+    trainer.train_and_validate()
         
 """def get_random_hyperparameter(base_args):
     fc_dim = random.choice([256,512,1024,2048])
