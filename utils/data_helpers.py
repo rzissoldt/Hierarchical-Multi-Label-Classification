@@ -608,8 +608,8 @@ def get_per_layer_auprc(scores,labels, num_classes_list,device=None):
         else:
             begin += num_classes_list[i-1]
             end += num_classes_list[i]
+        print(begin,end)
         per_layer_pred = scores[:,begin:end]
-        per_layer_pred_tresholded = torch.where(per_layer_pred < 0.5, torch.tensor(0.0), torch.tensor(1.0)).to(device=device)
         per_layer_pred = per_layer_pred.to(device=device)
         per_layer_labels = labels[:,begin:end]
         eval_macro_auprc_layer = macro_auprc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
