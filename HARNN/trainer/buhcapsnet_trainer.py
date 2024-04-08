@@ -7,8 +7,7 @@ from utils import data_helpers as dh
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit,MultilabelStratifiedKFold
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-
-
+from torchmetrics.classification import MultilabelAveragePrecision
 class BUHCapsNetTrainer():
     def __init__(self,model,criterion,optimizer,scheduler,training_dataset,explicit_hierarchy,num_classes_list,path_to_model,lambda_updater,args,device=None):
         self.model = model
@@ -34,8 +33,8 @@ class BUHCapsNetTrainer():
     def train_and_validate(self):
         counter = 0
         best_epoch = 0
-        #best_average_precision = 0.
-        best_vloss = 1_000_000
+        best_average_precision = 0.
+        #best_vloss = 1_000_000
         is_fine_tuning = False
         
         # Generate one MultiLabelStratifiedShuffleSplit for normal Training.
@@ -56,26 +55,26 @@ class BUHCapsNetTrainer():
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
         for epoch in range(self.args.epochs):
             avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
-            avg_validation_loss = self.validate(epoch_index=epoch,data_loader=val_loader)
+            validation_average_precision = self.validate(epoch_index=epoch,data_loader=val_loader)
             self.tb_writer.flush()
-            print(f'Epoch {epoch+1}: Train Loss {avg_train_loss}, Validation Loss {avg_validation_loss}')
+            print(f'Epoch {epoch+1}: Train Loss {avg_train_loss}, Validation AUPRC {validation_average_precision}')
             
             # End Training if Max Epoch is reached
             if epoch == self.args.epochs-1:
-                if avg_validation_loss < best_vloss:
+                if validation_average_precision > best_average_precision:
                     best_epoch = epoch+1
                     self.best_model = copy.deepcopy(self.model)
-                    best_vloss = avg_validation_loss
+                    best_average_precision = validation_average_precision
                 print(f"Max Epoch count is reached. Best model was reached in {best_epoch}.")
                 break
             # Decay Learningrate if Step Count is reached
             if epoch % self.args.decay_steps == self.args.decay_steps-1:
                 self.scheduler.step()
             # Track best performance, and save the model's state
-            if avg_validation_loss < best_vloss:
+            if validation_average_precision > best_average_precision:
                 best_epoch = epoch+1
                 self.best_model = copy.deepcopy(self.model)
-                best_vloss = avg_validation_loss
+                best_average_precision = validation_average_precision
                 counter = 0
             else:
                 counter += 1
@@ -146,12 +145,7 @@ class BUHCapsNetTrainer():
             self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
             self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
             
-        # Changed Lambda Weights
-        #self.lambda_updater.next_epoch()
-        #self.lambda_updater.update_lambdas()
-        #lambda_values = self.lambda_updater.get_lambda_values()
-        #self.criterion.initial_loss_weights = lambda_values
-            
+        # Changed Lambda Weights            
         print('\n')
         return  last_margin_loss
     
@@ -209,11 +203,14 @@ class BUHCapsNetTrainer():
                     true_onehot_labels_list.append(i)
             print('\n')
             scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in scores_list],dim=0).to('cpu')
-            true_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in true_onehot_labels_list],dim=0).to('cpu')     
+            true_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in true_onehot_labels_list],dim=0).to('cpu')
+                 
             macro_aurpc_per_layer=dh.get_per_layer_auprc(scores=scores,labels=true_onehot_labels,num_classes_list=self.num_classes_list)
+            macro_auprc = MultilabelAveragePrecision(num_labels=sum(self.num_classes_list),average='macro')
+            eval_macro_auprc_layer = macro_auprc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
             self.criterion.update_loss_weights(macro_aurpc_per_layer)
             print(f'Current Loss Weights: {self.criterion.current_loss_weights}')             
-            return last_vmargin_loss
+            return eval_macro_auprc_layer
         
     def test(self,epoch_index,data_loader):
         print(f"Evaluating best model of epoch {epoch_index}.")
