@@ -192,8 +192,9 @@ class BUHCapsNetTrainer():
                 for i in y_global_onehots:
                     true_onehot_labels_list.append(i)
             print('\n')
-            scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in scores_list],dim=0).to('cpu')     
-            macro_aurpc_per_layer=dh.get_per_layer_auprc(scores=scores,labels=true_onehot_labels_list,num_classes_list=self.num_classes_list)
+            scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in scores_list],dim=0).to('cpu')
+            true_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in true_onehot_labels_list],dim=0).to('cpu')     
+            macro_aurpc_per_layer=dh.get_per_layer_auprc(scores=scores,labels=true_onehot_labels,num_classes_list=self.num_classes_list)
             self.criterion.update_loss_weights(macro_aurpc_per_layer)
             print(f'Current Loss Weights: {self.criterion.current_loss_weights}')             
             return last_vmargin_loss
