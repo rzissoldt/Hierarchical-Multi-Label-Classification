@@ -191,7 +191,7 @@ class BUHCapsNetTrainer():
         scores_list = []
         true_onehot_labels_list = []
         self.best_model.eval()
-        self.best_model.set_training(False)
+        
         with torch.no_grad():
             for i, vdata in enumerate(data_loader):
                 vinputs, vlabels = copy.deepcopy(vdata)
