@@ -134,7 +134,7 @@ class BUHCapsNetLoss(nn.Module):
             margin_loss = self.margin_loss(x_margin_loss)
             margin_losses[i] = margin_loss
         
-        margin_loss_sum = torch.sum(margin_losses)
+        margin_loss_sum = torch.mean(margin_losses)
         global_loss = torch.add(margin_loss_sum,l2_loss)
         return global_loss,margin_loss_sum,l2_loss
 """if __name__ == "__main__":
