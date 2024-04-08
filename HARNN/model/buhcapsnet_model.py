@@ -94,9 +94,13 @@ class PrimaryCapsule(nn.Module):
 
 
 class BUHCapsNet(nn.Module):
-    def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,device=None):
+    def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,args,device=None):
         super(BUHCapsNet, self).__init__()
         self.feature_extractor = Backbone(global_average_pooling_active=False)
+        if args.freeze_backbone:
+            for param in self.backbone.parameters():
+                param.requires_grad = False
+            self.backbone.eval()
         self.primary_capsule = PrimaryCapsule(pcap_n_dims)  # Assuming 8 primary capsules
         secondary_capsules_list = []
         secondary_capsules_list.append(SecondaryCapsule(in_channels=12544,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[-1],n_dims=scap_n_dims,device=device))
