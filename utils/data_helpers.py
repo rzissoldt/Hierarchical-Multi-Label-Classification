@@ -613,7 +613,7 @@ def get_per_layer_auprc(scores,labels, num_classes_list,device=None):
         per_layer_pred = per_layer_pred.to(device=device)
         per_layer_labels = labels[:,begin:end]
         eval_macro_auprc_layer = macro_auprc(per_layer_pred.to(dtype=torch.float32),per_layer_labels.to(dtype=torch.long))
-        eval_macro_auprc_per_layer.append(eval_macro_auprc_layer)
+        eval_macro_auprc_per_layer.append(eval_macro_auprc_layer.item())
     return eval_macro_auprc_per_layer
 def get_onehot_label_topk(scores, top_num=1):
     """

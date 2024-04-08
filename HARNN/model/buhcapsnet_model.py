@@ -141,7 +141,7 @@ class BUHCapsNetLoss(nn.Module):
     def update_loss_weights(self,layer_accuracies):
         taus = [(1-layer_accuracies[i]) * self.initial_loss_weights[i] for i in range(len(self.current_loss_weights))]
         for i in range(len(taus)):
-            self.current_loss_weights = taus[i]/sum(taus)
+            self.current_loss_weights[i] = taus[i]/sum(taus)
         
 """if __name__ == "__main__":
     # Initialize the FeatureExtractor
