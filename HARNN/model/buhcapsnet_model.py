@@ -96,7 +96,7 @@ class PrimaryCapsule(nn.Module):
 class BUHCapsNet(nn.Module):
     def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,args,device=None):
         super(BUHCapsNet, self).__init__()
-        self.feature_extractor = Backbone(global_average_pooling_active=False)
+        self.backbone = Backbone(global_average_pooling_active=False)
         if args.freeze_backbone:
             for param in self.backbone.parameters():
                 param.requires_grad = False
@@ -110,7 +110,7 @@ class BUHCapsNet(nn.Module):
         self.length_layer = LengthLayer()
         
     def forward(self,x):
-        feature_output = self.feature_extractor(x)
+        feature_output = self.backbone(x)
         primary_capsule_output = self.primary_capsule(feature_output)
         output_list = []
         for i in range(len(self.secondary_capsules)):
