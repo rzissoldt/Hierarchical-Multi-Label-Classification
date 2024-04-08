@@ -33,8 +33,10 @@ class BUHCapsNetTrainer():
     def train_and_validate(self):
         counter = 0
         best_epoch = 0
-        best_vloss = 1_000_000.
+        #best_average_precision = 0.
+        best_vloss = 1_000_000
         is_fine_tuning = False
+        
         # Generate one MultiLabelStratifiedShuffleSplit for normal Training.
         train_loader,val_loader = None,None
         
@@ -53,35 +55,42 @@ class BUHCapsNetTrainer():
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
         for epoch in range(self.args.epochs):
             avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
-            avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader)
+            avg_validation_loss = self.validate(epoch_index=epoch,data_loader=val_loader)
             self.tb_writer.flush()
-            print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
+            print(f'Epoch {epoch+1}: Train Loss {avg_train_loss}, Validation Loss {avg_validation_loss}')
             
             # End Training if Max Epoch is reached
             if epoch == self.args.epochs-1:
-                if avg_val_loss < best_vloss:
+                if avg_validation_loss < best_vloss:
                     best_epoch = epoch+1
                     self.best_model = copy.deepcopy(self.model)
-                    best_vloss = avg_val_loss
+                    best_vloss = avg_validation_loss
                 print(f"Max Epoch count is reached. Best model was reached in {best_epoch}.")
                 break
             # Decay Learningrate if Step Count is reached
             if epoch % self.args.decay_steps == self.args.decay_steps-1:
                 self.scheduler.step()
             # Track best performance, and save the model's state
-            if avg_val_loss < best_vloss:
+            if avg_validation_loss < best_vloss:
                 best_epoch = epoch+1
                 self.best_model = copy.deepcopy(self.model)
-                best_vloss = avg_val_loss
+                best_vloss = avg_validation_loss
                 counter = 0
             else:
                 counter += 1
-                if counter >= self.args.early_stopping_patience:
-                    print(f'Early stopping {best_epoch} was the best Epoch.')
-                    print(f'Validate Model.')
-                    #avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader)
+                if counter >= self.args.early_stopping_patience and not is_fine_tuning:
+                    print(f'Early stopping triggered and validate best Epoch {best_epoch}.')
+                    print(f'Begin fine tuning model.')
+                    self.model = copy.deepcopy(self.best_model)
+                    self.unfreeze_backbone()
+                    is_fine_tuning = True
+                    counter = 0
+                    continue
+                if counter >= self.args.early_stopping_patience and is_fine_tuning:
+                    print(f'Early stopping triggered in fine tuning Phase. {best_epoch} was the best Epoch.')
                     break
         # Test and save Best Model
+        self.model = copy.deepcopy(self.best_model)
         self.test(epoch_index=best_epoch,data_loader=val_loader)
         model_path = os.path.join(self.path_to_model,'models',f'buhcapsnet_{best_epoch}')
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
@@ -226,3 +235,36 @@ class BUHCapsNetTrainer():
         # Save Metrics in Summarywriter.
         for key,value in metrics_dict.items():
             self.tb_writer.add_scalar(key,value,epoch_index)
+
+    def unfreeze_backbone(self):
+        """
+        Unfreezes the backbone of the model and splits the learning rate into three different parts.
+
+
+        Returns:
+        - None
+        """
+        # Set the requires_grad attribute of the backbone parameters to True
+        for param in self.model.backbone.parameters():
+            param.requires_grad = True
+        
+        optimizer_dict = self.optimizer.param_groups[0]
+        
+        param_groups = [copy.deepcopy(optimizer_dict) for i in range(4)]
+        # Get the parameters of the model
+        backbone_model_params = list(self.model.backbone.parameters())
+
+        # Calculate the number of parameters for each section
+        first_backbone_params = int(0.2 * len(backbone_model_params))
+
+        # Assign learning rates to each parameter group
+        base_lr = optimizer_dict['lr']
+        param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
+        param_groups[0]['lr'] = base_lr * 1e-4
+        param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
+        param_groups[1]['lr'] = base_lr * 1e-2
+        param_groups[2]['params'] = self.model.secondary_capsules.parameters()
+        param_groups[2]['lr'] = base_lr
+        
+        # Update the optimizer with the new parameter groups
+        self.optimizer.param_groups = param_groups
