@@ -192,7 +192,8 @@ class BUHCapsNetTrainer():
                 for i in y_global_onehots:
                     true_onehot_labels_list.append(i)
             print('\n')
-            macro_aurpc_per_layer=dh.get_per_layer_auprc(scores=scores_list,labels=true_onehot_labels_list,num_classes_list=self.num_classes_list)
+            scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in scores_list],dim=0).to('cpu')     
+            macro_aurpc_per_layer=dh.get_per_layer_auprc(scores=scores,labels=true_onehot_labels_list,num_classes_list=self.num_classes_list)
             self.criterion.update_loss_weights(macro_aurpc_per_layer)
             print(f'Current Loss Weights: {self.criterion.current_loss_weights}')             
             return last_vmargin_loss
@@ -218,7 +219,8 @@ class BUHCapsNetTrainer():
                     scores_list.append(j)
                 # Convert each tensor to a list of lists
                 for i in y_global_onehots:
-                    true_onehot_labels_list.append(i)                
+                    true_onehot_labels_list.append(i)
+                   
         metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=true_onehot_labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device,eval_pcp=self.args.pcp_metrics_active,threshold=self.args.threshold)
         # Save Metrics in Summarywriter.
         for key,value in metrics_dict.items():
