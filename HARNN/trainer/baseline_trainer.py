@@ -72,6 +72,7 @@ class BaselineTrainer():
             # Decay Learningrate if Step Count is reached
             #if epoch % self.args.decay_steps == self.args.decay_steps-1:
             self.scheduler.step()
+            print( self.optimizer.param_groups[0]['lr'])
             # Track best performance, and save the model's state
             if avg_val_loss < best_vloss:
                 best_epoch = epoch+1
