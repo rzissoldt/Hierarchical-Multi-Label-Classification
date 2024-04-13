@@ -108,7 +108,7 @@ def get_random_hyperparameter(base_args):
     backbone_fc_dim = random.choice([128,256,512])
     batch_size = random.choice([64,128,256])
     learning_rate = random.choice([0.001])
-    optimizer = random.choice(['adam'])
+    optimizer = random.choice(['sgd'])
     
     print(f'Attention-Dim: {attention_dim}\n'
           f'FC-Dim: {fc_dim}\n'
