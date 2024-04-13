@@ -58,21 +58,11 @@ class BaselineModel(nn.Module):
         
     
 class BaselineModelLoss(nn.Module):
-    def __init__(self,l2_lambda,device):
+    def __init__(self,device):
         super(BaselineModelLoss, self).__init__()
-        self.l2_lambda = l2_lambda
         self.device = device
         self.criterion = nn.BCELoss()
     def forward(self,x):
-        def _l2_loss(model,l2_reg_lambda):
-            """Calculation of the L2-Regularization loss."""
-            l2_loss = torch.tensor(0.,dtype=torch.float32).to(self.device)
-            for param in model.parameters():
-                if param.requires_grad == True:
-                    l2_loss += torch.norm(param,p=2)**2
-            return torch.tensor(l2_loss*l2_reg_lambda,dtype=torch.float32)
-        predictions, targets, model = x
+        predictions, targets = x
         global_loss = self.criterion(predictions.to(dtype=torch.float64),targets)
-        l2_loss = _l2_loss(model=model,l2_reg_lambda=self.l2_lambda)
-        loss = torch.sum(torch.stack([global_loss,l2_loss]))
-        return loss, global_loss, l2_loss   
+        return global_loss  

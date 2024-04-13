@@ -64,20 +64,19 @@ def train_baseline_model(args):
     
     # Define Optimzer and Scheduler
     if args.optimizer == 'adam':    
-        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
     elif args.optimizer == 'sgd':
-        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda, nesterov=True)
     else:
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
           
-    #scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.decay_rate)
-    gamma = 0.1
-    scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=gamma,step_size=10)
+    
+    scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=args.decay_rate,step_size=args.decay_steps)
     model.eval().to(device)
     
     # Define Loss for CHMCNN
-    criterion = BaselineModelLoss(l2_lambda=args.l2_lambda,device=device)
+    criterion = BaselineModelLoss(device=device)
     
    
     

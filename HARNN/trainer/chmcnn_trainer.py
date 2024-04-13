@@ -71,8 +71,8 @@ class CHMCNNTrainer():
                 print(f"Max Epoch count is reached. Best model was reached in {best_epoch}.")
                 break
             # Decay Learningrate if Step Count is reached
-            if epoch % self.args.decay_steps == self.args.decay_steps-1:
-                self.scheduler.step()
+            #if epoch % self.args.decay_steps == self.args.decay_steps-1:
+            self.scheduler.step()
             # Track best performance, and save the model's state
             if avg_validation_loss < best_vloss:
                 best_epoch = epoch+1
@@ -253,6 +253,7 @@ class CHMCNNTrainer():
         for key,value in metrics_dict.items():
             self.tb_writer.add_scalar(key,value,epoch_index)
             
+   
     def unfreeze_backbone(self):
         """
         Unfreezes the backbone of the model and splits the learning rate into three different parts.
@@ -261,6 +262,39 @@ class CHMCNNTrainer():
         Returns:
         - None
         """
+        # Set the requires_grad attribute of the backbone parameters to True
+        for param in self.model.backbone.parameters():
+            param.requires_grad = True
+        
+        optimizer_dict = self.optimizer.param_groups[0]
+        
+        param_groups = [copy.deepcopy(optimizer_dict) for i in range(3)]
+        # Get the parameters of the model
+        backbone_model_params = list(self.model.backbone.parameters())
+
+        # Calculate the number of parameters for each section
+        first_backbone_params = int(0.2 * len(backbone_model_params))
+
+        # Assign learning rates to each parameter group
+        base_lr = optimizer_dict['lr']
+        param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
+        param_groups[0]['lr'] = 1e-4
+        param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
+        param_groups[1]['lr'] = 1e-4
+        param_groups[2]['params'] = list(self.model.fc.parameters())
+        param_groups[2]['lr'] = 1e-4
+        
+        # Update the optimizer with the new parameter groups
+        self.optimizer.param_groups = param_groups
+
+""" def unfreeze_backbone(self):
+        
+        Unfreezes the backbone of the model and splits the learning rate into three different parts.
+
+
+        Returns:
+        - None
+        
         # Set the requires_grad attribute of the backbone parameters to True
         for param in self.model.backbone.parameters():
             param.requires_grad = True
@@ -284,4 +318,4 @@ class CHMCNNTrainer():
         param_groups[2]['lr'] = base_lr
         
         # Update the optimizer with the new parameter groups
-        self.optimizer.param_groups = param_groups
+        self.optimizer.param_groups = param_groups"""

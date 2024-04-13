@@ -74,7 +74,9 @@ def train_chmcnn(args):
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
           
-    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.decay_rate)
+    
+    scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=args.decay_rate,step_size=args.decay_steps)
+    model.eval().to(device)
     model.eval().to(device)
     
     # Define Loss for CHMCNN

@@ -123,8 +123,8 @@ class BaselineTrainer():
             output = self.model(inputs.float())
 
             # Compute the loss and its gradients
-            x = output,labels.double(),self.model
-            loss,global_loss,l2_loss = self.criterion(x)
+            x = output,labels.double()
+            loss = self.criterion(x)
             predicted = output.data > 0.5            
 
             
@@ -136,27 +136,28 @@ class BaselineTrainer():
             labels_list.extend(labels)
             # Gather data and report
             current_loss += loss.item()
-            current_global_loss += global_loss.item()
-            current_l2_loss += l2_loss.item()
+            #current_global_loss += global_loss.item()
+            #current_l2_loss += l2_loss.item()
             last_loss = current_loss/(i+1)
-            last_global_loss = current_global_loss/(i+1)
-            last_l2_loss = current_l2_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_global_loss}, L2-Loss: {last_l2_loss}"
+            #last_global_loss = current_global_loss/(i+1)
+            #last_l2_loss = current_l2_loss/(i+1)
+            #progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_global_loss}, L2-Loss: {last_l2_loss}"
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
-            self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
-            self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
+            #self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
+            #self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
         # Gather data and report
         auprc = AveragePrecision(task="binary")
         predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
         labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
-        progress_info = f"Training: Epoch [{epoch_index+1}], Loss: {last_global_loss}"
+        progress_info = f"Training: Epoch [{epoch_index+1}], Loss: {last_loss}"
         
         
         
         print('\n')
-        return last_global_loss
+        return last_loss
     
     def validate(self,epoch_index,data_loader):
         # Set the model to evaluation mode, disabling dropout and using population
@@ -183,26 +184,26 @@ class BaselineTrainer():
                 output = self.model(inputs.float())
 
                 # Compute the loss and its gradients
-                x = output,labels.double(),self.model
-                loss,global_loss,l2_loss = self.criterion(x)
+                x = output,labels.double()
+                loss = self.criterion(x)
                 predicted = output.data > 0.5
                 predicted_list.extend(predicted)
                 labels_list.extend(labels)
                 # Gather data and report
                 current_vloss += loss.item()
-                current_vglobal_loss += global_loss.item()
-                current_vl2_loss += l2_loss.item()
+                #current_vglobal_loss += global_loss.item()
+                #current_vl2_loss += l2_loss.item()
                 last_vloss = current_vloss/(i+1)
-                last_vglobal_loss = current_vglobal_loss/(i+1)
-                last_vl2_loss = current_vl2_loss/(i+1)
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {last_vglobal_loss}, L2-Loss: {last_vl2_loss}"
+                #last_vglobal_loss = current_vglobal_loss/(i+1)
+                #last_vl2_loss = current_vl2_loss/(i+1)
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {last_vloss}"
                 print(progress_info, end='\r')
                 tb_x = epoch_index * num_of_val_batches + i + 1
                 self.tb_writer.add_scalar('Validation/Loss', last_vloss, tb_x)
-                self.tb_writer.add_scalar('Validation/GlobalLoss', last_vglobal_loss, tb_x)
-                self.tb_writer.add_scalar('Validation/L2Loss', last_vl2_loss, tb_x)
+                #self.tb_writer.add_scalar('Validation/GlobalLoss', last_vglobal_loss, tb_x)
+                #self.tb_writer.add_scalar('Validation/L2Loss', last_vl2_loss, tb_x)
             
-        return last_vglobal_loss
+        return last_vloss
     
     def test(self,epoch_index,data_loader):
         print(f"Evaluating best model of epoch {epoch_index}.")
