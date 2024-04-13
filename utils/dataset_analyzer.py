@@ -57,6 +57,7 @@ class DatasetAnalyzer():
         self.initialize_distribution_dicts(self.filtered_hierarchy_dicts)
         self.eval_distribution_dicts()
     def initialize_distribution_dicts(self,hierarchy_dicts):
+        self.layer_distribution_dict_explicit= []
         self.layer_distribution_dict = []
         self.global_hierarchy_dict = {}
         self.global_distribution_dict = {}
@@ -212,17 +213,20 @@ class DatasetAnalyzer():
         plt.savefig(fig_file_path)
         plt.clf()
     def _find_labels_in_hierarchy_dicts(self,labels,hierarchy_dicts):
+        label_dict = {}
+        level = 0
+        for dict in hierarchy_dicts:
+            labels_index = []
+            label_dict['layer-{0}'.format(level)] = []
+            level +=1
+            
         for label in labels:
             path = xtree.get_id_path(self.hierarchy,label)
             
-            label_dict = {}
+            
             labels_index = []
             level = 0
-            for dict in hierarchy_dicts:
-                labels_index = []
-                label_dict['layer-{0}'.format(level)] = []
-                level +=1
-            level = 0
+            
             for i in range(1,self.hierarchy_depth+1):
                 temp_key = '_'.join(path[:i+1])
                 temp_dict = hierarchy_dicts[i-1]
@@ -233,11 +237,24 @@ class DatasetAnalyzer():
 
                             
                          
-            label_dict['layer-{0}'.format(level)].extend(labels_index)
-            level+=1
+            #label_dict['layer-{0}'.format(level)].extend(labels_index)
+            #level+=1
+        
+        for level_key in label_dict.keys():
+            label_dict[level_key] = list(set(label_dict[level_key]))
         
         return label_dict
 
+    def _find_label_in_hierarchy_dicts(self,label,hierarchy_dicts):
+        pass
+    def _get_last_label_in_hierarchy_dicts(self,hierarchy_dicts):
+        level = len(list(hierarchy_dicts.keys()))
+        for key in reversed(list(hierarchy_dicts.keys())):
+            if len(hierarchy_dicts[key]) > 0:
+                return 
+                 
+            
+    
     def _calc_total_class_labels(self,label_dict,hierarchy_dicts):
         level = 0
         total_class_labels = []
