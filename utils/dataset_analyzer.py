@@ -246,7 +246,25 @@ class DatasetAnalyzer():
         return label_dict
 
     def _find_label_in_hierarchy_dicts(self,label,hierarchy_dicts):
-        pass
+        label_dict = {}
+        level = 0
+        for dict in hierarchy_dicts:
+            labels_index = []
+            label_dict['layer-{0}'.format(level)] = []
+            level +=1
+        path = xtree.get_id_path(self.hierarchy,label)  
+            
+        labels_index = []
+        level = 0
+            
+        for i in range(1,self.hierarchy_depth+1):
+            temp_key = '_'.join(path[:i+1])
+            temp_dict = hierarchy_dicts[i-1]
+            if temp_key not in temp_dict.keys():
+                break
+            temp_label = temp_dict[temp_key]
+            label_dict['layer-{0}'.format(i-1)].append(temp_label)
+        return label_dict
     def _get_last_label_in_hierarchy_dicts(self,hierarchy_dicts):
         level = len(list(hierarchy_dicts.keys()))
         for key in reversed(list(hierarchy_dicts.keys())):
