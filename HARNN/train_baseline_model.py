@@ -73,7 +73,7 @@ def train_baseline_model(args):
           
     #scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.decay_rate)
     gamma = 0.1
-    scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=gamma)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=gamma,step_size=args.decay_steps)
     model.eval().to(device)
     
     # Define Loss for CHMCNN

@@ -70,8 +70,8 @@ class BaselineTrainer():
                 print(f"Max Epoch count is reached. Best model was reached in {best_epoch}.")
                 break
             # Decay Learningrate if Step Count is reached
-            if epoch % self.args.decay_steps == self.args.decay_steps-1:
-                self.scheduler.step()
+            #if epoch % self.args.decay_steps == self.args.decay_steps-1:
+            self.scheduler.step()
             # Track best performance, and save the model's state
             if avg_val_loss < best_vloss:
                 best_epoch = epoch+1
@@ -99,68 +99,7 @@ class BaselineTrainer():
         torch.save(self.model.state_dict(), model_path)
         self.tb_writer.flush()
         
-    def train_and_validate_k_crossfold(self,k_folds=5):
-        counter = 0
-        best_epoch = 0
-        best_vloss = 1_000_000.
-        epoch = 0
-        is_fine_tuning = False
-        is_finished = False
-        mskf = MultilabelStratifiedKFold(n_splits=k_folds,shuffle=True,random_state=42)
-        X = [image_tuple[0] for image_tuple in self.data_loader.dataset.image_label_tuple_list]
-        y = np.stack([image_tuple[1].numpy() for image_tuple in self.data_loader.dataset.image_label_tuple_list])
-        while epoch < self.args.epochs and not is_finished:
-            for fold, (train_index, val_index) in enumerate(mskf.split(X, y)):
-                train_dataset = torch.utils.data.Subset(self.data_loader.dataset, train_index)
-                val_dataset = torch.utils.data.Subset(self.data_loader.dataset, val_index)
-                val_dataset.dataset.is_training = False
-                def set_worker_sharing_strategy(worker_id: int):
-                    torch.multiprocessing.set_sharing_strategy("file_system")
-                # Create Dataloader for Training and Validation Dataset
-                kwargs = {'num_workers': self.args.num_workers_dataloader, 'pin_memory': self.args.pin_memory} if self.args.gpu else {}
-                train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
-                val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
-
-                print(f"Epoch {epoch + 1}/{self.args.epochs}, Fold {fold + 1}/{k_folds}:")
-                avg_train_loss = self.train(epoch_index=epoch, data_loader=train_loader)
-                avg_val_loss = self.validate(epoch_index=epoch, data_loader=val_loader)
-                self.tb_writer.flush()
-                print(f'Epoch {epoch+1}: Average Train Loss {avg_train_loss}, Average Validation Loss {avg_val_loss}')
-                epoch+=1
-                
-                
-                # Decay Learning rate if Step Count is reached
-                if epoch % self.args.decay_steps == self.args.decay_steps - 1:
-                    self.scheduler.step()
-
-                # Track best performance, and save the model's state
-                if avg_val_loss < best_vloss:
-                    best_epoch = epoch+1
-                    self.best_model = copy.deepcopy(self.model)
-                    best_vloss = avg_val_loss
-                    counter = 0
-                else:
-                    counter += 1
-                    if counter >= self.args.early_stopping_patience and not is_fine_tuning:
-                        print(f'Early stopping triggered and validate best Epoch {best_epoch + 1}.')
-                        print(f'Begin fine-tuning model.')
-                        self.unfreeze_backbone()
-                        #best_vloss = 1_000_000.
-                        is_fine_tuning = True
-                        counter = 0
-                        continue
-                    if counter >= self.args.early_stopping_patience and is_fine_tuning:
-                        print(f'Early stopping triggered in fine-tuning Phase. {best_epoch + 1} was the best Epoch.')
-                        print(f'Validate fine-tuned Model.')
-                        is_finished = True
-                        break
-        # Test and save Best Model
-        self.test(epoch_index=best_epoch,data_loader=val_loader)
-        model_path = os.path.join(self.path_to_model,'models',f'hmcnet_{best_epoch}')
-        os.makedirs(os.path.dirname(model_path), exist_ok=True)
-        torch.save(self.model.state_dict(), model_path)
-        self.tb_writer.flush()
-        
+    
     def train(self,epoch_index,data_loader):
         current_loss = 0.
         current_global_loss = 0.
