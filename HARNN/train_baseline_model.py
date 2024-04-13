@@ -98,7 +98,7 @@ def train_baseline_model(args):
 def get_random_hyperparameter(base_args):
     fc_dim = random.choice([256,512,1024,2048])
     batch_size = random.choice([64,128,256])
-    learning_rate = random.choice([0.001])
+    learning_rate = random.choice([0.01])
     optimizer = random.choice(['sgd'])
     num_layers = random.choice([1,2,3])
     dropout_rate = random.choice([0.3,0.5,0.7])

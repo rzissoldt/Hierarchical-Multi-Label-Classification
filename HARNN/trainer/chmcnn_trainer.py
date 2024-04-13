@@ -141,7 +141,7 @@ class CHMCNNTrainer():
             
             loss.backward()
             # Clip gradients by global norm
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
+            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             self.optimizer.step()
             constr_out_list.extend(constr_output)
             predicted_list.extend(predicted)

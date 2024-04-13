@@ -130,7 +130,7 @@ class HmcNetTrainer():
             loss.backward()
             
             # Clip gradients by global norm
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
+            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             
             # Adjust learning weights
             self.optimizer.step()

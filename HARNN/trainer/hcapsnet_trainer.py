@@ -113,7 +113,7 @@ class HCapsNetTrainer():
             x = (local_scores,y_local_onehots,recon_inputs.transpose(1,3),final_outputs,self.model)
             global_loss,margin_loss,reconstruction_loss,l2_loss = self.criterion(x)
             # Clip gradients by global norm
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
+            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             global_loss.backward()
             
             

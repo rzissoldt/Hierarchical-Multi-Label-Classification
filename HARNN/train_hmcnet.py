@@ -107,7 +107,7 @@ def get_random_hyperparameter(base_args):
     highway_num_layers = random.choice([1,2])
     backbone_fc_dim = random.choice([128,256,512])
     batch_size = random.choice([64,128,256])
-    learning_rate = random.choice([0.001])
+    learning_rate = random.choice([0.01])
     optimizer = random.choice(['sgd'])
     
     print(f'Attention-Dim: {attention_dim}\n'
