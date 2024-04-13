@@ -71,7 +71,9 @@ def train_baseline_model(args):
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
           
-    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.decay_rate)
+    #scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.decay_rate)
+    gamma = 0.1
+    scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=gamma)
     model.eval().to(device)
     
     # Define Loss for CHMCNN
@@ -98,7 +100,7 @@ def train_baseline_model(args):
 def get_random_hyperparameter(base_args):
     fc_dim = random.choice([256,512,1024,2048])
     batch_size = random.choice([64,128,256])
-    learning_rate = random.choice([0.01])
+    learning_rate = random.choice([0.1])
     optimizer = random.choice(['sgd'])
     num_layers = random.choice([1,2,3])
     dropout_rate = random.choice([0.3,0.5,0.7])
