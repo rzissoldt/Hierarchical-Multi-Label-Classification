@@ -240,7 +240,7 @@ class BaselineTrainer():
         
         optimizer_dict = self.optimizer.param_groups[0]
         
-        param_groups = [copy.deepcopy(optimizer_dict) for i in range(4)]
+        param_groups = [copy.deepcopy(optimizer_dict) for i in range(3)]
         # Get the parameters of the model
         backbone_model_params = list(self.model.backbone.parameters())
 
@@ -250,11 +250,11 @@ class BaselineTrainer():
         # Assign learning rates to each parameter group
         base_lr = optimizer_dict['lr']
         param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
-        param_groups[0]['lr'] = base_lr * 1e-4
+        param_groups[0]['lr'] = 1e-4
         param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
-        param_groups[1]['lr'] = base_lr * 1e-2
-        param_groups[2]['params'] = self.model.fc.parameters()
-        param_groups[2]['lr'] = base_lr
+        param_groups[1]['lr'] = 1e-4
+        param_groups[2]['params'] = list(self.model.fc.parameters())
+        param_groups[2]['lr'] = 1e-4
         
         # Update the optimizer with the new parameter groups
         self.optimizer.param_groups = param_groups
