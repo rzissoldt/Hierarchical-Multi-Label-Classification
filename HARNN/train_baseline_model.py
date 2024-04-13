@@ -66,7 +66,7 @@ def train_baseline_model(args):
     if args.optimizer == 'adam':    
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
     elif args.optimizer == 'sgd':
-        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda, nesterov=True)
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
     else:
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
