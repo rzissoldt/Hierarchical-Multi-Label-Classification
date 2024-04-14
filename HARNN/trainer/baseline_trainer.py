@@ -132,12 +132,14 @@ class BaselineTrainer():
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             self.optimizer.step()
             self.scheduler.step(epoch_index+i/num_of_train_batches)
+            learning_rates = [param_group['lr'] for param_group in self.optimizer.param_groups]
             predicted_list.extend(predicted)
             labels_list.extend(labels)
             # Gather data and report
             current_loss += loss.item()
             last_loss = current_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, LR: {self.optimizer.param_groups[0]['lr']}"
+            learning_rates_str = 'LR: ' + learning_rates.join(', ')
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, {learning_rates_str}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
@@ -242,7 +244,7 @@ class BaselineTrainer():
         first_backbone_params = int(0.2 * len(backbone_model_params))
 
         # Assign learning rates to each parameter group
-        base_lr = optimizer_dict['lr']
+        base_lr = optimizer_dict['lr']*1e-1
         param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
         param_groups[0]['lr'] = base_lr * 1e-4
         param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
