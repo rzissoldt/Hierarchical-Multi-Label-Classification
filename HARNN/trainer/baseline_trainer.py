@@ -138,7 +138,7 @@ class BaselineTrainer():
             # Gather data and report
             current_loss += loss.item()
             last_loss = current_loss/(i+1)
-            learning_rates_str = 'LR: ' + ', '.join(learning_rates)
+            learning_rates_str = 'LR: ' + ', '.join(str(learning_rates))
             progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, {learning_rates_str}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
