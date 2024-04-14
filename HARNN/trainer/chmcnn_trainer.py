@@ -5,7 +5,7 @@ import numpy as np
 sys.path.append('../')
 from utils import data_helpers as dh
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit,MultilabelStratifiedKFold
-
+import torch.optim as optim
 from torchmetrics.classification import  MultilabelAveragePrecision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -69,10 +69,7 @@ class CHMCNNTrainer():
                     self.best_model = copy.deepcopy(self.model)
                     best_vloss = avg_validation_loss
                 print(f"Max Epoch count is reached. Best model was reached in {best_epoch}.")
-                break
-            # Decay Learningrate if Step Count is reached
-            #if epoch % self.args.decay_steps == self.args.decay_steps-1:
-            self.scheduler.step()
+                break 
             # Track best performance, and save the model's state
             if avg_validation_loss < best_vloss:
                 best_epoch = epoch+1
@@ -141,13 +138,16 @@ class CHMCNNTrainer():
             # Clip gradients by global norm
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             self.optimizer.step()
+            self.scheduler.step(epoch_index+i/num_of_train_batches)
+            learning_rates = [str(param_group['lr']) for param_group in self.optimizer.param_groups]
+            learning_rates_str = 'LR: ' + ', '.join(learning_rates)
             constr_out_list.extend(constr_output)
             predicted_list.extend(predicted)
             labels_list.extend(labels)
             # Gather data and report
             current_loss += loss.item()
             last_loss = current_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, {learning_rates_str}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
@@ -271,7 +271,9 @@ class CHMCNNTrainer():
         
         # Update the optimizer with the new parameter groups
         self.optimizer.param_groups = param_groups
-       
+        T_0 = self.scheduler.T_0
+        T_mult = self.scheduler.T_mult
+        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)
         
 """ def unfreeze_backbone(self):
         

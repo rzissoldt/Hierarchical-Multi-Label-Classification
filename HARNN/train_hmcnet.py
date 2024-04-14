@@ -69,13 +69,15 @@ def train_hmcnet(args):
     if args.optimizer == 'adam':    
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
     elif args.optimizer == 'sgd':
-        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda,nesterov=True,momentum=0.9,dampening=0.0)
     else:
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
     
-    scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=args.decay_rate,step_size=args.decay_steps)
-    model.eval().to(device)
+    #scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=args.decay_rate,step_size=args.decay_steps)
+    T_0 = 10
+    T_mult = 2
+    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0, T_mult)
     model.eval().to(device)
     
     # Define Loss for HmcNet.
@@ -108,7 +110,7 @@ def get_random_hyperparameter(base_args):
     highway_fc_dim = random.choice([256,512,1024])
     highway_num_layers = random.choice([1,2])
     backbone_fc_dim = random.choice([128,256,512])
-    batch_size = random.choice([64,128])
+    batch_size = random.choice([128])
     learning_rate = random.choice([0.1])
     optimizer = random.choice(['sgd'])
     

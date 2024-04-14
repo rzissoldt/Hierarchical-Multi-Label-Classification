@@ -12,14 +12,14 @@ from torch.utils.tensorboard import SummaryWriter
 from HARNN.model.chmcnn_model import get_constr_out
 from sklearn.metrics import average_precision_score
 class BaselineTrainer():
-    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,num_classes_list,explicit_hierarchy,path_to_model,args,device=None):
+    def __init__(self,model,criterion,optimizer,training_dataset,num_classes_list,explicit_hierarchy,path_to_model,args,device=None):
         self.model = model
         self.criterion = criterion
-        self.scheduler = scheduler
         self.optimizer = optimizer
         self.device = device
         self.best_model = copy.deepcopy(model)
         self.explicit_hierarchy = explicit_hierarchy
+        self.scheduler = None
         self.args = args
         self.path_to_model = path_to_model
         self.total_class_num = sum(num_classes_list)
@@ -55,6 +55,7 @@ class BaselineTrainer():
             kwargs = {'num_workers': self.args.num_workers_dataloader, 'pin_memory': self.args.pin_memory} if self.args.gpu else {}
             train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
+        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,len(train_loader))
         for epoch in range(self.args.epochs):
             avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
             avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader)
@@ -68,10 +69,7 @@ class BaselineTrainer():
                     self.best_model = copy.deepcopy(self.model)
                     best_vloss = avg_val_loss
                 print(f"Max Epoch count is reached. Best model was reached in {best_epoch}.")
-                break
-            # Decay Learningrate if Step Count is reached
-            #if epoch % self.args.decay_steps == self.args.decay_steps-1:
-            
+                break     
             # Track best performance, and save the model's state
             if avg_val_loss < best_vloss:
                 best_epoch = epoch+1
@@ -85,6 +83,7 @@ class BaselineTrainer():
                     print(f'Begin fine tuning model.')
                     self.model = copy.deepcopy(self.best_model)
                     self.unfreeze_backbone()
+                    self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,len(train_loader))
                     is_fine_tuning = True
                     counter = 0
                     continue
@@ -132,13 +131,14 @@ class BaselineTrainer():
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             self.optimizer.step()
             self.scheduler.step(epoch_index+i/num_of_train_batches)
-            learning_rates = [str(param_group['lr']) for param_group in self.optimizer.param_groups]
+            
             #print(learning_rates)
             predicted_list.extend(predicted)
             labels_list.extend(labels)
             # Gather data and report
             current_loss += loss.item()
             last_loss = current_loss/(i+1)
+            learning_rates = [str(param_group['lr']) for param_group in self.optimizer.param_groups]
             learning_rates_str = 'LR: ' + ', '.join(learning_rates)
             progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, {learning_rates_str}"
             print(progress_info, end='\r')
@@ -255,6 +255,4 @@ class BaselineTrainer():
         
         # Update the optimizer with the new parameter groups
         self.optimizer.param_groups = param_groups
-        T_0 = self.scheduler.T_0
-        T_mult = self.scheduler.T_mult
-        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)
+        

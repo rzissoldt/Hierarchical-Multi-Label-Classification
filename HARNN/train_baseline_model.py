@@ -71,11 +71,7 @@ def train_baseline_model(args):
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
           
-    
-    #scheduler = optim.lr_scheduler.StepLR(optimizer, gamma=args.decay_rate,step_size=args.decay_steps)
-    T_0 = 10
-    T_mult = 2
-    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0, T_mult)
+    #scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0, T_mult)
     model.eval().to(device)
     
     # Define Loss for CHMCNN
@@ -84,7 +80,7 @@ def train_baseline_model(args):
    
     
     # Define Trainer for HmcNet
-    trainer = BaselineTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
+    trainer = BaselineTrainer(model=model,criterion=criterion,optimizer=optimizer,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
     
     # Save Model ConfigParameters
     args_dict = vars(args)

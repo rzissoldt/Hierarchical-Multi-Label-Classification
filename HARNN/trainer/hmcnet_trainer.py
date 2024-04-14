@@ -5,7 +5,7 @@ import numpy as np
 sys.path.append('../')
 from utils import data_helpers as dh
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit,MultilabelStratifiedKFold
-
+import torch.optim as optim
 from torchmetrics import AUROC, AveragePrecision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -66,9 +66,7 @@ class HmcNetTrainer():
                     best_vloss = avg_val_loss
                 print(f"Max Epoch count is reached. Best model was reached in {best_epoch}.")
                 break
-            # Decay Learningrate if Step Count is reached
-            #if epoch % self.args.decay_steps == self.args.decay_steps-1:
-            self.scheduler.step()
+            
             # Track best performance, and save the model's state
             if avg_val_loss < best_vloss:
                 best_epoch = epoch+1
@@ -125,8 +123,8 @@ class HmcNetTrainer():
             # Compute the loss and its gradients
             predictions = (local_scores_list,global_logits)
             targets = (y_local_onehots,y_total_onehot)
-            x = (predictions,targets,self.model)
-            loss,global_loss,local_loss,hierarchy_loss,l2_loss = self.criterion(x)
+            x = (predictions,targets)
+            loss,global_loss,local_loss,hierarchy_loss = self.criterion(x)
             loss.backward()
             
             # Clip gradients by global norm
@@ -134,25 +132,25 @@ class HmcNetTrainer():
             
             # Adjust learning weights
             self.optimizer.step()
+            self.scheduler.step(epoch_index+i/num_of_train_batches)
+            learning_rates = [str(param_group['lr']) for param_group in self.optimizer.param_groups]
+            learning_rates_str = 'LR: ' + ', '.join(learning_rates)
             # Gather data and report
             current_loss += loss.item()
             current_global_loss += global_loss.item()
             current_local_loss += local_loss.item()
             current_hierarchy_loss += hierarchy_loss.item()
-            current_l2_loss += l2_loss.item()
             last_loss = current_loss/(i+1)
             last_global_loss = current_global_loss/(i+1)
             last_local_loss = current_local_loss/(i+1)
             last_hierarchy_loss = current_hierarchy_loss/(i+1)
-            last_l2_loss = current_l2_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_global_loss+last_local_loss+last_hierarchy_loss}, L2Loss: {last_l2_loss}"
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_global_loss+last_local_loss+last_hierarchy_loss}, {learning_rates_str}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
             self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
             self.tb_writer.add_scalar('Training/LocalLoss', last_local_loss, tb_x)
             self.tb_writer.add_scalar('Training/HierarchyLoss', last_hierarchy_loss, tb_x)
-            self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
         print('\n')
         return last_global_loss+last_local_loss+last_hierarchy_loss
     
@@ -181,16 +179,16 @@ class HmcNetTrainer():
 
                 # Compute the loss and its gradients
                 predictions, targets = (local_scores_list,global_logits),(y_local_onehots,y_total_onehot)
-                x = (predictions,targets,self.model)
-                vloss,vglobal_loss,vlocal_loss,vhierarchy_loss,vl2_loss = self.criterion(x)
+                x = (predictions,targets)
+                vloss,vglobal_loss,vlocal_loss,vhierarchy_loss = self.criterion(x)
                 current_vglobal_loss += vglobal_loss.item()
                 current_vlocal_loss += vlocal_loss.item()
                 current_vhierarchy_loss += vhierarchy_loss.item()
-                current_vl2_loss += vl2_loss.item()
+                
                 last_vglobal_loss = current_vglobal_loss/(i+1)
                 last_vlocal_loss = current_vlocal_loss/(i+1)
                 last_vhierarchy_loss = current_vhierarchy_loss/(i+1)
-                last_vl2_loss = current_vl2_loss/(i+1)
+                
                 running_vloss += vloss.item()
                 for j in scores:
                     scores_list.append(j)
@@ -199,7 +197,7 @@ class HmcNetTrainer():
                     true_onehot_labels_list.append(i)                
                 eval_loss = running_vloss/(eval_counter+1)
                 #progress_info = f'Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {eval_loss}'
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {last_vglobal_loss+last_vlocal_loss+last_vhierarchy_loss}, L2Loss: {last_vl2_loss}"
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{eval_counter+1}/{num_of_val_batches}], AVGLoss: {last_vglobal_loss+last_vlocal_loss+last_vhierarchy_loss}"
                 print(progress_info, end='\r')
                 
                 tb_x = epoch_index * num_of_val_batches + eval_counter + 1
@@ -207,7 +205,6 @@ class HmcNetTrainer():
                 self.tb_writer.add_scalar('Validation/GlobalLoss',last_vglobal_loss,tb_x)
                 self.tb_writer.add_scalar('Validation/LocalLoss',last_vlocal_loss,tb_x)
                 self.tb_writer.add_scalar('Validation/HierarchyLoss',last_vhierarchy_loss,tb_x)
-                self.tb_writer.add_scalar('Validation/L2Loss',last_vl2_loss,tb_x)
                 eval_counter+=1
             print('\n')                
             return last_vglobal_loss+last_vlocal_loss+last_vhierarchy_loss
@@ -260,20 +257,23 @@ class HmcNetTrainer():
         first_backbone_params = int(0.2 * len(backbone_model_params))
 
         # Assign learning rates to each parameter group
-        base_lr = optimizer_dict['lr']
+        base_lr = optimizer_dict['lr']*1e-1
         param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
-        param_groups[0]['lr'] = 1e-4
+        param_groups[0]['lr'] = base_lr*1e-4
         param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
-        param_groups[1]['lr'] = 1e-4
+        param_groups[1]['lr'] = base_lr*1e-2
         param_groups[2]['params'] = list(self.model.ham_modules.parameters())
-        param_groups[2]['lr'] = 1e-4
+        param_groups[2]['lr'] = base_lr
         param_groups[3]['params'] = list(self.model.hybrid_predicting_module.parameters())
-        param_groups[3]['lr'] = 1e-4
+        param_groups[3]['lr'] = base_lr
         
         
 
         # Update the optimizer with the new parameter groups
         self.optimizer.param_groups = param_groups
+        T_0 = self.scheduler.T_0
+        T_mult = self.scheduler.T_mult
+        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)
     """def unfreeze_backbone(self):
         
         Unfreezes the backbone of the model and splits the learning rate into three different parts.
