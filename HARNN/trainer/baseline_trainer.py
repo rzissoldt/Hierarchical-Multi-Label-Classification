@@ -247,7 +247,7 @@ class BaselineTrainer():
         backbone_model_params = list(self.model.backbone.parameters())
 
         # Calculate the number of parameters for each section
-        first_backbone_params = int(0.2 * len(backbone_model_params))
+        first_backbone_params = int(0.8 * len(backbone_model_params))
 
         # Assign learning rates to each parameter group
         base_lr = self.args.learning_rate*1e-1
