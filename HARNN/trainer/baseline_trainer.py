@@ -132,13 +132,12 @@ class BaselineTrainer():
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             self.optimizer.step()
             self.scheduler.step(epoch_index+i/num_of_train_batches)
-            print(self.optimizer.param_groups[0]['lr'])
             predicted_list.extend(predicted)
             labels_list.extend(labels)
             # Gather data and report
             current_loss += loss.item()
             last_loss = current_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, LR: {self.optimizer.param_groups[0]['lr']}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
