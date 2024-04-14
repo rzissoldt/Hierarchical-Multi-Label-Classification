@@ -107,7 +107,7 @@ def get_random_hyperparameter(base_args):
     batch_size = random.choice([128])
     learning_rate = random.choice([0.1])
     optimizer = random.choice(['sgd'])
-    num_layers = random.choice([1,2,3])
+    num_layers = random.choice([2,3])
     dropout_rate = random.choice([0.3,0.5,0.7])
     is_batchnorm_active = random.choice([True])
     activation_func = random.choice(['relu'])

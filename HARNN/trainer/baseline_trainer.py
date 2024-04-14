@@ -12,14 +12,14 @@ from torch.utils.tensorboard import SummaryWriter
 from HARNN.model.chmcnn_model import get_constr_out
 from sklearn.metrics import average_precision_score
 class BaselineTrainer():
-    def __init__(self,model,criterion,optimizer,training_dataset,num_classes_list,explicit_hierarchy,path_to_model,args,device=None):
+    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,num_classes_list,explicit_hierarchy,path_to_model,args,device=None):
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
         self.device = device
         self.best_model = copy.deepcopy(model)
         self.explicit_hierarchy = explicit_hierarchy
-        self.scheduler = None
+        self.scheduler = scheduler
         self.args = args
         self.path_to_model = path_to_model
         self.total_class_num = sum(num_classes_list)
@@ -56,9 +56,9 @@ class BaselineTrainer():
             train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
         #self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=len(train_loader)/(self.args.batch_size*self.args.epochs))
-        T_0 = 10
-        T_mult = 2
-        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)
+        #T_0 = 10
+        #T_mult = 2
+        #self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)
         
         for epoch in range(self.args.epochs):
             avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
@@ -88,6 +88,8 @@ class BaselineTrainer():
                     self.model = copy.deepcopy(self.best_model)
                     self.unfreeze_backbone()
                     #self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=len(train_loader)/(self.args.batch_size*self.args.epochs))
+                    T_0 = self.scheduler.T_0
+                    T_mult = self.scheduler.T_mult
                     self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)
                     is_fine_tuning = True
                     counter = 0
@@ -149,6 +151,8 @@ class BaselineTrainer():
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
+            for i in range(len(learning_rates)):
+                self.tb_writer.add_scalar(f'Training/LR{i}', learning_rates[i], tb_x)
         # Gather data and report
         auprc = AveragePrecision(task="binary")
         predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
@@ -192,17 +196,11 @@ class BaselineTrainer():
                 labels_list.extend(labels)
                 # Gather data and report
                 current_vloss += loss.item()
-                #current_vglobal_loss += global_loss.item()
-                #current_vl2_loss += l2_loss.item()
                 last_vloss = current_vloss/(i+1)
-                #last_vglobal_loss = current_vglobal_loss/(i+1)
-                #last_vl2_loss = current_vl2_loss/(i+1)
                 progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGLoss: {last_vloss}"
                 print(progress_info, end='\r')
                 tb_x = epoch_index * num_of_val_batches + i + 1
                 self.tb_writer.add_scalar('Validation/Loss', last_vloss, tb_x)
-                #self.tb_writer.add_scalar('Validation/GlobalLoss', last_vglobal_loss, tb_x)
-                #self.tb_writer.add_scalar('Validation/L2Loss', last_vl2_loss, tb_x)
             
         return last_vloss
     
@@ -263,6 +261,6 @@ class BaselineTrainer():
         param_groups[2]['initial_lr'] = base_lr
         
         # Update the optimizer with the new parameter groups
-        self.optimizer = optim.SGD(param_groups)
+        self.optimizer.param_groups = param_groups
         
         

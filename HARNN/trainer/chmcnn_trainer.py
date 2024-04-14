@@ -83,6 +83,9 @@ class CHMCNNTrainer():
                     print(f'Begin fine tuning model.')
                     self.model = copy.deepcopy(self.best_model)
                     self.unfreeze_backbone()
+                    T_0 = self.scheduler.T_0
+                    T_mult = self.scheduler.T_mult
+                    self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)
                     is_fine_tuning = True
                     counter = 0
                     continue
@@ -151,6 +154,8 @@ class CHMCNNTrainer():
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
+            for i in range(len(learning_rates)):
+                self.tb_writer.add_scalar(f'Training/LR{i}', learning_rates[i], tb_x)
         # Gather data and report
         auprc = MultilabelAveragePrecision(num_labels=self.total_class_num,average='macro')
         #predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
@@ -258,22 +263,23 @@ class CHMCNNTrainer():
         backbone_model_params = list(self.model.backbone.parameters())
 
         # Calculate the number of parameters for each section
-        first_backbone_params = int(0.2 * len(backbone_model_params))
+        first_backbone_params = int(0.8 * len(backbone_model_params))
 
         # Assign learning rates to each parameter group
-        base_lr = optimizer_dict['lr']*1e-1
+        base_lr = self.args.learning_rate*1e-1
+        current_lr = param_groups[0]['lr']
         param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
-        param_groups[0]['lr'] = base_lr * 1e-4
+        param_groups[0]['lr'] = current_lr * 1e-4
+        param_groups[0]['initial_lr'] = base_lr * 1e-4
         param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
-        param_groups[1]['lr'] = base_lr * 1e-2
+        param_groups[1]['lr'] = current_lr * 1e-2
+        param_groups[1]['initial_lr'] = base_lr * 1e-2
         param_groups[2]['params'] = list(self.model.fc.parameters())
-        param_groups[2]['lr'] = base_lr
+        param_groups[2]['lr'] = current_lr
+        param_groups[2]['initial_lr'] = base_lr
         
         # Update the optimizer with the new parameter groups
         self.optimizer.param_groups = param_groups
-        T_0 = self.scheduler.T_0
-        T_mult = self.scheduler.T_mult
-        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)
         
 """ def unfreeze_backbone(self):
         

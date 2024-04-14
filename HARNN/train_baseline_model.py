@@ -70,8 +70,10 @@ def train_baseline_model(args):
     else:
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
-          
-    #scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0, T_mult)
+    
+    T_0 = 10
+    T_mult = 2   
+    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0, T_mult)
     model.eval().to(device)
     
     # Define Loss for CHMCNN
@@ -80,7 +82,7 @@ def train_baseline_model(args):
    
     
     # Define Trainer for HmcNet
-    trainer = BaselineTrainer(model=model,criterion=criterion,optimizer=optimizer,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
+    trainer = BaselineTrainer(model=model,criterion=criterion,scheduler=scheduler,optimizer=optimizer,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
     
     # Save Model ConfigParameters
     args_dict = vars(args)
@@ -100,7 +102,7 @@ def get_random_hyperparameter(base_args):
     batch_size = random.choice([128])
     learning_rate = random.choice([0.1])
     optimizer = random.choice(['sgd'])
-    num_layers = random.choice([1,2,3])
+    num_layers = random.choice([2,3])
     dropout_rate = random.choice([0.3,0.5,0.7])
     is_batchnorm_active = random.choice([True])
     activation_func = random.choice(['relu'])
