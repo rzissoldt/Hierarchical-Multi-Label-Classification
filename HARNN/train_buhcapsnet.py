@@ -64,9 +64,9 @@ def train_buhcapsnet(args):
     
     # Define Optimzer and Scheduler
     if args.optimizer == 'adam':    
-        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
     elif args.optimizer == 'sgd':
-        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
     else:
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return

@@ -67,9 +67,9 @@ def train_chmcnn(args):
     
     # Define Optimzer and Scheduler
     if args.optimizer == 'adam':    
-        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
     elif args.optimizer == 'sgd':
-        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
     else:
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
@@ -102,8 +102,8 @@ def train_chmcnn(args):
         
 def get_random_hyperparameter(base_args):
     fc_dim = random.choice([256,512,1024,2048])
-    batch_size = random.choice([64,128,256])
-    learning_rate = random.choice([0.01])
+    batch_size = random.choice([64,128])
+    learning_rate = random.choice([0.1])
     optimizer = random.choice(['sgd'])
     num_layers = random.choice([1,2,3])
     dropout_rate = random.choice([0.3,0.5,0.7])

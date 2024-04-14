@@ -104,8 +104,6 @@ class CHMCNNTrainer():
         
     def train(self,epoch_index,data_loader):
         current_loss = 0.
-        current_global_loss = 0.
-        current_l2_loss = 0.
         last_loss = 0.
         self.model.train(True)
         predicted_list = []
@@ -129,8 +127,8 @@ class CHMCNNTrainer():
             train_output = labels*output.double() # h-strich
             train_output = get_constr_out(train_output, self.explicit_hierarchy) # max (M dotproduct H-strich)
             train_output = (1-labels)*constr_output.double() + labels*train_output # (1-y) dotproduct MCM + (y dotproduct max(M dotproduct H-strich))
-            x = train_output,labels.double(),self.model
-            loss,global_loss,l2_loss = self.criterion(x) #BCELoss((1-y) dotproduct MCM + (y dotproduct max(M dotproduct H-strich)),y)
+            x = train_output,labels.double()
+            loss = self.criterion(x) #BCELoss((1-y) dotproduct MCM + (y dotproduct max(M dotproduct H-strich)),y)
             predicted = constr_output.data > 0.5
             
             # Total number of labels
@@ -148,29 +146,23 @@ class CHMCNNTrainer():
             labels_list.extend(labels)
             # Gather data and report
             current_loss += loss.item()
-            current_global_loss += global_loss.item()
-            current_l2_loss += l2_loss.item()
             last_loss = current_loss/(i+1)
-            last_global_loss = current_global_loss/(i+1)
-            last_l2_loss = current_l2_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_global_loss}, L2-Loss: {last_l2_loss}"
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
-            self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
-            self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
         # Gather data and report
         auprc = MultilabelAveragePrecision(num_labels=self.total_class_num,average='macro')
         #predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
         scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in constr_out_list],dim=0).to(self.device)
         labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
         eval_auprc = auprc(scores.to(dtype=torch.float32),labels.to(dtype=torch.long))
-        progress_info = f"Training: Epoch [{epoch_index+1}], Loss: {last_global_loss},AUPRC: {eval_auprc}"
+        progress_info = f"Training: Epoch [{epoch_index+1}], Loss: {last_loss}, AUPRC: {eval_auprc}"
         
         
         self.tb_writer.add_scalar('Training/AUPRC',eval_auprc,epoch_index)
         print('\n')
-        return last_global_loss
+        return last_loss
     
     def validate(self,epoch_index,data_loader):
         # Set the model to evaluation mode, disabling dropout and using population
@@ -199,24 +191,17 @@ class CHMCNNTrainer():
                 train_output = labels*constr_output.double() # h-strich
                 train_output = get_constr_out(train_output, self.explicit_hierarchy) # max (M dotproduct H-strich)
                 train_output = (1-labels)*constr_output.double() + labels*train_output # (1-y) dotproduct MCM + (y dotproduct max(M dotproduct H-strich))
-                x = train_output,labels.double(),self.model
+                x = train_output,labels.double()
                 
-                vloss,vglobal_loss,vl2_loss = self.criterion(x) #BCELoss((1-y) dotproduct MCM + (y dotproduct max(M dotproduct H-strich)),y)
-                current_vglobal_loss += vglobal_loss.item()
+                vloss = self.criterion(x) #BCELoss((1-y) dotproduct MCM + (y dotproduct max(M dotproduct H-strich)),y)
                 current_vloss += vloss.item()
-                current_vl2_loss += vl2_loss.item()
-                last_vloss = current_vloss/(i+1)
-                last_vglobal_loss = current_vglobal_loss/(i+1)
-                last_vl2_loss = current_vl2_loss/(i+1)
-                
+                last_vloss = current_vloss/(i+1)                
                 predicted = constr_output.data > 0.5                
                 constr_out_list.extend(constr_output)
                 predicted_list.extend(predicted)
                 labels_list.extend(labels)
                 tb_x = epoch_index * num_of_val_batches + i + 1
                 self.tb_writer.add_scalar('Training/Loss', last_vloss, tb_x)
-                self.tb_writer.add_scalar('Training/GlobalLoss', last_vglobal_loss, tb_x)
-                self.tb_writer.add_scalar('Training/L2Loss', last_vl2_loss, tb_x)
             # Gather data and report
             
             avg_precision = MultilabelAveragePrecision(num_labels=self.total_class_num,average='macro')
@@ -224,12 +209,12 @@ class CHMCNNTrainer():
             scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in constr_out_list],dim=0).to(self.device)
             labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
             eval_avg_precision = avg_precision(scores.to(dtype=torch.float32),labels.to(dtype=torch.long))
-            progress_info = f"Validation: Epoch [{epoch_index+1}], Loss: {last_vglobal_loss}, Average Precision: {eval_avg_precision}"
+            progress_info = f"Validation: Epoch [{epoch_index+1}], Loss: {last_vloss}, Average Precision: {eval_avg_precision}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_val_batches + eval_counter + 1
             self.tb_writer.add_scalar('Validation/AveragePecision',eval_avg_precision,tb_x)
                 
-        return last_vglobal_loss
+        return last_vloss
     
     def test(self,epoch_index,data_loader):
         print(f"Evaluating best model of epoch {epoch_index}.")

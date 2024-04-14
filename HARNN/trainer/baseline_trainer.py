@@ -71,8 +71,7 @@ class BaselineTrainer():
                 break
             # Decay Learningrate if Step Count is reached
             #if epoch % self.args.decay_steps == self.args.decay_steps-1:
-            self.scheduler.step()
-            print( self.optimizer.param_groups[0]['lr'])
+            
             # Track best performance, and save the model's state
             if avg_val_loss < best_vloss:
                 best_epoch = epoch+1
@@ -132,22 +131,17 @@ class BaselineTrainer():
             # Clip gradients by global norm
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             self.optimizer.step()
+            self.scheduler.step(epoch_index+i/num_of_train_batches)
+            print(self.optimizer.param_groups[0]['lr'])
             predicted_list.extend(predicted)
             labels_list.extend(labels)
             # Gather data and report
             current_loss += loss.item()
-            #current_global_loss += global_loss.item()
-            #current_l2_loss += l2_loss.item()
             last_loss = current_loss/(i+1)
-            #last_global_loss = current_global_loss/(i+1)
-            #last_l2_loss = current_l2_loss/(i+1)
-            #progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_global_loss}, L2-Loss: {last_l2_loss}"
             progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
-            #self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
-            #self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
         # Gather data and report
         auprc = AveragePrecision(task="binary")
         predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
@@ -251,9 +245,9 @@ class BaselineTrainer():
         # Assign learning rates to each parameter group
         base_lr = optimizer_dict['lr']
         param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
-        param_groups[0]['lr'] = base_lr * 1e-2
+        param_groups[0]['lr'] = base_lr * 1e-4
         param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
-        param_groups[1]['lr'] = base_lr * 1e-1
+        param_groups[1]['lr'] = base_lr * 1e-2
         param_groups[2]['params'] = list(self.model.fc.parameters())
         param_groups[2]['lr'] = base_lr
         

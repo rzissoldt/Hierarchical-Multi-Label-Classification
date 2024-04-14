@@ -105,8 +105,8 @@ def train_hcapsnet(args):
 
 def hyperparameter_search(base_args):
     batch_size = random.choice([128])
-    learning_rate = random.choice([0.001])
-    optimizer = random.choice(['adam'])
+    learning_rate = random.choice([0.1])
+    optimizer = random.choice(['sgd'])
     fc_dim = random.choice([256])
     print(f'Batch-Size: {batch_size}\n'
           f'FC-DIM: {fc_dim}\n'
