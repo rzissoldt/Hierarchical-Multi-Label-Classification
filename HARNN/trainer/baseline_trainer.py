@@ -55,7 +55,11 @@ class BaselineTrainer():
             kwargs = {'num_workers': self.args.num_workers_dataloader, 'pin_memory': self.args.pin_memory} if self.args.gpu else {}
             train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
-        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=len(train_loader)/(self.args.batch_size*self.args.epochs))
+        #self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=len(train_loader)/(self.args.batch_size*self.args.epochs))
+        T_0 = 10
+        T_mult = 2
+        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)
+        
         for epoch in range(self.args.epochs):
             avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
             avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader)
@@ -83,7 +87,8 @@ class BaselineTrainer():
                     print(f'Begin fine tuning model.')
                     self.model = copy.deepcopy(self.best_model)
                     self.unfreeze_backbone()
-                    self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=len(train_loader)/(self.args.batch_size*self.args.epochs))
+                    #self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=len(train_loader)/(self.args.batch_size*self.args.epochs))
+                    self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)
                     is_fine_tuning = True
                     counter = 0
                     continue
