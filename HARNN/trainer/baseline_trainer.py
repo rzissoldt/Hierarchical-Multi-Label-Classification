@@ -133,6 +133,7 @@ class BaselineTrainer():
             self.optimizer.step()
             self.scheduler.step(epoch_index+i/num_of_train_batches)
             learning_rates = [param_group['lr'] for param_group in self.optimizer.param_groups]
+            print(learning_rates)
             predicted_list.extend(predicted)
             labels_list.extend(labels)
             # Gather data and report
