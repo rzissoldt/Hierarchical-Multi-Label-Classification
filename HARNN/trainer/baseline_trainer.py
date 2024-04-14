@@ -55,7 +55,7 @@ class BaselineTrainer():
             kwargs = {'num_workers': self.args.num_workers_dataloader, 'pin_memory': self.args.pin_memory} if self.args.gpu else {}
             train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
-        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,len(train_loader))
+        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=len(train_loader)/(self.args.batch_size*self.args.epochs))
         for epoch in range(self.args.epochs):
             avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
             avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader)
@@ -83,7 +83,7 @@ class BaselineTrainer():
                     print(f'Begin fine tuning model.')
                     self.model = copy.deepcopy(self.best_model)
                     self.unfreeze_backbone()
-                    self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,len(train_loader))
+                    self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,T_max=len(train_loader)/(self.args.batch_size*self.args.epochs))
                     is_fine_tuning = True
                     counter = 0
                     continue
@@ -245,14 +245,19 @@ class BaselineTrainer():
         first_backbone_params = int(0.2 * len(backbone_model_params))
 
         # Assign learning rates to each parameter group
-        base_lr = optimizer_dict['lr']*1e-1
+        base_lr = self.args.learning_rate
+        current_lr = param_groups[0]['lr']
         param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
-        param_groups[0]['lr'] = base_lr * 1e-4
+        param_groups[0]['lr'] = current_lr * 1e-4
+        param_groups[0]['initial_lr'] = base_lr * 1e-4
         param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
-        param_groups[1]['lr'] = base_lr * 1e-2
+        param_groups[1]['lr'] = current_lr * 1e-2
+        param_groups[1]['initial_lr'] = base_lr * 1e-2
         param_groups[2]['params'] = list(self.model.fc.parameters())
-        param_groups[2]['lr'] = base_lr
+        param_groups[2]['lr'] = current_lr
+        param_groups[2]['initial_lr'] = base_lr
         
         # Update the optimizer with the new parameter groups
-        self.optimizer.param_groups = param_groups
+        self.optimizer = optim.SGD(param_groups)
+        
         
