@@ -5,7 +5,7 @@ import numpy as np
 sys.path.append('../')
 from utils import data_helpers as dh
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit,MultilabelStratifiedKFold
-
+import torch.optim as optim
 from torchmetrics import AUROC, AveragePrecision
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -255,3 +255,6 @@ class BaselineTrainer():
         
         # Update the optimizer with the new parameter groups
         self.optimizer.param_groups = param_groups
+        T_0 = self.scheduler.T_0
+        T_mult = self.scheduler.T_mult
+        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)

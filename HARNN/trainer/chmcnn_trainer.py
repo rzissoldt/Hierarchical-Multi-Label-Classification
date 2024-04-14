@@ -261,17 +261,18 @@ class CHMCNNTrainer():
         first_backbone_params = int(0.2 * len(backbone_model_params))
 
         # Assign learning rates to each parameter group
-        base_lr = optimizer_dict['lr']
+        base_lr = optimizer_dict['lr']*1e-1
         param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
-        param_groups[0]['lr'] = 1e-4
+        param_groups[0]['lr'] = base_lr * 1e-4
         param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
-        param_groups[1]['lr'] = 1e-4
+        param_groups[1]['lr'] = base_lr * 1e-2
         param_groups[2]['params'] = list(self.model.fc.parameters())
-        param_groups[2]['lr'] = 1e-4
+        param_groups[2]['lr'] = base_lr
         
         # Update the optimizer with the new parameter groups
         self.optimizer.param_groups = param_groups
-
+       
+        
 """ def unfreeze_backbone(self):
         
         Unfreezes the backbone of the model and splits the learning rate into three different parts.
