@@ -65,10 +65,12 @@ class DatasetAnalyzer():
         self.global_distribution_dict = {}
         for hierarchy_dict in hierarchy_dicts:
             layer_dict = {}
+            explicit_layer_dict ={}
             for key in hierarchy_dict:
                 layer_dict[hierarchy_dict[key]] = 0
+                explicit_layer_dict[hierarchy_dict[key]] = 0
             self.layer_distribution_dict.append(layer_dict)
-            self.layer_distribution_dict_explicit.append(layer_dict)
+            self.layer_distribution_dict_explicit.append(explicit_layer_dict)
             
         counter = 0
         for hierarchy_dict in hierarchy_dicts:
