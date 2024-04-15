@@ -3,6 +3,8 @@ import param_parser as parser
 import json, os
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import itertools
+import numpy as np
 class DatasetAnalyzer():
     def __init__(self, annotation_file_path, hierarchy_depth,image_count_threshold,path_to_results,dataset_name, hierarchy_file_path=None,hierarchy_dicts_file_path=None):
         with open(annotation_file_path,'r') as infile:
@@ -66,6 +68,7 @@ class DatasetAnalyzer():
             for key in hierarchy_dict:
                 layer_dict[hierarchy_dict[key]] = 0
             self.layer_distribution_dict.append(layer_dict)
+            self.layer_distribution_dict_explicit.append(layer_dict)
             
         counter = 0
         for hierarchy_dict in hierarchy_dicts:
@@ -78,6 +81,7 @@ class DatasetAnalyzer():
         for file_name in self.image_dict.keys():
             labels = self.image_dict[file_name]        
             label_dict = self._find_labels_in_hierarchy_dicts(labels,self.filtered_hierarchy_dicts)
+            self._eval_labels_in_hierarchy_dicts(labels=labels,hierarchy_dicts=self.filtered_hierarchy_dicts)
             level = 0
             for layer_key in label_dict.keys():
                 for label_idx in label_dict[layer_key]:
@@ -166,6 +170,67 @@ class DatasetAnalyzer():
             plt.savefig(fig_file_path)
             plt.clf()
             level+=1
+            
+    def generate_explicit_distribution_plot_per_layer(self):
+        class_distriubtion_dict = [{} for filtered_hierarchy_dict in self.filtered_hierarchy_dicts]
+        level = 0
+
+        # Determine the number of hierarchy levels
+        num_levels = len(self.filtered_hierarchy_dicts)
+
+        # Choose a colormap
+        cmap = cm.get_cmap('tab10')  # You can choose any other colormap from Matplotlib
+
+        for layer_dict in self.filtered_hierarchy_dicts:
+            layer_distribution_dict = self.layer_distribution_dict_explicit[level]
+
+            for label in layer_dict:
+                class_distriubtion_dict[level][label] = layer_distribution_dict[layer_dict[label]]
+            level += 1
+        classes = []
+        
+            
+        
+        for level in range(len(self.filtered_hierarchy_dicts)):
+            classes=tuple([x[x.rfind('_')+1:] for x in self.filtered_hierarchy_dicts[level].keys()])
+            
+            weight_counts = {}
+            for layer in range(level,len(self.filtered_hierarchy_dicts)-1):
+                weight_counts[f'Hierarchy-Layer-{layer+1}'] = []
+                
+            for key in self.filtered_hierarchy_dicts[level].keys():
+                
+                for i in range(level+1, len(self.filtered_hierarchy_dicts)):
+                    summed_image_count = 0
+                    for label in self.filtered_hierarchy_dicts[i].keys():
+                        if label.startswith(key):
+                            summed_image_count+=class_distriubtion_dict[i][label]
+                        
+                    weight_counts[f'Hierarchy-Layer-{i}'].append(summed_image_count)
+            width = 0.5
+
+            fig, ax = plt.subplots()
+            bottom = np.zeros(len(classes))
+            scaling_factor = min(10,max(2, 100 / len(classes)))
+            for boolean, weight_count in weight_counts.items():
+                p = ax.bar(classes, weight_count, width, label=boolean, bottom=bottom)
+                bottom += weight_count
+            plt.xlabel('Klassen')
+            plt.ylabel('Anzahl')
+            plt.title('Verteilung der Klassen für Schicht {0}'.format(level+1))
+            plt.xticks(rotation=90)  # Rotate class names for better readability if needed
+            plt.grid(axis='y', linestyle='--', alpha=0.7)
+            plt.tight_layout()
+            plt.legend(loc="upper right")
+            # Set font size for class labels
+            for tick in plt.gca().xaxis.get_major_ticks():
+                tick.label.set_fontsize(scaling_factor)
+            fig_path = os.path.join(self.path_to_results,self.dataset_name+'_'+str(self.image_count_threshold))
+            fig_file_name='explicit_distribution_layer_{0}_plot.png'.format(level+1)
+            fig_file_path = os.path.join(fig_path,fig_file_name)
+            os.makedirs(fig_path, exist_ok=True)
+            plt.savefig(fig_file_path)
+            plt.clf()
     def generate_global_distribution_plot(self):
         class_distriubtion_dict = {}
         level = 0
@@ -245,26 +310,40 @@ class DatasetAnalyzer():
         
         return label_dict
 
-    def _find_label_in_hierarchy_dicts(self,label,hierarchy_dicts):
-        label_dict = {}
-        level = 0
-        for dict in hierarchy_dicts:
-            labels_index = []
-            label_dict['layer-{0}'.format(level)] = []
-            level +=1
-        path = xtree.get_id_path(self.hierarchy,label)  
-            
-        labels_index = []
-        level = 0
-            
-        for i in range(1,self.hierarchy_depth+1):
-            temp_key = '_'.join(path[:i+1])
-            temp_dict = hierarchy_dicts[i-1]
-            if temp_key not in temp_dict.keys():
-                break
-            temp_label = temp_dict[temp_key]
-            label_dict['layer-{0}'.format(i-1)].append(temp_label)
-        return label_dict
+    def _eval_labels_in_hierarchy_dicts(self,labels,hierarchy_dicts):
+        def is_subset(path1, path2):
+        # Check if path1 is a subset of path2
+            return set(path1).issubset(set(path2))
+        paths = []
+        for label in labels:          
+            path = xtree.get_id_path(self.hierarchy,label)[:len(hierarchy_dicts)-1]
+            paths.append(path)
+        redundant_paths = []
+
+        for i, path1 in enumerate(paths):
+            for j, path2 in enumerate(paths):
+                if i != j:
+                    if set(path1) == set(path2):
+                       break
+                    if is_subset(path1, path2):
+                        redundant_paths.append(path1)
+                        break  # Break after finding the first instance of a subset
+
+        # Remove redundant paths
+        if len(redundant_paths) != 0:
+            unique_paths = [path for path in paths if path not in redundant_paths]
+            unique_paths.sort()
+            unique_paths=list(unique_paths for unique_paths,_ in itertools.groupby(unique_paths))
+        else:
+            unique_paths = paths
+        for unique_path in unique_paths:
+            level = len(unique_path)-1
+            hierarchy_dict = hierarchy_dicts[level-1]
+            label_idx = hierarchy_dict['_'.join(unique_path)]
+            self.layer_distribution_dict_explicit[level-1][label_idx] +=1
+        
+        
+    
     def _get_last_label_in_hierarchy_dicts(self,hierarchy_dicts):
         level = len(list(hierarchy_dicts.keys()))
         for key in reversed(list(hierarchy_dicts.keys())):
@@ -307,6 +386,6 @@ def plot_distribution(label_dict,distribution_dict):
 if __name__ == '__main__':
     args = parser.dataset_analyzer_parser()    
     dataset_analyzer = DatasetAnalyzer(annotation_file_path=args.train_file,hierarchy_file_path=args.hierarchy_file,hierarchy_dicts_file_path=args.hierarchy_dicts_file,hierarchy_depth=args.hierarchy_depth,image_count_threshold=args.image_count_threshold,path_to_results=args.path_to_results,dataset_name=args.dataset_name)
-    #dataset_analyzer.eval_layer_distribution()
+    dataset_analyzer.generate_explicit_distribution_plot_per_layer()
     dataset_analyzer.generate_distribution_per_layer_plot()
     dataset_analyzer.generate_global_distribution_plot()

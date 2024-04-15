@@ -1,38 +1,24 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.metrics import multilabel_confusion_matrix
-from sklearn.preprocessing import MultiLabelBinarizer
+import itertools
+paths = [["wk001", "wk333", "wk504"], ["wk002", "wk707"], ["wk001", "wk555"], ["wk001", "wk333", "wk505","wk909"]]
 
-# Example true and predicted labels (replace with your data)
-y_true = np.array([[1, 0, 1],
-                    [0, 1, 1],
-                    [1, 1, 0]])
-y_pred = np.array([[1, 0, 1],
-                    [0, 1, 0],
-                    [1, 0, 0]])
+def is_subset(path1, path2):
+    # Check if path1 is a subset of path2
+    return set(path1).issubset(set(path2))
 
-# Compute multilabel confusion matrix
-mlb = MultiLabelBinarizer()
-mlb.fit(y_true)
-y_true_binary = mlb.transform(y_true)
-y_pred_binary = mlb.transform(y_pred)
-conf_matrix = multilabel_confusion_matrix(y_true_binary, y_pred_binary)
+redundant_paths = []
 
-# Combine confusion matrices for all classes
-combined_conf_matrix = np.sum(conf_matrix, axis=0)
+for i, path1 in enumerate(paths):
+    for j, path2 in enumerate(paths):
+        if i != j:
+            if set(path1) == set(path2):
+               break
+            if is_subset(path1, path2):
+                redundant_paths.append(path1)
+                break  # Break after finding the first instance of a subset
 
-# Plot combined confusion matrix
-labels = ['True Negative', 'False Positive', 'False Negative', 'True Positive']
-labels = np.array(labels).reshape(2, 2)
-plt.imshow(combined_conf_matrix, interpolation='nearest', cmap=plt.cm.Blues)
-plt.title('Combined Confusion Matrix')
-plt.xticks([0, 1], ['Predicted False', 'Predicted True'])
-plt.yticks([0, 1], ['Actual False', 'Actual True'])
-
-for j in range(2):
-    for k in range(2):
-        plt.text(k, j, str(labels[j][k]) + " = " + str(combined_conf_matrix[j][k]), ha='center', va='center', color='red')
-
-plt.colorbar()
-plt.tight_layout()
-plt.show()
+# Remove redundant paths
+unique_paths = [path for path in paths if path not in redundant_paths]
+unique_paths.sort()
+unique_paths=list(unique_paths for unique_paths,_ in itertools.groupby(unique_paths))
+print("Original paths:", paths)
+print("Unique paths:", unique_paths)
