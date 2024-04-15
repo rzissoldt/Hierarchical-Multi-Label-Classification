@@ -197,18 +197,27 @@ class DatasetAnalyzer():
             classes=tuple([x[x.rfind('_')+1:] for x in self.filtered_hierarchy_dicts[level].keys()])
             
             weight_counts = {}
-            for layer in range(level,len(self.filtered_hierarchy_dicts)-1):
+            for layer in range(level,len(self.filtered_hierarchy_dicts)):
                 weight_counts[f'Hierarchy-Layer-{layer+1}'] = []
                 
             for key in self.filtered_hierarchy_dicts[level].keys():
                 
-                for i in range(level+1, len(self.filtered_hierarchy_dicts)):
+                for i in range(level, len(self.filtered_hierarchy_dicts)):
                     summed_image_count = 0
                     for label in self.filtered_hierarchy_dicts[i].keys():
                         if label.startswith(key):
                             summed_image_count+=class_distriubtion_dict[i][label]
                         
-                    weight_counts[f'Hierarchy-Layer-{i}'].append(summed_image_count)
+                    weight_counts[f'Hierarchy-Layer-{i+1}'].append(summed_image_count)
+            # Transpose the data
+            transposed_data = list(zip(*weight_counts.values()))
+            # Calculate the sum of each column
+            column_sums = [sum(column) for column in transposed_data]
+            # Sort columns by their sums in descending order
+            sorted_columns = sorted(enumerate(column_sums), key=lambda x: x[1], reverse=True)
+            # Permutate data values based on sorted column indices
+            permutated_data = {key: [weight_counts[key][index] for index, _ in sorted_columns] for key in weight_counts.keys()}
+            weight_counts = permutated_data
             width = 0.5
 
             fig, ax = plt.subplots()
