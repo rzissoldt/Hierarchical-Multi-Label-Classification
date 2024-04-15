@@ -339,8 +339,10 @@ class DatasetAnalyzer():
         for unique_path in unique_paths:
             level = len(unique_path)-1
             hierarchy_dict = hierarchy_dicts[level-1]
-            label_idx = hierarchy_dict['_'.join(unique_path)]
-            self.layer_distribution_dict_explicit[level-1][label_idx] +=1
+            hierarchy_key = '_'.join(unique_path)
+            if hierarchy_key in hierarchy_dict:
+                label_idx = hierarchy_dict[hierarchy_key]
+                self.layer_distribution_dict_explicit[level-1][label_idx] +=1
         
         
     
