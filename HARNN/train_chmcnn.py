@@ -104,7 +104,6 @@ def train_chmcnn(args):
         
 def get_random_hyperparameter(base_args):
     fc_dim = random.choice([256,512,1024,2048])
-    batch_size = random.choice([128])
     learning_rate = random.choice([0.1])
     optimizer = random.choice(['sgd'])
     num_layers = random.choice([2,3])
@@ -117,14 +116,12 @@ def get_random_hyperparameter(base_args):
           f'Is Batchnorm Active: {is_batchnorm_active}\n'
           f'Dropout Rate: {dropout_rate}\n'
           f'Activation Func: {activation_func}\n'
-          f'Batch-Size: {batch_size}\n'
           f'Learning Rate: {learning_rate}\n'
           f'Optimizer: {optimizer}\n')
     base_args.num_layers = num_layers
     base_args.fc_dim = fc_dim
     base_args.is_batchnorm_active = is_batchnorm_active
     base_args.activation_func = activation_func
-    base_args.batch_size = batch_size
     base_args.learning_rate = learning_rate
     base_args.optimizer = optimizer
     return base_args

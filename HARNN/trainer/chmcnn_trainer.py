@@ -155,7 +155,7 @@ class CHMCNNTrainer():
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
             for i in range(len(learning_rates)):
-                self.tb_writer.add_scalar(f'Training/LR{i}', learning_rates[i], tb_x)
+                self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
         # Gather data and report
         auprc = MultilabelAveragePrecision(num_labels=self.total_class_num,average='macro')
         #predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
