@@ -217,14 +217,15 @@ class DatasetAnalyzer():
             sorted_columns = sorted(enumerate(column_sums), key=lambda x: x[1], reverse=True)
             # Permutate data values based on sorted column indices
             permutated_data = {key: [weight_counts[key][index] for index, _ in sorted_columns] for key in weight_counts.keys()}
+            permutated_classes = [classes[index] for index, _ in sorted_columns]
             weight_counts = permutated_data
             width = 0.5
 
             fig, ax = plt.subplots()
             bottom = np.zeros(len(classes))
-            scaling_factor = min(10,max(2, 100 / len(classes)))
+            scaling_factor = min(10,max(2, 100 / len(permutated_classes)))
             for boolean, weight_count in weight_counts.items():
-                p = ax.bar(classes, weight_count, width, label=boolean, bottom=bottom)
+                p = ax.bar(permutated_classes, weight_count, width, label=boolean, bottom=bottom)
                 bottom += weight_count
             plt.xlabel('Klassen')
             plt.ylabel('Anzahl')
