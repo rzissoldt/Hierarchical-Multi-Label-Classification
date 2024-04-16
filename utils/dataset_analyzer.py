@@ -98,13 +98,17 @@ class DatasetAnalyzer():
             labels = self.image_dict[file_name]        
             label_dict = self._find_labels_in_hierarchy_dicts(labels,self.hierarchy_dicts)
             level = 0
+            counter = 0
             for layer_key in label_dict.keys():
                 for label_idx in label_dict[layer_key]:
+                    if level == 4 and label_idx == 1:
+                        counter+=1
                     self.layer_distribution_dict[level][label_idx] += 1
                 level+=1
             total_class_idxs = self._calc_total_class_labels(label_dict,self.hierarchy_dicts)
             for total_class_idx in total_class_idxs:
                 self.global_distribution_dict[total_class_idx] +=1
+        print('Counter:',counter)
         ## Generate per Layer Distribution
         level = 0
         class_distribution_dicts = []
