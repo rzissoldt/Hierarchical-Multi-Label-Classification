@@ -371,10 +371,6 @@ class DatasetAnalyzer():
             if hierarchy_key in hierarchy_dict:
                 label_idx = hierarchy_dict[hierarchy_key]
                 self.layer_distribution_dict_explicit[level-1][label_idx] +=1
-                if level == 6 and label_idx == 1:
-                    print(self.layer_distribution_dict_explicit[level-1][label_idx])
-                    print(unique_paths)
-                    print(labels)
         
         
         
