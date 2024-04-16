@@ -192,8 +192,10 @@ class DatasetAnalyzer():
             level += 1
         classes = []
         
-        print(self.layer_distribution_dict)   
-        print(self.layer_distribution_dict_explicit)
+        print(self.layer_distribution_dict)
+        for key,value in self.layer_distribution_dict.items():
+            print(f'{key}:,{value}') 
+        #print(self.layer_distribution_dict_explicit)
         for level in range(len(self.filtered_hierarchy_dicts)):
             classes=tuple([x[x.rfind('_')+1:] for x in self.filtered_hierarchy_dicts[level].keys()])
             
