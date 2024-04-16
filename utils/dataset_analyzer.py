@@ -151,6 +151,7 @@ class DatasetAnalyzer():
             sorted_classes = sorted(class_distriubtion_dict.items(), key=lambda x: x[1], reverse=True)
             classes = [x[0][x[0].rfind('_')+1:] for x in sorted_classes]
             counts = [x[1] for x in sorted_classes]
+            print(counts)
             #classes = [label[label.rfind('_')+1:] for label in list(class_distriubtion_dict.keys())]
             #data_points = list(class_distriubtion_dict.values())
             scaling_factor = min(10,max(2, 100 / len(classes)))
