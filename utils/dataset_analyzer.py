@@ -194,7 +194,7 @@ class DatasetAnalyzer():
         
         #print(self.layer_distribution_dict)
         for i in range(len(self.layer_distribution_dict)):
-            for value in layer_dict[i].values():
+            for key,value in layer_dict[i].items():
                 print(f'{i}: {value}') 
         #print(self.layer_distribution_dict_explicit)
         for level in range(len(self.filtered_hierarchy_dicts)):
