@@ -374,6 +374,8 @@ class DatasetAnalyzer():
                 if level == 6 and label_idx == 1:
                     print(self.layer_distribution_dict_explicit[level-1][label_idx])
                     print(unique_path)
+                    print(unique_paths)
+        
         
         
     
