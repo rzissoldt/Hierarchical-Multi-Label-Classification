@@ -371,8 +371,8 @@ class DatasetAnalyzer():
             if hierarchy_key in hierarchy_dict:
                 label_idx = hierarchy_dict[hierarchy_key]
                 self.layer_distribution_dict_explicit[level-1][label_idx] +=1
-        if level == 5 and label_idx == 1:
-            print(self.layer_distribution_dict_explicit[level-1][label_idx])
+            if level == 5 and label_idx == 1:
+                print(self.layer_distribution_dict_explicit[level-1][label_idx])
         
         
     
