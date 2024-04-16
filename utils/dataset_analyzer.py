@@ -218,6 +218,8 @@ class DatasetAnalyzer():
             sorted_columns = sorted(enumerate(column_sums), key=lambda x: x[1], reverse=True)
             # Permutate data values based on sorted column indices
             permutated_data = {key: [weight_counts[key][index] for index, _ in sorted_columns] for key in weight_counts.keys()}
+            for key,value in permutated_data.items():
+                print(f'{key}:,{value}')
             print(permutated_data)
             permutated_classes = [classes[index] for index, _ in sorted_columns]
             weight_counts = permutated_data
