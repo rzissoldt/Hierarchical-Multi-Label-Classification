@@ -361,8 +361,7 @@ class DatasetAnalyzer():
             unique_paths = [path for path in paths if path not in redundant_paths]
             unique_paths.sort()
             unique_paths=list(unique_paths for unique_paths,_ in itertools.groupby(unique_paths))
-            if len(unique_paths) > 1:
-                print(unique_paths) 
+        
         else:
             unique_paths = paths
         for unique_path in unique_paths:
@@ -372,6 +371,8 @@ class DatasetAnalyzer():
             if hierarchy_key in hierarchy_dict:
                 label_idx = hierarchy_dict[hierarchy_key]
                 self.layer_distribution_dict_explicit[level-1][label_idx] +=1
+        if level == 5 and label_idx == 1:
+            print(self.layer_distribution_dict_explicit[level-1][label_idx])
         
         
     
