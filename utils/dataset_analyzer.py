@@ -329,7 +329,7 @@ class DatasetAnalyzer():
             return set(path1).issubset(set(path2))
         paths = []
         for label in labels:          
-            path = xtree.get_id_path(self.hierarchy,label)[:len(hierarchy_dicts)]
+            path = xtree.get_id_path(self.hierarchy,label)[:len(hierarchy_dicts)+1]
             paths.append(path)
         redundant_paths = []
 
