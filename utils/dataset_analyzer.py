@@ -220,7 +220,8 @@ class DatasetAnalyzer():
             permutated_data = {key: [weight_counts[key][index] for index, _ in sorted_columns] for key in weight_counts.keys()}
             for key,value in permutated_data.items():
                 print(f'{key}:,{value}')
-            print(permutated_data)
+            print('Verteilung der Klassen für Schicht {0}'.format(level+1))
+            
             permutated_classes = [classes[index] for index, _ in sorted_columns]
             weight_counts = permutated_data
             width = 0.5
