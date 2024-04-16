@@ -192,9 +192,10 @@ class DatasetAnalyzer():
             level += 1
         classes = []
         
-        print(self.layer_distribution_dict)
-        for key,value in self.layer_distribution_dict.items():
-            print(f'{key}:,{value}') 
+        #print(self.layer_distribution_dict)
+        for i in range(len(self.layer_distribution_dict)):
+            for value in layer_dict[i].values():
+                print(f'{i}: {value}') 
         #print(self.layer_distribution_dict_explicit)
         for level in range(len(self.filtered_hierarchy_dicts)):
             classes=tuple([x[x.rfind('_')+1:] for x in self.filtered_hierarchy_dicts[level].keys()])
@@ -221,7 +222,7 @@ class DatasetAnalyzer():
             # Permutate data values based on sorted column indices
             permutated_data = {key: [weight_counts[key][index] for index, _ in sorted_columns] for key in weight_counts.keys()}
             for key,value in permutated_data.items():
-                print(f'{key}:,{value}')
+                print(f'{key}:{value}')
             print('Verteilung der Klassen für Schicht {0}'.format(level+1))
             
             permutated_classes = [classes[index] for index, _ in sorted_columns]
