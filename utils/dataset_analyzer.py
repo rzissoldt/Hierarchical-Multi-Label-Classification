@@ -194,7 +194,7 @@ class DatasetAnalyzer():
         
         #print(self.layer_distribution_dict)
         for i in range(len(self.layer_distribution_dict)):
-            temp_str = f'{i}:'
+            temp_str = f'{i+1}:'
             for key,value in self.layer_distribution_dict[i].items():
                 temp_str+=str(value)+','
             print(temp_str)
