@@ -209,6 +209,7 @@ class DatasetAnalyzer():
                             summed_image_count+=class_distriubtion_dict[i][label]
                         
                     weight_counts[f'Hierarchy-Layer-{i+1}'].append(summed_image_count)
+            print(weight_counts)
             # Transpose the data
             transposed_data = list(zip(*weight_counts.values()))
             # Calculate the sum of each column
