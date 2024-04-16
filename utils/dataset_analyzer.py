@@ -361,6 +361,7 @@ class DatasetAnalyzer():
             unique_paths = [path for path in paths if path not in redundant_paths]
             unique_paths.sort()
             unique_paths=list(unique_paths for unique_paths,_ in itertools.groupby(unique_paths))
+            print(unique_paths)
         else:
             unique_paths = paths
         for unique_path in unique_paths:
