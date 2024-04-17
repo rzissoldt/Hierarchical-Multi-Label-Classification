@@ -355,7 +355,7 @@ class DatasetAnalyzer():
                     if is_subset(path1, path2):
                         redundant_paths.append(path1)
                         break  # Break after finding the first instance of a subset
-
+                    
         # Remove redundant paths
         if len(redundant_paths) != 0:
             unique_paths = [path for path in paths if path not in redundant_paths]
@@ -364,6 +364,8 @@ class DatasetAnalyzer():
         
         else:
             unique_paths = paths
+        if len(unique_paths) > 3:
+            print(labels)
         for unique_path in unique_paths:
             level = len(unique_path)-1
             hierarchy_dict = hierarchy_dicts[level-1]
