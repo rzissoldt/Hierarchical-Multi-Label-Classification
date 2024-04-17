@@ -83,6 +83,8 @@ class DatasetAnalyzer():
         for file_name in self.image_dict.keys():
             labels = self.image_dict[file_name]        
             label_dict = self._find_labels_in_hierarchy_dicts(labels,self.filtered_hierarchy_dicts)
+            if len(labels) > 4:
+                print(file_name, labels)
             self._eval_labels_in_hierarchy_dicts(labels=labels,hierarchy_dicts=self.filtered_hierarchy_dicts)
             level = 0
             for layer_key in label_dict.keys():
@@ -364,8 +366,7 @@ class DatasetAnalyzer():
         
         else:
             unique_paths = paths
-        if len(unique_paths) > 3:
-            print(labels)
+        
         for unique_path in unique_paths:
             level = len(unique_path)-1
             hierarchy_dict = hierarchy_dicts[level-1]
