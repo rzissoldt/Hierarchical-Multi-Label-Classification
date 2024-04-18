@@ -81,7 +81,7 @@ def train_hmcnet(args):
     model.eval().to(device)
     
     # Define Loss for HmcNet.
-    criterion = HmcNetLoss(l2_lambda=args.l2_lambda,beta=args.beta,explicit_hierarchy=explicit_hierarchy,device=device)
+    criterion = HmcNetLoss(beta=args.beta,explicit_hierarchy=explicit_hierarchy,device=device)
               
     
     
