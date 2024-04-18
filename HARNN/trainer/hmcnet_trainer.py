@@ -151,7 +151,7 @@ class HmcNetTrainer():
             self.tb_writer.add_scalar('Training/LocalLoss', last_local_loss, tb_x)
             self.tb_writer.add_scalar('Training/HierarchyLoss', last_hierarchy_loss, tb_x)
             for i in range(len(learning_rates)):
-                self.tb_writer.add_scalar(f'Training/LR{i}', learning_rates[i], tb_x)
+                self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
         print('\n')
         return last_global_loss+last_local_loss+last_hierarchy_loss
     
