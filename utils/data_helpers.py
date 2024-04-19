@@ -529,15 +529,17 @@ def eval_exact_match_ratio(true_labels_batch, predicted_labels_batch):
     Returns:
     float: Exact match ratio (accuracy) averaged over the batch.
     """
+    # Return 1 for each batch element if identical, 0 otherwise
     if true_labels_batch.size(0) != predicted_labels_batch.size(0):
         raise ValueError("Number of samples in true_labels_batch and predicted_labels_batch must be the same.")
-
+    # Check if true labels and thresholded predicted labels are identical for each batch element
+    identical_batch = torch.all(torch.eq(true_labels_batch, predicted_labels_batch), dim=1)
+    
     num_samples = true_labels_batch.size(0)
-    total_correct = torch.sum(true_labels_batch == predicted_labels_batch).item()
+    total_correct = torch.sum(identical_batch).item()
 
-    total_samples = num_samples * true_labels_batch.size(1)  # Assuming all samples have the same length
 
-    exact_match_ratio = total_correct / total_samples
+    exact_match_ratio = total_correct / num_samples
     return exact_match_ratio
 def get_per_layer_metrics(scores,labels, num_classes_list,device=None):
     # Calculate Precision & Recall & F1 per Hierarchy-Layer

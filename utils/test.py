@@ -70,3 +70,35 @@ permutated_data = {key: [data[key][index] for index, _ in sorted_columns] for ke
 
 print("Permutated data:",permutated_data)
 
+
+import torch
+
+def check_identical_batch(true_labels_batch, predicted_labels_batch, threshold=0.5):
+    # Apply threshold to predicted labels batch
+    thresholded_predicted_labels_batch = (predicted_labels_batch >= threshold).float()
+    
+    
+    if true_labels_batch.size(0) != predicted_labels_batch.size(0):
+        raise ValueError("Number of samples in true_labels_batch and predicted_labels_batch must be the same.")
+    # Check if true labels and thresholded predicted labels are identical for each batch element
+    identical_batch = torch.all(torch.eq(true_labels_batch, thresholded_predicted_labels_batch), dim=1)
+    
+    num_samples = true_labels_batch.size(0)
+    total_correct = torch.sum(identical_batch).item()
+
+
+    exact_match_ratio = total_correct / num_samples
+    return exact_match_ratio
+
+
+# Example usage
+true_labels_batch = torch.tensor([[1, 0, 1, 0],
+                                  [0, 1, 1, 0],
+                                  [1, 1, 0, 1]])  # Example true labels for a batch of data
+predicted_labels_batch = torch.tensor([[0.8, 0.2, 0.6, 0.4],  # Example predicted probabilities for a batch of data
+                                       [0.3, 0.7, 0.9, 0.7],
+                                       [0.6, 0.6, 0.3, 0.8]])
+threshold = 0.5
+
+results = check_identical_batch(true_labels_batch, predicted_labels_batch, threshold)
+print("Results:", results)
