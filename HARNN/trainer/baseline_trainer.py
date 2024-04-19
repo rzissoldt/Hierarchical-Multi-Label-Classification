@@ -120,7 +120,7 @@ class BaselineTrainer():
         end_time_of_batch= 0
         start_time_of_batch = 0
         for i, data in enumerate(data_loader):
-            print(f'{end_time_of_batch - start_time_of_batch:.2f}')
+            #print(f'{end_time_of_batch - start_time_of_batch:.2f}')
             # Every data instance is an input + label pair
             start_time_of_batch = time.perf_counter()
             inputs, labels = copy.deepcopy(data)
