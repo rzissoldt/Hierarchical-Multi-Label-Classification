@@ -120,7 +120,7 @@ class BaselineTrainer():
             # Every data instance is an input + label pair
             
             t2 = time.perf_counter()
-            print(f" Real time of Dataloading: {t2[0] - t1[0]:.2f} seconds")
+            print(f" Real time of Dataloading: {t2 - t1:.2f} seconds")
             inputs, labels = copy.deepcopy(data)
             
             inputs = inputs.to(self.device)
@@ -134,7 +134,7 @@ class BaselineTrainer():
             # Make predictions for this batch
             output = self.model(inputs.float())
             t2 = time.perf_counter()
-            print(f" Real time Forward Propagration: {t2[0] - t1[0]:.2f} seconds")
+            print(f" Real time Forward Propagration: {t2 - t1:.2f} seconds")
             # Compute the loss and its gradients
             
             x = output,labels.double()
@@ -144,14 +144,14 @@ class BaselineTrainer():
             t1 = time.perf_counter()
             loss.backward()
             t2 = time.perf_counter()
-            print(f" Real time Backward: {t2[0] - t1[0]:.2f} seconds")
+            print(f" Real time Backward: {t2 - t1:.2f} seconds")
             
             # Clip gradients by global norm
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             t1 = time.perf_counter()
             self.optimizer.step()
             t2 = time.perf_counter()
-            print(f" Real time Optimizer step: {t2[0] - t1[0]:.2f} seconds")
+            print(f" Real time Optimizer step: {t2 - t1:.2f} seconds")
             
             self.scheduler.step(epoch_index+i/num_of_train_batches)
             
