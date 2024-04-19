@@ -38,11 +38,44 @@ def visualize_sample_image(image,true_label,score,threshold,hierarchy_dicts,outp
     plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
     plt.savefig(output_file_path,bbox_inches='tight')
     plt.clf()
-image = Image.open('E:/workspace/Hierarchical-Multi-Label-Text-Classification/data/image_harnn/resized_images/224x224/1988_in_Odessa_10.jpg')
+"""image = Image.open('E:/workspace/Hierarchical-Multi-Label-Text-Classification/data/image_harnn/resized_images/224x224/1988_in_Odessa_10.jpg')
 with open('E:/workspace/Hierarchical-Multi-Label-Text-Classification/data/image_harnn/einrichtungsgegenstände/filtered_hierarchy_dicts.json', 'r') as infile:
     hierarchy_dicts = json.load(infile)
 true_label = np.array([1,0,1,0,0,0,1,0,1,0,0,1,1,0,0,0,1,0,0,0,1,0,0,0])
 score = np.array([0.7,0.6,0.3,0.1,0.2,0.45,0.9,0,0.3,0,0,0.6,0.4,0,0,0,0.7,0.9,0.8,0,0,0,0,0])
 output_file_path = 'E:/workspace/Hierarchical-Multi-Label-Text-Classification/data/image_harnn/einrichtungsgegenstände/sample01.jpg'
-visualize_sample_image(image,true_label,score,threshold=0.5,hierarchy_dicts=hierarchy_dicts,output_file_path=output_file_path)
+visualize_sample_image(image,true_label,score,threshold=0.5,hierarchy_dicts=hierarchy_dicts,output_file_path=output_file_path)"""
+
+import torch
+import torch.nn as nn
+
+# Define a simple neural network
+class SimpleNet(nn.Module):
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.fc = nn.Linear(10, 1)
+
+    def forward(self, x):
+        return self.fc(x)
+
+# Create an instance of the network
+model = SimpleNet()
+
+# Wrap the model with DataParallel
+if torch.cuda.device_count() > 1:
+    print("Multiple GPUs found. Using DataParallel.")
+    model = nn.DataParallel(model)
+
+# Move the model to CUDA (if available)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = model.to(device)
+
+# Example input data (batch_size=4, input_size=10)
+input_data = torch.randn(4, 10).to(device)
+
+# Forward pass through the model
+output = model(input_data)
+
+print("Output shape:", output.shape)
+
 
