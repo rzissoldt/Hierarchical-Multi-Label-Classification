@@ -77,7 +77,7 @@ def test_baseline_model(args):
     
         
     # Define Trainer for HmcNet
-    tester = BaselineTester(model=model,test_dataset=test_dataset,path_to_results=args.path_to_results,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
+    tester = BaselineTester(model=model,test_dataset=test_dataset,sample_images_size=args.sample_image_count,path_to_results=args.path_to_results,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device,hierarchy_dicts=hierarchy_dicts)
     
     tester.test()
 if __name__ == '__main__':

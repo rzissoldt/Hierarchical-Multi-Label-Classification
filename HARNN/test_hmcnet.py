@@ -78,7 +78,7 @@ def test_hmcnet(args):
     
         
     # Define Trainer for HmcNet
-    tester = HmcNetTester(model=model,test_dataset=test_dataset,path_to_results=args.path_to_results,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
+    tester = HmcNetTester(model=model,test_dataset=test_dataset,sample_images_size=args.sample_image_count,path_to_results=args.path_to_results,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
     
     tester.test()
 if __name__ == '__main__':

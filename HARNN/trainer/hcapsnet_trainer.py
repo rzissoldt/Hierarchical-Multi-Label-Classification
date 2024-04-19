@@ -9,12 +9,13 @@ from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit,Multilabel
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 class HCapsNetTrainer():
-    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,explicit_hierarchy,num_classes_list,path_to_model,args,device=None):
+    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,explicit_hierarchy,num_classes_list,path_to_model,layer_weighting_dict,args,device=None):
         self.model = model
         self.criterion = criterion
         self.scheduler = scheduler
         self.optimizer = optimizer
         self.device = device
+        self.layer_weighting_dict = layer_weighting_dict
         self.best_model = copy.deepcopy(model)
         self.explicit_hierarchy= explicit_hierarchy
         self.args = args
@@ -51,6 +52,8 @@ class HCapsNetTrainer():
             train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs)
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
         for epoch in range(self.args.epochs):
+            if epoch in self.layer_weighting_dict:
+                self.criterion.layer_weighting = self.layer_weighting_dict[epoch]
             avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
             avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader)
             self.tb_writer.flush()
@@ -111,31 +114,31 @@ class HCapsNetTrainer():
             
             # Compute the loss and its gradients            
             x = (local_scores,y_local_onehots,recon_inputs.transpose(1,3),final_outputs,self.model)
-            global_loss,margin_loss,reconstruction_loss,l2_loss = self.criterion(x)
+            global_loss,margin_loss,reconstruction_loss = self.criterion(x)
             # Clip gradients by global norm
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             global_loss.backward()
             
-            
-           
-            
             # Adjust learning weights
             self.optimizer.step()
+            self.scheduler.step(epoch_index+i/num_of_train_batches)
+            learning_rates = [str(param_group['lr']) for param_group in self.optimizer.param_groups]
+            learning_rates_str = 'LR: ' + ', '.join(learning_rates)
             # Gather data and report
             current_global_loss += global_loss.item()
             current_margin_loss += margin_loss.item()
             current_reconstruction_loss += reconstruction_loss.item()
-            current_l2_loss += l2_loss.item()
             
             last_global_loss = current_global_loss/(i+1)
             last_margin_loss = current_margin_loss/(i+1)
             last_reconstruction_loss = current_reconstruction_loss/(i+1)
-            last_l2_loss = current_l2_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGMarginLoss: {last_margin_loss}, AVGReconLoss: {last_reconstruction_loss}, AVGL2Loss: {last_l2_loss}"
+            
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGMarginLoss: {last_margin_loss}, AVGReconLoss: {last_reconstruction_loss}, {learning_rates_str}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
-            
+            for i in range(len(learning_rates)):
+                self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
         print('\n')
         return  last_margin_loss+last_reconstruction_loss
     
@@ -143,7 +146,6 @@ class HCapsNetTrainer():
         current_global_loss = 0.
         current_margin_loss = 0.
         current_reconstruction_loss = 0.
-        current_l2_loss = 0.
         
         # Set the model to evaluation mode, disabling dropout and using population
         # statistics for batch normalization.
@@ -151,13 +153,15 @@ class HCapsNetTrainer():
         self.model.set_training(False)
         eval_counter, eval_loss = 0, 0.0
         num_of_val_batches = len(data_loader)
-        
+        scores_list = []
+        true_onehot_labels_list = []
         # Disable gradient computation and reduce memory consumption.
         with torch.no_grad():
             for i, vdata in enumerate(data_loader):
                 vinputs, vrecon_inputs, vlabels = copy.deepcopy(vdata)
                 vinputs, vrecon_inputs = vinputs.to(self.device),vrecon_inputs.to(self.device)
                 y_local_onehots = [label.to(self.device) for label in vlabels]
+                y_global_onehots = torch.cat(y_local_onehots,dim=1)
                 # Zero your gradients for every batch!
                 self.optimizer.zero_grad()
                 model_inputs = vinputs, y_local_onehots
@@ -172,18 +176,29 @@ class HCapsNetTrainer():
                 current_global_loss += vglobal_loss.item()
                 current_margin_loss += vmargin_loss.item()
                 current_reconstruction_loss += vreconstruction_loss.item()
-                current_l2_loss += vl2_loss.item()
+                
                 last_vglobal_loss = current_global_loss/(i+1)
                 last_vmargin_loss = current_margin_loss/(i+1)
                 last_vreconstruction_loss = current_reconstruction_loss/(i+1)
-                last_vl2_loss = current_l2_loss/(i+1)       
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGMarginLoss: {last_vmargin_loss}, AVGReconLoss: {last_vreconstruction_loss}, AVGL2Loss: {last_vl2_loss}"
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGMarginLoss: {last_vmargin_loss}, AVGReconLoss: {last_vreconstruction_loss}"
                 print(progress_info, end='\r')
                 
                 tb_x = epoch_index * num_of_val_batches + eval_counter + 1
                 self.tb_writer.add_scalar('Validation/Loss',eval_loss,tb_x)
                 eval_counter+=1
-            print('\n')                
+                global_scores = torch.cat(local_scores,dim=1)
+                for j in global_scores:
+                    scores_list.append(j)
+                # Convert each tensor to a list of lists
+                for i in y_global_onehots:
+                    true_onehot_labels_list.append(i)
+            print('\n')
+            scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in scores_list],dim=0).to('cpu')
+            true_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in true_onehot_labels_list],dim=0).to('cpu')
+            macro_aurpc_per_layer=dh.get_per_layer_auprc(scores=scores,labels=true_onehot_labels,num_classes_list=self.num_classes_list)
+            self.criterion.update_loss_weights(macro_aurpc_per_layer)
+            print(f'Current Loss Weights: {self.criterion.current_loss_weights}')             
+            #return eval_macro_auprc_layer                
             return last_vmargin_loss+last_vreconstruction_loss
     
     def test(self,epoch_index,data_loader):

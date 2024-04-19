@@ -265,41 +265,29 @@ class ReconstructionLoss(nn.Module):
         return torch.mean(l2_norm_squared)
     
 class HCapsNetLoss(nn.Module):
-    def __init__(self,l2_reg_lambda,tau, m_plus=0.9, m_minus=0.1, lambda_=0.5,device=None):
+    def __init__(self,tau,layer_weighting, m_plus=0.9, m_minus=0.1, lambda_=0.5,device=None):
         super(HCapsNetLoss, self).__init__()
         self.margin_loss = MarginLoss(m_plus = m_plus,m_minus = m_minus,lambda_ = lambda_)
         self.reconstruction_loss =ReconstructionLoss() 
-        self.l2_loss = L2Loss(l2_reg_lambda=l2_reg_lambda,device=device)
         self.device = device
         self.tau = tau
+        self.layer_weighting = layer_weighting
     def forward(self,x):
-        y_pred,y_true,x_real,x_reconstructed,model= x
-        x_recon_loss = x_real,x_reconstructed
-        reconstructions_loss = self.reconstruction_loss(x_recon_loss)
+        y_pred,y_true,model= x
         margin_losses = torch.zeros(len(y_pred)).to(self.device)
-        l2_loss = self.l2_loss(model)
         for i in range(len(y_pred)):
             x_margin_loss = y_pred[i],y_true[i]
             margin_loss = self.margin_loss(x_margin_loss)
-            margin_losses[i] = margin_loss
+            margin_losses[i] = margin_loss*self.current_loss_weights[i]
         
         margin_loss_sum = torch.sum(margin_losses)
-        hcapsnet_loss = torch.add(self.tau*reconstructions_loss,(1-self.tau)*margin_loss_sum)
-        global_loss = torch.add(hcapsnet_loss,l2_loss)
-        return global_loss,margin_loss_sum,reconstructions_loss,l2_loss
-class L2Loss(nn.Module):
-    def __init__(self,l2_reg_lambda,device=None):
-        super(L2Loss, self).__init__()
-        self.device = device
-        self.l2_reg_lambda = l2_reg_lambda
-    def forward(self,x):
-        """Calculation of the L2-Regularization loss."""
-        model = x
-        l2_loss = torch.tensor(0.,dtype=torch.float32).to(self.device)
-        for param in model.parameters():
-            if param.requires_grad == True:
-                l2_loss += torch.norm(param,p=2)**2
-        return torch.tensor(l2_loss*self.l2_reg_lambda,dtype=torch.float32)
+        global_loss = torch.add(margin_loss_sum)
+        return global_loss,margin_loss_sum
+    def update_loss_weights(self,layer_accuracies):
+        taus = [(1-layer_accuracies[i]) * self.initial_loss_weights[i] for i in range(len(self.current_loss_weights))]
+        for i in range(len(taus)):
+            self.current_loss_weights[i] = taus[i]/sum(taus)
+
 
     
     

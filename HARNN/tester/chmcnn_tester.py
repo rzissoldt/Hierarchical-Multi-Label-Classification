@@ -1,15 +1,15 @@
 import copy
 import torch
-import sys
+import sys, os
 
 sys.path.append('../')
 from utils import data_helpers as dh
 
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-
+import numpy as np
 class CHMCNNTester():
-    def __init__(self,model,num_classes_list,test_dataset,explicit_hierarchy,path_to_results,args,device=None):
+    def __init__(self,model,num_classes_list,test_dataset,sample_images_size,explicit_hierarchy,path_to_results,args,device=None):
         self.model = model
         self.device = device
         self.best_model = copy.deepcopy(model)
@@ -24,7 +24,14 @@ class CHMCNNTester():
         # Create Dataloader for Training and Validation Dataset
         kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': args.pin_memory} if self.args.gpu else {}
         self.test_loader = DataLoader(test_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs) 
-    
+        total_samples = len(self.test_loader.dataset)
+
+        # Generate random indices for the subset
+        random_seed = 42
+        np.random.seed(random_seed)
+        random_indices = np.random.choice(total_samples, size=sample_images_size, replace=False)
+        subset_test_dataset = torch.utils.data.Subset(self.test_loader.dataset, random_indices)
+        self.subset_test_loader = DataLoader(subset_test_dataset, batch_size=args.batch_size, shuffle=True, worker_init_fn=set_worker_sharing_strategy, **kwargs)
     def test(self):
         print(f"Evaluating best model with test dataset.")
         self.best_model.eval()
@@ -46,3 +53,25 @@ class CHMCNNTester():
         # Save Metrics in Summarywriter.
         for key,value in metrics_dict.items():
             self.tb_writer.add_scalar(key,value,0)
+        
+        # Visualization of results
+        output_file_path = os.path.join(self.path_to_results,'sample_images')
+        os.makedirs(output_file_path, exist_ok=True)
+        image_list = []
+        label_list = []
+        score_list = []
+        with torch.no_grad():
+            for i, vdata in enumerate(self.subset_test_loader):
+                # Every data instance is an input + label pair
+                inputs, labels = copy.deepcopy(vdata)
+                inputs = inputs.to(self.device)
+                labels = labels.to(self.device)
+                # Make predictions for this batch
+                output = self.best_model(inputs.float())
+                for input in inputs:
+                    image_list.append(input)
+                for label in labels:
+                    label_list.append(label)
+                for score in output:
+                    score_list.append(score)
+        dh.visualize_sample_images(images=image_list,true_labels=label_list,scores=score_list,threshold=self.args.threshold,hierarchy_dicts=self.hierarchy_dicts,output_file_path=output_file_path)

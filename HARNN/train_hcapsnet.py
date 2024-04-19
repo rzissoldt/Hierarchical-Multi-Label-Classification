@@ -65,15 +65,17 @@ def train_hcapsnet(args):
     if args.optimizer == 'adam':    
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
     elif args.optimizer == 'sgd':
-        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda,nesterov=True,momentum=0.9,dampening=0.0)
     else:
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
-    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.decay_rate)
+    T_0 = 10
+    T_mult = 2
+    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0, T_mult)
     model.eval().to(device)
     
     # Define Loss for HmcNet.
-    criterion = HCapsNetLoss(device=device,tau=args.tau,l2_reg_lambda=args.l2_lambda)
+    criterion = HCapsNetLoss(device=device,tau=args.tau)
               
     
     
@@ -104,15 +106,13 @@ def train_hcapsnet(args):
 
 
 def hyperparameter_search(base_args):
-    batch_size = random.choice([128])
     learning_rate = random.choice([0.1])
     optimizer = random.choice(['sgd'])
     fc_dim = random.choice([256])
-    print(f'Batch-Size: {batch_size}\n'
-          f'FC-DIM: {fc_dim}\n'
+    print(f'FC-DIM: {fc_dim}\n'
           f'Learning Rate: {learning_rate}\n'
           f'Optimizer: {optimizer}\n')
-    base_args.batch_size = batch_size
+    
     base_args.learning_rate = learning_rate
     base_args.optimizer = optimizer
     filter_list = [16,32,64]
