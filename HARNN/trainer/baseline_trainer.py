@@ -116,6 +116,7 @@ class BaselineTrainer():
         labels_list = []
         num_of_train_batches = len(data_loader)
         end_time_of_batch= 0
+        start_time_of_batch = 0
         for i, data in enumerate(data_loader):
             print(f'{end_time_of_batch - start_time_of_batch:.2f}')
             # Every data instance is an input + label pair
