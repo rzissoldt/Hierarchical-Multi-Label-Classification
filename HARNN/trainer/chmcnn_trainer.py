@@ -48,7 +48,7 @@ class CHMCNNTrainer():
         y = np.stack([image_tuple[1].numpy() for image_tuple in self.data_loader.dataset.image_label_tuple_list])
         for train_index, val_index in msss.split(X, y):
             train_dataset = torch.utils.data.Subset(self.data_loader.dataset, train_index)
-            val_dataset = torch.utils.data.Subset(self.data_loader.dataset, val_index)
+            val_dataset = torch.utils.data.Subset(copy.deepcopy(self.data_loader.dataset), val_index)
             val_dataset.dataset.is_training = False
             def set_worker_sharing_strategy(worker_id: int):
                 torch.multiprocessing.set_sharing_strategy("file_system")
