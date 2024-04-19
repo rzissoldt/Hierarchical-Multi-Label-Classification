@@ -118,7 +118,7 @@ class BaselineTrainer():
         t1 = time.perf_counter()
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
-            
+            start_time_of_batch = time.perf_counter()
             t2 = time.perf_counter()
             print(f" Real time of Dataloading: {t2 - t1:.2f} seconds")
             inputs, labels = copy.deepcopy(data)
@@ -171,6 +171,7 @@ class BaselineTrainer():
             for i in range(len(learning_rates)):
                 self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
             t1 = time.perf_counter()
+            end_time_of_batch = time.perf_counter()
         # Gather data and report
         auprc = AveragePrecision(task="binary")
         predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
