@@ -265,9 +265,12 @@ class HierarchyDataset(Dataset):
             t1 = time.perf_counter()
             pil_image = self.train_transform(image)
             t2 = time.perf_counter()
-            print(f'Transform time: {t2-t1:.2f} ')
+            print(f'Train Transform time: {t2-t1:.2f} ')
         else:
+            t1 = time.perf_counter()
             pil_image = self.validation_transform(image)
+            t2 = time.perf_counter()
+            print(f'Validation Transform time: {t2-t1:.2f} ')
         labels = self.image_label_tuple_list[idx][1]
         image.close()
        
