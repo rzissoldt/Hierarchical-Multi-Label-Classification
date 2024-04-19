@@ -3,6 +3,7 @@ __author__ = 'Ruben'
 import os,json,random
 import sys
 import torch
+import torch.nn as nn
 import torch.optim as optim
 # PyTorch TensorBoard support
 
@@ -57,7 +58,12 @@ def train_baseline_model(args):
     
     # Define Model
     model = BaselineModel(output_dim=total_class_num, args=args)
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+        model = nn.DataParallel(model)
     
+    model.to(device)
     
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
