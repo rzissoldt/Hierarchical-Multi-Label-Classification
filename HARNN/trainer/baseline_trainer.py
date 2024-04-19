@@ -165,6 +165,7 @@ class BaselineTrainer():
             learning_rates_str = 'LR: ' + ', '.join(learning_rates)
             progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, {learning_rates_str}"
             print(progress_info, end='\r')
+            print(progress_info, end='\n')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
             for i in range(len(learning_rates)):
