@@ -262,7 +262,10 @@ class HierarchyDataset(Dataset):
         pil_image = image  # Initialize pil_image with the original image
 
         if self.is_training:
+            t1 = time.perf_counter()
             pil_image = self.train_transform(image)
+            t2 = time.perf_counter()
+            print(f'Transform time: {t2-t1:.2f} ')
         else:
             pil_image = self.validation_transform(image)
         labels = self.image_label_tuple_list[idx][1]
