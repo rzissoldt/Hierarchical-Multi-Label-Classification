@@ -158,7 +158,7 @@ class BaselineTrainer():
             progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, {learning_rates_str}"
             if i % 20 == 0:
                 print(progress_info, end='\n')
-                print(end_time_of_batch - start_time_of_batch:.2f})
+                print(f'{end_time_of_batch - start_time_of_batch:.2f}')
             #print(progress_info, end='\n')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
