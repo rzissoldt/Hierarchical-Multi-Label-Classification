@@ -263,16 +263,16 @@ class HmcNetTrainer():
         base_lr = self.args.learning_rate*1e-1
         current_lr = param_groups[0]['lr']
         param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
-        param_groups[0]['lr'] = current_lr * 1e-4
+        param_groups[0]['lr'] = base_lr * 1e-4
         param_groups[0]['initial_lr'] = base_lr * 1e-4
         param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
-        param_groups[1]['lr'] = current_lr * 1e-2
+        param_groups[1]['lr'] = base_lr * 1e-2
         param_groups[1]['initial_lr'] = base_lr * 1e-2
         param_groups[2]['params'] = list(self.model.ham_modules.parameters())
-        param_groups[2]['lr'] = current_lr
+        param_groups[2]['lr'] = base_lr
         param_groups[2]['initial_lr'] = base_lr
         param_groups[3]['params'] = list(self.model.hybrid_predicting_module.parameters())
-        param_groups[3]['lr'] = current_lr
+        param_groups[3]['lr'] = base_lr
         param_groups[3]['initial_lr'] = base_lr
         
         # Update the optimizer with the new parameter groups
