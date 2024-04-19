@@ -49,6 +49,8 @@ class BaselineTrainer():
             train_dataset = torch.utils.data.Subset(self.data_loader.dataset, train_index)
             val_dataset = torch.utils.data.Subset(self.data_loader.dataset, val_index)
             val_dataset.dataset.is_training = False
+            print('Train:',train_dataset.dataset.is_training)
+            print('Val:',val_dataset.dataset.is_training)
             def set_worker_sharing_strategy(worker_id: int):
                 torch.multiprocessing.set_sharing_strategy("file_system")
             # Create Dataloader for Training and Validation Dataset
