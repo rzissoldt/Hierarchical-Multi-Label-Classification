@@ -115,10 +115,10 @@ class BaselineTrainer():
         predicted_list = []
         labels_list = []
         num_of_train_batches = len(data_loader)
-        t1 = time.perf_counter()
+        
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
-           
+            start_time_of_batch = time.perf_counter()
             inputs, labels = copy.deepcopy(data)
             
             inputs = inputs.to(self.device)
@@ -157,7 +157,8 @@ class BaselineTrainer():
             learning_rates_str = 'LR: ' + ', '.join(learning_rates)
             progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}, {learning_rates_str}"
             if i % 20 == 0:
-                print(progress_info, end='\r')
+                print(progress_info, end='\n')
+                print(end_time_of_batch - start_time_of_batch:.2f})
             #print(progress_info, end='\n')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
