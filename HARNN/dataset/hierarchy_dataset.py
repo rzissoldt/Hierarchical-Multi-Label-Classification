@@ -251,7 +251,7 @@ class HierarchyDataset(Dataset):
         return len(self.image_label_tuple_list)
 
     def __getitem__(self, idx):
-        start_time_of_data_loading = time.perf_counter()
+        
         img_path = self.image_label_tuple_list[idx][0]
         image = Image.open(img_path)
 
@@ -267,7 +267,7 @@ class HierarchyDataset(Dataset):
             pil_image = self.validation_transform(image)
         labels = self.image_label_tuple_list[idx][1]
         image.close()
-        end_time_of_data_loading = time.perf_counter()
-        print(f'Time of Dataloading: {end_time_of_data_loading-start_time_of_data_loading:.2f}')
+       
+        
         return pil_image, labels
    
