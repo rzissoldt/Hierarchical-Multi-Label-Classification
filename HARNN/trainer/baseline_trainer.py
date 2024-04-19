@@ -120,9 +120,7 @@ class BaselineTrainer():
         end_time_of_batch= 0
         start_time_of_batch = 0
         for i, data in enumerate(data_loader):
-            #print(f'{end_time_of_batch - start_time_of_batch:.2f}')
             # Every data instance is an input + label pair
-            start_time_of_batch = time.perf_counter()
             inputs, labels = copy.deepcopy(data)
             
             inputs = inputs.to(self.device)
@@ -166,11 +164,10 @@ class BaselineTrainer():
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
             for i in range(len(learning_rates)):
                 self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
-            t1 = time.perf_counter()
             
             if i % 20 == 0:
-                print(progress_info, end='\n')
-            end_time_of_batch = time.perf_counter()
+                print(progress_info, end='\r')
+            
                 
         # Gather data and report
         auprc = AveragePrecision(task="binary")
