@@ -49,8 +49,8 @@ class BaselineTrainer():
             train_dataset = torch.utils.data.Subset(self.data_loader.dataset, train_index)
             val_dataset = torch.utils.data.Subset(copy.deepcopy(self.data_loader.dataset), val_index)
             val_dataset.dataset.is_training = False
-            print('Train:',train_dataset.dataset.is_training)
-            print('Val:',val_dataset.dataset.is_training)
+            print('Train Transform:',train_dataset.dataset.is_training)
+            print('Val Transform:',val_dataset.dataset.is_training)
             def set_worker_sharing_strategy(worker_id: int):
                 torch.multiprocessing.set_sharing_strategy("file_system")
             # Create Dataloader for Training and Validation Dataset
@@ -165,8 +165,8 @@ class BaselineTrainer():
             for i in range(len(learning_rates)):
                 self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
             
-            if i % 20 == 0:
-                print(progress_info, end='\r')
+           
+            print(progress_info, end='\r')
             
                 
         # Gather data and report
