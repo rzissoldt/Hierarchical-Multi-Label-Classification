@@ -9,10 +9,11 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 class CHMCNNTester():
-    def __init__(self,model,num_classes_list,test_dataset,sample_images_size,explicit_hierarchy,path_to_results,args,device=None):
+    def __init__(self,model,num_classes_list,test_dataset,sample_images_size,explicit_hierarchy,path_to_results,hierarchy_dicts,args,device=None):
         self.model = model
         self.device = device
         self.best_model = copy.deepcopy(model)
+        self.hierarchy_dicts = hierarchy_dicts
         self.explicit_hierarchy = explicit_hierarchy
         self.args = args
         self.total_class_num = sum(num_classes_list)
