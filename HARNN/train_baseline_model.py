@@ -140,6 +140,7 @@ if __name__ == '__main__':
     n_gpus = torch.cuda.device_count()
     assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
     world_size = n_gpus
+    print(world_size)
     if not args.hyperparameter_search:
         # Normal Trainingloop with specific args.
         train_baseline_model(args=args)
