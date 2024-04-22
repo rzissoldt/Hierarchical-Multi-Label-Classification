@@ -39,7 +39,7 @@ def run(demo_fn, world_size):
              args=(world_size,),
              nprocs=world_size,
              join=True)
-def train_baseline_model(args, rank, world_size):
+def train_baseline_model(args,rank):
     # Check if CUDA is available
     if torch.cuda.is_available():
         print("CUDA is available!")
@@ -145,7 +145,7 @@ def main(rank, world_size):
         # Hyperparameter search Trainingloop with specific base args.
         for i in range(args.num_hyperparameter_search):
             setup(rank, world_size)
-            train_baseline_model(args=args)
+            train_baseline_model(args=args,rank=rank)
             cleanup()
 if __name__ == '__main__':
     n_gpus = torch.cuda.device_count()
