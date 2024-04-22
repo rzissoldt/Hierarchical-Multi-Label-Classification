@@ -526,7 +526,7 @@ def visualize_sample_images(images,true_labels,scores,threshold,hierarchy_dicts,
         score = scores[i]
         thresholded_score = score > threshold
         # Anzeigen des Bildes
-        image = images[i]
+        image = images[i].to('cpu')
         true_label = true_labels[i]
         # Festlegen der Größe des Ausgabebildes
         plt.figure(figsize=(8, 6))  # Breite: 8 Zoll, Höhe: 6 Zoll
