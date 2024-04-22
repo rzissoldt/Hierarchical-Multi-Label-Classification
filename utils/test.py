@@ -64,7 +64,7 @@ model = SimpleNet()
 # Wrap the model with DataParallel
 if torch.cuda.device_count() > 1:
     print("Multiple GPUs found. Using DataParallel.")
-    model = DistributedDataParallel(model)
+    model = nn.DataParallel(model,device_ids=[0,1])
     
 
 # Move the model to CUDA (if available)
