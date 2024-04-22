@@ -536,7 +536,7 @@ def visualize_sample_images(images,true_labels,scores,threshold,hierarchy_dicts,
         plt.axis('off')  # Achsen ausschalten
         swapped_hierarchy_dict = [{v: k for k, v in hierarchy_dict.items()} for hierarchy_dict in hierarchy_dicts]
         # Text für die richtigen Labels
-        base_text_anchor = image_np.size[1] + 20
+        base_text_anchor = image_np.shape[1] + 20
         start_index = 0
         for i in range(len(swapped_hierarchy_dict)):
             plt.text(0,base_text_anchor,f'Hierarchy-Layer-{i+1}:',fontsize=9,weight='bold')
