@@ -20,7 +20,7 @@ from HARNN.trainer.baseline_trainer import BaselineTrainer
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 import warnings
-import multiprocessing as mp
+import torch.multiprocessing as mp
 # Ignore specific warning types
 warnings.filterwarnings("ignore", category=UserWarning)
 
