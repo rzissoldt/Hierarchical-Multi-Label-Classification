@@ -103,10 +103,10 @@ def train_chmcnn(args):
         trainer.train_and_validate()
         
 def get_random_hyperparameter(base_args):
-    fc_dim = random.choice([256,512,1024,2048])
+    fc_dim = random.choice([1024])
     learning_rate = random.choice([0.1])
     optimizer = random.choice(['sgd'])
-    num_layers = random.choice([2,3])
+    num_layers = random.choice([3])
     dropout_rate = random.choice([0.2])
     is_batchnorm_active = random.choice([True])
     activation_func = random.choice(['relu'])
