@@ -79,7 +79,7 @@ def test_chmcnn(args):
     
         
     # Define Trainer for HmcNet
-    tester = CHMCNNTester(model=model,test_dataset=test_dataset,path_to_results=args.path_to_results,num_classes_list=num_classes_list,sample_images_size=args.sample_image_count,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
+    tester = CHMCNNTester(model=model,test_dataset=test_dataset,path_to_results=args.path_to_results,num_classes_list=num_classes_list,hierarchy_dicts=hierarchy_dicts,sample_images_size=args.sample_image_count,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
     
     tester.test()
 if __name__ == '__main__':
