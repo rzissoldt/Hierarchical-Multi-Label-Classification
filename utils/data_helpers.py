@@ -2,6 +2,7 @@
 __author__ = 'Randolph'
 import torch
 import os, sys
+from torchvision import transforms
 import time
 import heapq
 import gensim
@@ -525,8 +526,16 @@ def visualize_sample_images(images,true_labels,scores,threshold,hierarchy_dicts,
     for i in range(len(images)):
         score = scores[i]
         thresholded_score = score > threshold
+        reverse_transform = transforms.Compose([
+            transforms.Normalize(mean=[-0.485/0.229, -0.456/0.224, -0.406/0.225],
+                         std=[1/0.229, 1/0.224, 1/0.225]),
+         transforms.Normalize(mean=[-0.5, -0.5, -0.5],
+                         std=[1, 1, 1]),
+         transforms.ToPILImage()
+        ])
+        image = reverse_transform(images[i])
         # Anzeigen des Bildes
-        image_np = images[i].cpu().numpy()
+        image_np = image.cpu().numpy()
         image_np = image_np.transpose(1,2,0)
         true_label = true_labels[i]
         # Festlegen der Größe des Ausgabebildes
@@ -561,7 +570,7 @@ def visualize_sample_images(images,true_labels,scores,threshold,hierarchy_dicts,
             plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='False Positive')
         ]
         plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.savefig(output_file_path,bbox_inches='tight')
+        plt.savefig(os.path.join(output_file_path,f'sample_image{i}'),bbox_inches='tight')
         plt.clf()
     
 
