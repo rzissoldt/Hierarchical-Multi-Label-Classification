@@ -58,7 +58,7 @@ class BaselineModel(nn.Module):
         
     
 class BaselineModelLoss(nn.Module):
-    def __init__(self,device):
+    def __init__(self):
         super(BaselineModelLoss, self).__init__()
         self.criterion = nn.BCELoss()
     def forward(self,x):
