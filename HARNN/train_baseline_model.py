@@ -40,7 +40,6 @@ def run(demo_fn, world_size):
              nprocs=world_size,
              join=True)
 def train_baseline_model(args, rank, world_size):
-    setup(rank, world_size)
     # Check if CUDA is available
     if torch.cuda.is_available():
         print("CUDA is available!")
@@ -109,7 +108,7 @@ def train_baseline_model(args, rank, world_size):
         json.dump(hierarchy_dicts, json_file,indent=4)
     
     trainer.train_and_validate()
-    cleanup()
+    
         
 def get_random_hyperparameter(base_args):
     fc_dim = random.choice([256,512,1024,2048])
@@ -136,7 +135,8 @@ def get_random_hyperparameter(base_args):
     return base_args
 
 
-def main():
+def main(rank, world_size):
+    
     args = parser.baseline_parameter_parser()
     if not args.hyperparameter_search:
         # Normal Trainingloop with specific args.
@@ -144,7 +144,9 @@ def main():
     else:
         # Hyperparameter search Trainingloop with specific base args.
         for i in range(args.num_hyperparameter_search):
+            setup(rank, world_size)
             train_baseline_model(args=args)
+            cleanup()
 if __name__ == '__main__':
     n_gpus = torch.cuda.device_count()
     assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
