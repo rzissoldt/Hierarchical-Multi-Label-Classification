@@ -34,9 +34,9 @@ def setup(rank, world_size):
 def cleanup():
     dist.destroy_process_group()
     
-def run(demo_fn, args,world_size):
+def run(demo_fn, world_size):
     mp.spawn(demo_fn,
-             args=(args,world_size,),
+             args=(world_size,),
              nprocs=world_size,
              join=True)
 def train_baseline_model(args, rank, world_size):
@@ -135,18 +135,21 @@ def get_random_hyperparameter(base_args):
     base_args.optimizer = optimizer
     return base_args
 
-if __name__ == '__main__':
+
+def main():
     args = parser.baseline_parameter_parser()
-    n_gpus = torch.cuda.device_count()
-    assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
-    world_size = n_gpus
-    print(world_size)
     if not args.hyperparameter_search:
         # Normal Trainingloop with specific args.
         train_baseline_model(args=args)
     else:
         # Hyperparameter search Trainingloop with specific base args.
         for i in range(args.num_hyperparameter_search):
-            run(train_baseline_model,args=args,world_size=world_size)
+            train_baseline_model(args=args)
+if __name__ == '__main__':
+    n_gpus = torch.cuda.device_count()
+    assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
+    world_size = n_gpus
+    run(main,world_size)
+    
             
 
