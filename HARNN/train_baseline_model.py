@@ -137,12 +137,15 @@ def get_random_hyperparameter(base_args):
 
 if __name__ == '__main__':
     args = parser.baseline_parameter_parser()
+    n_gpus = torch.cuda.device_count()
+    assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
+    world_size = n_gpus
     if not args.hyperparameter_search:
         # Normal Trainingloop with specific args.
         train_baseline_model(args=args)
     else:
         # Hyperparameter search Trainingloop with specific base args.
         for i in range(args.num_hyperparameter_search):
-            train_baseline_model(args=get_random_hyperparameter(args))
+            run(train_baseline_model,args=args,world_size=world_size)
             
 
