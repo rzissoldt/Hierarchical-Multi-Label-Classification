@@ -83,7 +83,7 @@ def train_baseline_model(args):
     model.eval().to(device)
     
     # Define Loss for CHMCNN
-    criterion = BaselineModelLoss(device=device)
+    criterion = BaselineModelLoss()
     
    
     
