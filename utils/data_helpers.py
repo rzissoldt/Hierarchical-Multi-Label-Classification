@@ -535,13 +535,14 @@ def visualize_sample_images(images,true_labels,scores,threshold,hierarchy_dicts,
         ])
         image = reverse_transform(images[i])
         # Anzeigen des Bildes
-        image_np = image.cpu().numpy()
-        image_np = image_np.transpose(1,2,0)
+        #image_np = image.cpu().numpy()
+        #image_np = image_np.transpose(1,2,0)
         true_label = true_labels[i]
         # Festlegen der Größe des Ausgabebildes
         plt.figure(figsize=(8, 6))  # Breite: 8 Zoll, Höhe: 6 Zoll
         # Anzeigen des Bildes
-        plt.imshow(image_np)
+        plt.imshow(image)
+        image_np = np.array(image)
         plt.axis('off')  # Achsen ausschalten
         swapped_hierarchy_dict = [{v: k for k, v in hierarchy_dict.items()} for hierarchy_dict in hierarchy_dicts]
         # Text für die richtigen Labels
