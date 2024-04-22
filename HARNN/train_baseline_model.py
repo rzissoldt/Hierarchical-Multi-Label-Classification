@@ -17,29 +17,15 @@ from utils import param_parser as parser
 from HARNN.model.baseline_model import BaselineModel,BaselineModelLoss
 from HARNN.dataset.baseline_dataset import BaselineDataset
 from HARNN.trainer.baseline_trainer import BaselineTrainer
-import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
+
 import warnings
-import torch.multiprocessing as mp
+
 # Ignore specific warning types
 warnings.filterwarnings("ignore", category=UserWarning)
 
-def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
 
-    # initialize the process group
-    dist.init_process_group("gloo", rank=rank, world_size=world_size)
 
-def cleanup():
-    dist.destroy_process_group()
-    
-def run(demo_fn, world_size):
-    mp.spawn(demo_fn,
-             args=(world_size,),
-             nprocs=world_size,
-             join=True)
-def train_baseline_model(args,rank):
+def train_baseline_model(args):
     # Check if CUDA is available
     if torch.cuda.is_available():
         print("CUDA is available!")
@@ -71,18 +57,22 @@ def train_baseline_model(args,rank):
     total_class_num = sum(num_classes_list)
     
     # Define Model
-    model = BaselineModel(output_dim=total_class_num, args=args).to(rank)
-    ddp_model = DDP(model,device_ids=[rank])
+    model = BaselineModel(output_dim=total_class_num, args=args)
+    if False:#torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+        model = nn.DataParallel(model)
     
+    model.to(device)
     
-    model_param_count = sum(p.numel() for p in ddp_model.parameters() if p.requires_grad)
+    model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Model Parameter Count:{model_param_count}')
     
     # Define Optimzer and Scheduler
     if args.optimizer == 'adam':    
-        optimizer = optim.Adam(ddp_model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
+        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
     elif args.optimizer == 'sgd':
-        optimizer = optim.SGD(ddp_model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda,nesterov=True,momentum=0.9,dampening=0.0)
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda,nesterov=True,momentum=0.9,dampening=0.0)
     else:
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
@@ -90,14 +80,15 @@ def train_baseline_model(args,rank):
     T_0 = 10
     T_mult = 2   
     scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0, T_mult)
+    model.eval().to(device)
     
     # Define Loss for CHMCNN
-    criterion = BaselineModelLoss()
+    criterion = BaselineModelLoss(device=device)
     
    
     
     # Define Trainer for HmcNet
-    trainer = BaselineTrainer(model=ddp_model,criterion=criterion,scheduler=scheduler,optimizer=optimizer,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
+    trainer = BaselineTrainer(model=model,criterion=criterion,scheduler=scheduler,optimizer=optimizer,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
     
     # Save Model ConfigParameters
     args_dict = vars(args)
@@ -107,8 +98,10 @@ def train_baseline_model(args,rank):
     with open(os.path.join(path_to_model, 'hierarchy_dicts.json'),'w') as json_file:
         json.dump(hierarchy_dicts, json_file,indent=4)
     
-    trainer.train_and_validate()
-    
+    if args.is_k_crossfold_val:
+        trainer.train_and_validate_k_crossfold(k_folds=args.k_folds)
+    else:
+        trainer.train_and_validate()
         
 def get_random_hyperparameter(base_args):
     fc_dim = random.choice([256,512,1024,2048])
@@ -134,9 +127,7 @@ def get_random_hyperparameter(base_args):
     base_args.optimizer = optimizer
     return base_args
 
-
-def main(rank, world_size):
-    
+if __name__ == '__main__':
     args = parser.baseline_parameter_parser()
     if not args.hyperparameter_search:
         # Normal Trainingloop with specific args.
@@ -144,14 +135,6 @@ def main(rank, world_size):
     else:
         # Hyperparameter search Trainingloop with specific base args.
         for i in range(args.num_hyperparameter_search):
-            setup(rank, world_size)
-            train_baseline_model(args=args,rank=rank)
-            cleanup()
-if __name__ == '__main__':
-    n_gpus = torch.cuda.device_count()
-    assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
-    world_size = n_gpus
-    run(main,world_size)
-    
+            train_baseline_model(args=get_random_hyperparameter(args))
             
 
