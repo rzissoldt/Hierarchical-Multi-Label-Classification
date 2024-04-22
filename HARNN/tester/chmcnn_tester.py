@@ -17,6 +17,7 @@ class CHMCNNTester():
         self.args = args
         self.total_class_num = sum(num_classes_list)
         self.num_classes_list = num_classes_list   
+        self.path_to_results = path_to_results
         self.tb_writer = SummaryWriter(path_to_results)
         sharing_strategy = "file_system"
         def set_worker_sharing_strategy(worker_id: int):
