@@ -34,9 +34,9 @@ def setup(rank, world_size):
 def cleanup():
     dist.destroy_process_group()
     
-def run(demo_fn, world_size):
+def run(demo_fn, args,world_size):
     mp.spawn(demo_fn,
-             args=(world_size,),
+             args=(args,world_size,),
              nprocs=world_size,
              join=True)
 def train_baseline_model(args, rank, world_size):
