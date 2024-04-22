@@ -48,7 +48,7 @@ visualize_sample_image(image,true_label,score,threshold=0.5,hierarchy_dicts=hier
 
 import torch
 import torch.nn as nn
-
+from torch.nn.parallel import DistributedDataParallel
 # Define a simple neural network
 class SimpleNet(nn.Module):
     def __init__(self):
@@ -64,7 +64,8 @@ model = SimpleNet()
 # Wrap the model with DataParallel
 if torch.cuda.device_count() > 1:
     print("Multiple GPUs found. Using DataParallel.")
-    model = nn.DataParallel(model)
+    model = DistributedDataParallel(model)
+    
 
 # Move the model to CUDA (if available)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

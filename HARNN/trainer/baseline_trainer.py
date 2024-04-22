@@ -1,5 +1,5 @@
-import copy, datetime
-import torch, time
+import copy
+import torch
 import sys, os
 import numpy as np
 sys.path.append('../')
@@ -117,8 +117,7 @@ class BaselineTrainer():
         predicted_list = []
         labels_list = []
         num_of_train_batches = len(data_loader)
-        end_time_of_batch= 0
-        start_time_of_batch = 0
+       
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
             inputs, labels = copy.deepcopy(data)
@@ -128,8 +127,6 @@ class BaselineTrainer():
            
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
-
-            
            
             # Make predictions for this batch
             output = self.model(inputs.float())
@@ -145,7 +142,6 @@ class BaselineTrainer():
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
            
             self.optimizer.step()
-            
             
             self.scheduler.step(epoch_index+i/num_of_train_batches)
             
