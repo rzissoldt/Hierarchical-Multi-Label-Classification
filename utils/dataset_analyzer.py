@@ -83,8 +83,6 @@ class DatasetAnalyzer():
         for file_name in self.image_dict.keys():
             labels = self.image_dict[file_name]        
             label_dict = self._find_labels_in_hierarchy_dicts(labels,self.filtered_hierarchy_dicts)
-            if len(labels) > 4:
-                print(file_name, labels)
             self._eval_labels_in_hierarchy_dicts(labels=labels,hierarchy_dicts=self.filtered_hierarchy_dicts)
             level = 0
             for layer_key in label_dict.keys():
@@ -204,7 +202,7 @@ class DatasetAnalyzer():
             temp_str = f'{i+1}:'
             for key,value in self.layer_distribution_dict[i].items():
                 temp_str+=str(value)+','
-            print(temp_str)
+            
         #print(self.layer_distribution_dict_explicit)
         for level in range(len(self.filtered_hierarchy_dicts)):
             classes=tuple([x[x.rfind('_')+1:] for x in self.filtered_hierarchy_dicts[level].keys()])
