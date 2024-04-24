@@ -12,6 +12,8 @@ import cv2
 import torch.multiprocessing
 #torch.multiprocessing.set_sharing_strategy('file_system')
 from torchvision import transforms
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 class HierarchyDataset(Dataset):
     def __init__(self, annotation_file_path, hierarchy_file_path, image_dir,image_count_threshold,path_to_model,hierarchy_dicts_file_path=None,hierarchy_depth=-1):
         super(HierarchyDataset, self).__init__()
