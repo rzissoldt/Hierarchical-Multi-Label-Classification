@@ -91,6 +91,8 @@ class HierarchyDataset(Dataset):
 
         self.loaded_image_label_tuple_list = []
         for i in range(len(self.image_label_tuple_list)):
+            if i > 2000:
+                break
             img_path = self.image_label_tuple_list[i][0]
             image = Image.open(img_path)
 
@@ -280,12 +282,11 @@ class HierarchyDataset(Dataset):
 
         #pil_image = image  # Initialize pil_image with the original image
         image =self.loaded_image_label_tuple_list[idx][0]
-        if self.is_training:
-           
-            pil_image = self.train_transform(image)
+        #if self.is_training:
+        #    pil_image = self.train_transform(image)
             
-        else:
-            pil_image = self.validation_transform(image)
+        #else:
+        pil_image = self.validation_transform(image)
             
         labels = self.image_label_tuple_list[idx][1]
         
