@@ -160,11 +160,11 @@ class BaselineTrainer():
             predicted_list.extend(predicted)
             labels_list.extend(labels)
             # Gather data and report
-            current_loss += loss.item()
-            last_loss = current_loss/(i+1)
+            #current_loss += loss.item()
+            #last_loss = current_loss/(i+1)
             #learning_rates = [str(param_group['lr']) for param_group in self.optimizer.param_groups]
             #learning_rates_str = 'LR: ' + ', '.join(learning_rates)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"#, {learning_rates_str}"
+            #progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_loss}"#, {learning_rates_str}"
             
             #print(progress_info, end='\n')
             #tb_x = epoch_index * num_of_train_batches + i + 1
