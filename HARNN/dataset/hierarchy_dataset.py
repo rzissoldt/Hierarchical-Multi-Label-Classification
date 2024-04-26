@@ -100,6 +100,8 @@ class HierarchyDataset(Dataset):
 
             image_tensor = self.load_transform(image)  # Initialize pil_image with the original image
             self.loaded_image_label_tuple_list.append((image_tensor,self.image_label_tuple_list[i][1]))
+            if i % 500 == 0:
+                print(f'{i} loaded images')
             image.close()
     def load_hierarchy_dicts(self,hierarchy_file_path,hierarchy_depth):
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
