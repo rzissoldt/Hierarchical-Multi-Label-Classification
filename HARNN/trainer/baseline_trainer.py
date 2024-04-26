@@ -128,7 +128,6 @@ class BaselineTrainer():
             print(f'Time for copy: {t2-t1:.4f} seconds.')
             t1 = time.perf_counter()
             inputs = inputs.to(self.device)
-            torch.cuda.synchronize()
             labels = labels.to(self.device)
             torch.cuda.synchronize()
             t2 = time.perf_counter()
