@@ -137,15 +137,15 @@ class HmcNetTrainer():
             learning_rates = [str(param_group['lr']) for param_group in self.optimizer.param_groups]
             learning_rates_str = 'LR: ' + ', '.join(learning_rates)
             # Gather data and report
-            current_loss += loss.item()
-            current_global_loss += global_loss.item()
-            current_local_loss += local_loss.item()
-            current_hierarchy_loss += hierarchy_loss.item()
+            current_loss += loss.detach()
+            current_global_loss += global_loss.detach()
+            current_local_loss += local_loss.detach()
+            current_hierarchy_loss += hierarchy_loss.detach()
             last_loss = current_loss/(i+1)
             last_global_loss = current_global_loss/(i+1)
             last_local_loss = current_local_loss/(i+1)
             last_hierarchy_loss = current_hierarchy_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGLoss: {last_global_loss+last_local_loss+last_hierarchy_loss}, {learning_rates_str}"
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}] {learning_rates_str}"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
