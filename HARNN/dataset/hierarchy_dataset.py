@@ -90,9 +90,9 @@ class HierarchyDataset(Dataset):
         print('Total Class Num',self.total_class_num)
 
         self.loaded_image_label_tuple_list = []
+        self.image_label_tuple_list = self.image_label_tuple_list[:2000]
         for i in range(len(self.image_label_tuple_list)):
-            if i > 2000:
-                break
+            
             img_path = self.image_label_tuple_list[i][0]
             image = Image.open(img_path)
 
