@@ -17,8 +17,11 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 class HierarchyDataset(Dataset):
     def __init__(self, annotation_file_path, hierarchy_file_path, image_dir,image_count_threshold,path_to_model,hierarchy_dicts_file_path=None,hierarchy_depth=-1):
         super(HierarchyDataset, self).__init__()
+        self.load_transform = transforms.Compose([
+            transforms.Resize((256, 256))       
+        ])
         self.train_transform = transforms.Compose([
-            transforms.Resize((256, 256)),                    
+            #transforms.Resize((256, 256)),                    
             transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2), 
             transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1), shear=10), 
             transforms.RandomHorizontalFlip(),                 
@@ -29,7 +32,7 @@ class HierarchyDataset(Dataset):
                          std=[0.229, 0.224, 0.225])
         ])
         self.validation_transform = transforms.Compose([
-            transforms.Resize((256, 256)),                    
+            #transforms.Resize((256, 256)),                    
             transforms.CenterCrop(224),                       
             transforms.ToTensor(),                             
             transforms.Normalize(mean=[0.485, 0.456, 0.406],  
@@ -95,8 +98,8 @@ class HierarchyDataset(Dataset):
             if image.mode != 'RGB':
                 image = image.convert('RGB')
 
-            pil_image = image  # Initialize pil_image with the original image
-            self.loaded_image_label_tuple_list.append((pil_image,self.image_label_tuple_list[i][1]))
+            image_tensor = self.load_transform(image)  # Initialize pil_image with the original image
+            self.loaded_image_label_tuple_list.append((image_tensor,self.image_label_tuple_list[i][1]))
             image.close()
     def load_hierarchy_dicts(self,hierarchy_file_path,hierarchy_depth):
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
