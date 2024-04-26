@@ -166,12 +166,9 @@ class BaselineTrainer():
             
             print(progress_info, end='\n')
             tb_x = epoch_index * num_of_train_batches + i + 1
-            torch.cuda.synchronize()
-            t1 = time.perf_counter()
             for i in range(len(learning_rates)):
                 self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
-            t2 = time.perf_counter()
-            print(f'LR: {t2-t1:5f}s')
+            
            
             print(progress_info, end='\r')
         # Gather data and report
