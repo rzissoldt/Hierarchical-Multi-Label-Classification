@@ -128,7 +128,9 @@ class BaselineTrainer():
             print(f'Time for copy: {t2-t1:.4f} seconds.')
             t1 = time.perf_counter()
             inputs = inputs.to(self.device)
+            torch.cuda.synchronize()
             labels = labels.to(self.device)
+            torch.cuda.synchronize()
             t2 = time.perf_counter()
             print(f'Time to GPU: {t2-t1:.4f} seconds.')
             # Zero your gradients for every batch!
@@ -136,7 +138,7 @@ class BaselineTrainer():
            
             # Make predictions for this batch
             output = self.model(inputs.float())
-           
+            torch.cuda.synchronize()
             # Compute the loss and its gradients
             
             x = output,labels.double()
@@ -145,12 +147,14 @@ class BaselineTrainer():
 
             t1 = time.perf_counter()
             loss.backward()
+            torch.cuda.synchronize()
             t2 = time.perf_counter()
             print(f'Time for backward: {t2-t1:.4f} seconds.')            
             # Clip gradients by global norm
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             t1 = time.perf_counter()
             self.optimizer.step()
+            torch.cuda.synchronize()
             t2 = time.perf_counter()
             print(f'Time for optimizer step: {t2-t1:.4f} seconds.')
             self.scheduler.step(epoch_index+i/num_of_train_batches)
@@ -172,6 +176,7 @@ class BaselineTrainer():
             
             #for i in range(len(learning_rates)):
             #    self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
+            torch.cuda.synchronize()
             t2 = time.perf_counter()
             print(f'Time for metrics step: {t2-t1:.4f} seconds.')
            
