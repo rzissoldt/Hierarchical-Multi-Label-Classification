@@ -274,6 +274,6 @@ class HierarchyDataset(Dataset):
         image.close()
        
         t2 = time.perf_counter()
-        print(f'Time for image loading: {t2-t1:.4f} seconds.')
+        #print(f'Time for image loading: {t2-t1:.4f} seconds.')
         return pil_image, labels
    
