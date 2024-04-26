@@ -97,7 +97,7 @@ class HierarchyDataset(Dataset):
 
             pil_image = image  # Initialize pil_image with the original image
             self.loaded_image_label_tuple_list.append((pil_image,self.image_label_tuple_list[i][1]))
-        
+            image.close()
     def load_hierarchy_dicts(self,hierarchy_file_path,hierarchy_depth):
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
@@ -283,7 +283,7 @@ class HierarchyDataset(Dataset):
             pil_image = self.validation_transform(image)
             
         labels = self.image_label_tuple_list[idx][1]
-        image.close()
+        
        
         t2 = time.perf_counter()
         #print(f'Time for image loading: {t2-t1:.4f} seconds.')
