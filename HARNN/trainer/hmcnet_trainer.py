@@ -122,8 +122,12 @@ class HmcNetTrainer():
             self.optimizer.zero_grad()
 
             # Make predictions for this batch
+            torch.cuda.synchronize()
+            t1 = time.perf_counter()
             _, local_scores_list, global_logits = self.model(inputs)
-
+            torch.cuda.synchronize()
+            t2 = time.perf_counter()
+            print(f'Inference: {t2-t1:.5f}s')
             # Compute the loss and its gradients
             predictions = (local_scores_list,global_logits)
             targets = (y_local_onehots,y_total_onehot)
@@ -133,9 +137,13 @@ class HmcNetTrainer():
             loss,global_loss,local_loss,hierarchy_loss = self.criterion(x)
             torch.cuda.synchronize()
             t2 = time.perf_counter()
-            print(f'{t2-t1:.5f}s')
+            print(f'Loss:{t2-t1:.5f}s')
+            torch.cuda.synchronize()
+            t1 = time.perf_counter()
             loss.backward()
-            
+            torch.cuda.synchronize()
+            t2 = time.perf_counter()
+            print(f'Backward:{t2-t1:.5f}s')
             # Adjust learning weights
             self.optimizer.step()
             self.scheduler.step(epoch_index+i/num_of_train_batches)
