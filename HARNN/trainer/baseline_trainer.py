@@ -169,9 +169,9 @@ class BaselineTrainer():
             
             print(progress_info, end='\n')
             tb_x = epoch_index * num_of_train_batches + i + 1
-            self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
-            for i in range(len(learning_rates)):
-                self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
+            
+            #for i in range(len(learning_rates)):
+            #    self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
             t2 = time.perf_counter()
             print(f'Time for metrics step: {t2-t1:.4f} seconds.')
            
@@ -179,6 +179,7 @@ class BaselineTrainer():
             end_time = time.perf_counter()
             print(f'Time for batch step: {end_time-start_time:.4f} seconds.')
         # Gather data and report
+        self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
         auprc = AveragePrecision(task="binary")
         predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)
         labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(self.device)
