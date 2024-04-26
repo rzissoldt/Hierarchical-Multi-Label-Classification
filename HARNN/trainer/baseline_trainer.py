@@ -1,4 +1,4 @@
-import copy
+import copy,time
 import torch
 import sys, os
 import numpy as np
@@ -117,14 +117,19 @@ class BaselineTrainer():
         predicted_list = []
         labels_list = []
         num_of_train_batches = len(data_loader)
-       
+        
         for i, data in enumerate(data_loader):
+            start_time = time.perf_counter()
             # Every data instance is an input + label pair
+            t1 = time.perf_counter()
             inputs, labels = copy.deepcopy(data)
-            
+            t2 = time.perf_counter()
+            print(f'Time for copy: {t2-t1:.4f} seconds.')
+            t1 = time.perf_counter()
             inputs = inputs.to(self.device)
             labels = labels.to(self.device)
-           
+            t2 = time.perf_counter()
+            print(f'Time to GPU: {t2-t1:.4f} seconds.')
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
            
@@ -137,13 +142,19 @@ class BaselineTrainer():
             loss = self.criterion(x)
             predicted = output.data > 0.5            
 
-            loss.backward()            
+            t1 = time.perf_counter()
+            loss.backward()
+            t2 = time.perf_counter()
+            print(f'Time for backward: {t2-t1:.4f} seconds.')            
             # Clip gradients by global norm
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
-           
+            t1 = time.perf_counter()
             self.optimizer.step()
-            
+            t2 = time.perf_counter()
+            print(f'Time for optimizer step: {t2-t1:.4f} seconds.')
             self.scheduler.step(epoch_index+i/num_of_train_batches)
+            
+            t1 = time.perf_counter()
             
             #print(learning_rates)
             predicted_list.extend(predicted)
@@ -160,11 +171,12 @@ class BaselineTrainer():
             self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
             for i in range(len(learning_rates)):
                 self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
-            
+            t2 = time.perf_counter()
+            print(f'Time for metrics step: {t2-t1:.4f} seconds.')
            
             print(progress_info, end='\r')
-            
-                
+            end_time = time.perf_counter()
+            print(f'Time for batch step: {end_time-start_time:.4f} seconds.')
         # Gather data and report
         auprc = AveragePrecision(task="binary")
         predicted_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_list],dim=0).to(self.device)

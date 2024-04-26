@@ -1,5 +1,5 @@
 
-import os,sys
+import os,sys,time
 # Add the parent directory to the Python path
 sys.path.append('../')
 from utils import xtree_utils as xtree
@@ -253,7 +253,7 @@ class HierarchyDataset(Dataset):
         return len(self.image_label_tuple_list)
 
     def __getitem__(self, idx):
-        
+        t1 = time.perf_counter()
         img_path = self.image_label_tuple_list[idx][0]
         image = Image.open(img_path)
 
@@ -264,13 +264,16 @@ class HierarchyDataset(Dataset):
         pil_image = image  # Initialize pil_image with the original image
 
         if self.is_training:
+           
             pil_image = self.train_transform(image)
+            
         else:
             pil_image = self.validation_transform(image)
             
         labels = self.image_label_tuple_list[idx][1]
         image.close()
        
-        
+        t2 = time.perf_counter()
+        print(f'Time for image loading: {t2-t1:.4f} seconds.')
         return pil_image, labels
    
