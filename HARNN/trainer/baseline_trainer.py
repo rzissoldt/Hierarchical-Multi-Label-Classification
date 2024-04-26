@@ -122,7 +122,8 @@ class BaselineTrainer():
             start_time = time.perf_counter()
             # Every data instance is an input + label pair
             t1 = time.perf_counter()
-            inputs, labels = copy.deepcopy(data)
+            #inputs, labels = copy.deepcopy(data)
+            inputs, labels = data
             t2 = time.perf_counter()
             print(f'Time for copy: {t2-t1:.4f} seconds.')
             t1 = time.perf_counter()
