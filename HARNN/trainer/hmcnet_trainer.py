@@ -171,7 +171,7 @@ class HmcNetTrainer():
                 self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
             torch.cuda.synchronize()
             end_time = time.perf_counter()
-            print(f'Batch time:{t2-t1:.5f}s')
+            print(f'Batch time:{end_time-start_time:.5f}s')
         print('\n')
         return last_global_loss+last_local_loss+last_hierarchy_loss
     
