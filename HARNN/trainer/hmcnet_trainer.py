@@ -113,8 +113,10 @@ class HmcNetTrainer():
         self.model.train(True)
         num_of_train_batches = len(data_loader)
         for i, data in enumerate(data_loader):
+            torch.cuda.synchronize()
+            start_time = time.perf_counter()
             # Every data instance is an input + label pair
-            inputs, labels = copy.deepcopy(data)
+            inputs, labels = data
             inputs = inputs.to(self.device)
             y_total_onehot = labels[0].to(self.device)
             y_local_onehots = [label.to(self.device) for label in labels[1:]]
@@ -167,6 +169,9 @@ class HmcNetTrainer():
             self.tb_writer.add_scalar('Training/HierarchyLoss', last_hierarchy_loss, tb_x)
             for i in range(len(learning_rates)):
                 self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
+            torch.cuda.synchronize()
+            end_time = time.perf_counter()
+            print(f'Batch time:{t2-t1:.5f}s')
         print('\n')
         return last_global_loss+last_local_loss+last_hierarchy_loss
     
