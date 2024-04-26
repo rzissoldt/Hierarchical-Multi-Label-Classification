@@ -128,7 +128,12 @@ class HmcNetTrainer():
             predictions = (local_scores_list,global_logits)
             targets = (y_local_onehots,y_total_onehot)
             x = (predictions,targets)
+            torch.cuda.synchronize()
+            t1 = time.perf_counter()
             loss,global_loss,local_loss,hierarchy_loss = self.criterion(x)
+            torch.cuda.synchronize()
+            t2 = time.perf_counter()
+            print(f'{t2-t1:.5f}s')
             loss.backward()
             
             # Adjust learning weights
