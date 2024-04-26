@@ -113,8 +113,6 @@ class HmcNetTrainer():
         self.model.train(True)
         num_of_train_batches = len(data_loader)
         for i, data in enumerate(data_loader):
-            torch.cuda.synchronize()
-            start_time = time.perf_counter()
             # Every data instance is an input + label pair
             inputs, labels = data
             inputs = inputs.to(self.device)
@@ -124,28 +122,18 @@ class HmcNetTrainer():
             self.optimizer.zero_grad()
 
             # Make predictions for this batch
-            torch.cuda.synchronize()
-            t1 = time.perf_counter()
+            
             _, local_scores_list, global_logits = self.model(inputs)
-            torch.cuda.synchronize()
-            t2 = time.perf_counter()
-            print(f'Inference: {t2-t1:.5f}s')
+            
             # Compute the loss and its gradients
             predictions = (local_scores_list,global_logits)
             targets = (y_local_onehots,y_total_onehot)
             x = (predictions,targets)
-            torch.cuda.synchronize()
-            t1 = time.perf_counter()
+            
             loss,global_loss,local_loss,hierarchy_loss = self.criterion(x)
-            torch.cuda.synchronize()
-            t2 = time.perf_counter()
-            print(f'Loss:{t2-t1:.5f}s')
-            torch.cuda.synchronize()
-            t1 = time.perf_counter()
+            
             loss.backward()
-            torch.cuda.synchronize()
-            t2 = time.perf_counter()
-            print(f'Backward:{t2-t1:.5f}s')
+           
             # Adjust learning weights
             self.optimizer.step()
             self.scheduler.step(epoch_index+i/num_of_train_batches)
@@ -169,9 +157,7 @@ class HmcNetTrainer():
             self.tb_writer.add_scalar('Training/HierarchyLoss', last_hierarchy_loss, tb_x)
             for i in range(len(learning_rates)):
                 self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
-            torch.cuda.synchronize()
-            end_time = time.perf_counter()
-            print(f'Batch time:{end_time-start_time:.5f}s')
+            
         print('\n')
         return last_global_loss+last_local_loss+last_hierarchy_loss
     

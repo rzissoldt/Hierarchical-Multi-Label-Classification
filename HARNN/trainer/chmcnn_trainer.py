@@ -114,7 +114,7 @@ class CHMCNNTrainer():
         num_of_train_batches = len(data_loader)
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
-            inputs, labels = copy.deepcopy(data)
+            inputs, labels = data
             inputs = inputs.to(self.device)
             labels = labels.to(self.device) # y
             
