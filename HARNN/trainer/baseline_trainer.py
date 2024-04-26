@@ -119,53 +119,40 @@ class BaselineTrainer():
         num_of_train_batches = len(data_loader)
         
         for i, data in enumerate(data_loader):
-            torch.cuda.synchronize()
-            start_time = time.perf_counter()
             # Every data instance is an input + label pair           
             inputs, labels = data
             
-            
-            torch.cuda.synchronize()
-            t1 = time.perf_counter()
-            
+                        
             inputs = inputs.to(self.device)
             labels = labels.to(self.device)
-            torch.cuda.synchronize()
-            t2 = time.perf_counter()
-            print(f'Time to GPU: {t2-t1:.4f} seconds.')
+            
+           
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
            
             # Make predictions for this batch
-            torch.cuda.synchronize()
-            t1 = time.perf_counter()
+           
             output = self.model(inputs.float())
-            torch.cuda.synchronize()
-            t2 = time.perf_counter()
-            print(f'Forward pass: {t2-t1:.4f} seconds.')
+            
+            
             # Compute the loss and its gradients
             
             x = output,labels.double()
             loss = self.criterion(x)
             predicted = output.data > 0.5            
-            torch.cuda.synchronize()
-            t1 = time.perf_counter()
+           
             
             loss.backward()
-            torch.cuda.synchronize()
-            t2 = time.perf_counter()
-            print(f'Time for backward: {t2-t1:.4f} seconds.')            
+               
             # Clip gradients by global norm
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
-            torch.cuda.synchronize()
-            t1 = time.perf_counter()
+            
             self.optimizer.step()
-            torch.cuda.synchronize()
-            t2 = time.perf_counter()
-            print(f'Time for optimizer step: {t2-t1:.4f} seconds.')
+            
+            
             self.scheduler.step(epoch_index+i/num_of_train_batches)
             
-            t1 = time.perf_counter()
+           
             
             #print(learning_rates)
             predicted_list.extend(predicted)
@@ -179,17 +166,14 @@ class BaselineTrainer():
             
             print(progress_info, end='\n')
             tb_x = epoch_index * num_of_train_batches + i + 1
-            
-            #for i in range(len(learning_rates)):
-            #    self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
-            
+            torch.cuda.synchronize()
+            t1 = time.perf_counter()
+            for i in range(len(learning_rates)):
+                self.tb_writer.add_scalar(f'Training/LR{i}', float(learning_rates[i]), tb_x)
             t2 = time.perf_counter()
-            print(f'Time for metrics step: {t2-t1:.4f} seconds.')
+            print(f'LR: {t2-t1:5f}s')
            
             print(progress_info, end='\r')
-            torch.cuda.synchronize()
-            end_time = time.perf_counter()
-            print(f'Time for batch step: {end_time-start_time:.4f} seconds.')
         # Gather data and report
         self.tb_writer.add_scalar('Training/Loss', last_loss, tb_x)
         auprc = AveragePrecision(task="binary")

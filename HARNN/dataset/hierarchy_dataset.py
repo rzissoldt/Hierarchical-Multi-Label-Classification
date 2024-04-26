@@ -17,11 +17,8 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 class HierarchyDataset(Dataset):
     def __init__(self, annotation_file_path, hierarchy_file_path, image_dir,image_count_threshold,path_to_model,hierarchy_dicts_file_path=None,hierarchy_depth=-1):
         super(HierarchyDataset, self).__init__()
-        self.load_transform = transforms.Compose([
-            transforms.Resize((256, 256))       
-        ])
         self.train_transform = transforms.Compose([
-            #transforms.Resize((256, 256)),                    
+            transforms.Resize((256, 256)),                    
             transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2), 
             transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1), shear=10), 
             transforms.RandomHorizontalFlip(),                 
@@ -32,7 +29,7 @@ class HierarchyDataset(Dataset):
                          std=[0.229, 0.224, 0.225])
         ])
         self.validation_transform = transforms.Compose([
-            #transforms.Resize((256, 256)),                    
+            transforms.Resize((256, 256)),                    
             transforms.CenterCrop(224),                       
             transforms.ToTensor(),                             
             transforms.Normalize(mean=[0.485, 0.456, 0.406],  
@@ -88,23 +85,7 @@ class HierarchyDataset(Dataset):
         print('Dataset Size:',sum([image_count for image_count in self.layer_distribution_dict[0].values()]))
         print('Num Classes List:',self.num_classes_list)
         print('Total Class Num',self.total_class_num)
-
-        self.loaded_image_label_tuple_list = []
-        self.image_label_tuple_list = self.image_label_tuple_list[:2000]
-        for i in range(len(self.image_label_tuple_list)):
-            
-            img_path = self.image_label_tuple_list[i][0]
-            image = Image.open(img_path)
-
-            # Convert to RGB if it isn't already
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-
-            image_tensor = self.load_transform(image)  # Initialize pil_image with the original image
-            self.loaded_image_label_tuple_list.append((image_tensor,self.image_label_tuple_list[i][1]))
-            if i % 500 == 0:
-                print(f'{i} loaded images')
-            image.close()
+    
     def load_hierarchy_dicts(self,hierarchy_file_path,hierarchy_depth):
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
@@ -272,26 +253,25 @@ class HierarchyDataset(Dataset):
         return len(self.image_label_tuple_list)
 
     def __getitem__(self, idx):
-        t1 = time.perf_counter()
-        #img_path = self.image_label_tuple_list[idx][0]
-        #image = Image.open(img_path)
+        img_path = self.image_label_tuple_list[idx][0]
+        image = Image.open(img_path)
 
         # Convert to RGB if it isn't already
-        #if image.mode != 'RGB':
-        #    image = image.convert('RGB')
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
 
-        #pil_image = image  # Initialize pil_image with the original image
-        image =self.loaded_image_label_tuple_list[idx][0]
+        pil_image = image  # Initialize pil_image with the original image
+
         if self.is_training:
+           
             pil_image = self.train_transform(image)
             
         else:
             pil_image = self.validation_transform(image)
             
         labels = self.image_label_tuple_list[idx][1]
-        
+        image.close()
        
-        t2 = time.perf_counter()
-        #print(f'Time for image loading: {t2-t1:.4f} seconds.')
+        
         return pil_image, labels
    
