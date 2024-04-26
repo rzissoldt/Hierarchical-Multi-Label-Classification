@@ -85,7 +85,19 @@ class HierarchyDataset(Dataset):
         print('Dataset Size:',sum([image_count for image_count in self.layer_distribution_dict[0].values()]))
         print('Num Classes List:',self.num_classes_list)
         print('Total Class Num',self.total_class_num)
-    
+
+        self.loaded_image_label_tuple_list = []
+        for i in range(list(self.image_label_tuple_list)):
+            img_path = self.image_label_tuple_list[i][0]
+            image = Image.open(img_path)
+
+            # Convert to RGB if it isn't already
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+
+            pil_image = image  # Initialize pil_image with the original image
+            self.loaded_image_label_tuple_list.append((pil_image,self.image_label_tuple_list[i][1]))
+        
     def load_hierarchy_dicts(self,hierarchy_file_path,hierarchy_depth):
         self.hierarchy = xtree.load_xtree_json(hierarchy_file_path)
         self.hierarchy_dicts = xtree.generate_dicts_per_level(self.hierarchy)
@@ -254,15 +266,15 @@ class HierarchyDataset(Dataset):
 
     def __getitem__(self, idx):
         t1 = time.perf_counter()
-        img_path = self.image_label_tuple_list[idx][0]
-        image = Image.open(img_path)
+        #img_path = self.image_label_tuple_list[idx][0]
+        #image = Image.open(img_path)
 
         # Convert to RGB if it isn't already
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
+        #if image.mode != 'RGB':
+        #    image = image.convert('RGB')
 
-        pil_image = image  # Initialize pil_image with the original image
-
+        #pil_image = image  # Initialize pil_image with the original image
+        image =self.loaded_image_label_tuple_list[idx][0]
         if self.is_training:
            
             pil_image = self.train_transform(image)
