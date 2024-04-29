@@ -66,23 +66,24 @@ def train_buhcapsnet(args):
     if args.optimizer == 'adam':    
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
     elif args.optimizer == 'sgd':
-        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda,nesterov=True,momentum=0.9,dampening=0.0)
     else:
         print(f'{args.optimizer} is not a valid optimizer. Quit Program.')
         return
+
     
-    lambda_updater = LambdaUpdater(num_layers=len(num_classes_list),initial_k=1,final_k=10,num_epochs=40)    
-    
-    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.decay_rate)
+    T_0 = 10
+    T_mult = 2   
+    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0, T_mult)
     model.eval().to(device)
     
     # Define Loss for BUHCapsNetLoss
-    criterion = BUHCapsNetLoss(device=device,l2_reg_lambda=args.l2_lambda,num_classes_list=num_classes_list)
+    criterion = BUHCapsNetLoss(device=device,num_classes_list=num_classes_list)
     
    
     
     # Define Trainer for HmcNet
-    trainer = BUHCapsNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device,lambda_updater=lambda_updater)
+    trainer = BUHCapsNetTrainer(model=model,criterion=criterion,optimizer=optimizer,scheduler=scheduler,training_dataset=training_dataset,path_to_model=path_to_model,num_classes_list=num_classes_list,explicit_hierarchy=explicit_hierarchy,args=args,device=device)
     
     # Save Model ConfigParameters
     args_dict = vars(args)

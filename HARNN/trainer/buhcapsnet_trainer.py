@@ -2,6 +2,7 @@ import copy, datetime
 import torch
 import sys, os
 import numpy as np
+import torch.optim as optim
 sys.path.append('../')
 from utils import data_helpers as dh
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit,MultilabelStratifiedKFold
@@ -9,12 +10,12 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.classification import MultilabelAveragePrecision
 class BUHCapsNetTrainer():
-    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,explicit_hierarchy,num_classes_list,path_to_model,lambda_updater,args,device=None):
+    def __init__(self,model,criterion,optimizer,scheduler,training_dataset,explicit_hierarchy,num_classes_list,path_to_model,args,device=None):
         self.model = model
         self.criterion = criterion
         self.scheduler = scheduler
         self.optimizer = optimizer
-        self.lambda_updater = lambda_updater
+        
         self.device = device
         self.best_model = copy.deepcopy(model)
         self.explicit_hierarchy= explicit_hierarchy
@@ -33,7 +34,7 @@ class BUHCapsNetTrainer():
     def train_and_validate(self):
         counter = 0
         best_epoch = 0
-        best_average_precision = 0.
+        best_vloss = 1_000_000
         #best_vloss = 1_000_000
         is_fine_tuning = False
         
@@ -57,26 +58,26 @@ class BUHCapsNetTrainer():
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, shuffle=False,worker_init_fn=set_worker_sharing_strategy,**kwargs)
         for epoch in range(self.args.epochs):
             avg_train_loss = self.train(epoch_index=epoch,data_loader=train_loader)
-            validation_average_precision = self.validate(epoch_index=epoch,data_loader=val_loader)
+            avg_val_loss = self.validate(epoch_index=epoch,data_loader=val_loader)
             self.tb_writer.flush()
-            print(f'Epoch {epoch+1}: Train Loss {avg_train_loss}, Validation AUPRC {validation_average_precision}')
+            print(f'Epoch {epoch+1}: Train Loss {avg_train_loss}, Validation Loss {avg_val_loss}')
             
             # End Training if Max Epoch is reached
             if epoch == self.args.epochs-1:
-                if validation_average_precision > best_average_precision:
+                if avg_val_loss < best_vloss:
                     best_epoch = epoch+1
                     self.best_model = copy.deepcopy(self.model)
-                    best_average_precision = validation_average_precision
+                    best_vloss = avg_val_loss
                 print(f"Max Epoch count is reached. Best model was reached in {best_epoch}.")
                 break
             # Decay Learningrate if Step Count is reached
             if epoch % self.args.decay_steps == self.args.decay_steps-1:
                 self.scheduler.step()
             # Track best performance, and save the model's state
-            if validation_average_precision > best_average_precision:
+            if avg_val_loss < best_vloss:
                 best_epoch = epoch+1
                 self.best_model = copy.deepcopy(self.model)
-                best_average_precision = validation_average_precision
+                best_vloss = avg_val_loss
                 counter = 0
             else:
                 counter += 1
@@ -87,6 +88,9 @@ class BUHCapsNetTrainer():
                     self.unfreeze_backbone()
                     is_fine_tuning = True
                     counter = 0
+                    T_0 = self.scheduler.T_0
+                    T_mult = self.scheduler.T_mult
+                    self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, T_0, T_mult)
                     continue
                 if counter >= self.args.early_stopping_patience and is_fine_tuning:
                     print(f'Early stopping triggered in fine tuning Phase. {best_epoch} was the best Epoch.')
@@ -104,14 +108,13 @@ class BUHCapsNetTrainer():
     def train(self,epoch_index,data_loader):
         current_global_loss = 0.
         current_margin_loss = 0.
-        current_l2_loss = 0.
         last_loss = 0.
         self.model.train(True)
         
         num_of_train_batches = len(data_loader)
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
-            inputs, labels = copy.deepcopy(data)
+            inputs, labels = data
             inputs= inputs.to(self.device)
             y_local_onehots = [label.to(self.device) for label in labels]
             # Zero your gradients for every batch!
@@ -121,10 +124,10 @@ class BUHCapsNetTrainer():
             local_scores = self.model(inputs)
             
             # Compute the loss and its gradients            
-            x = (local_scores,y_local_onehots,self.model)
-            global_loss,margin_loss,l2_loss = self.criterion(x)
+            x = (local_scores,y_local_onehots)
+            margin_loss = self.criterion(x)
             
-            global_loss.backward()
+            margin_loss.backward()
             
             # Clip gradients by global norm
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
@@ -132,20 +135,17 @@ class BUHCapsNetTrainer():
             # Adjust learning weights
             self.optimizer.step()
             # Gather data and report
-            current_global_loss += global_loss.item()
-            current_margin_loss += margin_loss.item()
-            current_l2_loss += l2_loss.item()
+            self.scheduler.step(epoch_index+i/num_of_train_batches)
+            current_margin_loss += margin_loss
             
-            last_global_loss = current_global_loss/(i+1)
             last_margin_loss = current_margin_loss/(i+1)
             
-            last_l2_loss = current_l2_loss/(i+1)
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], AVGMarginLoss: {last_margin_loss}, AVGL2Loss: {last_l2_loss}"
+            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}]"
             print(progress_info, end='\r')
             tb_x = epoch_index * num_of_train_batches + i + 1
             self.tb_writer.add_scalar('Training/MarginLoss', last_margin_loss, tb_x)
-            self.tb_writer.add_scalar('Training/GlobalLoss', last_global_loss, tb_x)
-            self.tb_writer.add_scalar('Training/L2Loss', last_l2_loss, tb_x)
+            
+            
             
         # Changed Lambda Weights            
         print('\n')
@@ -177,25 +177,20 @@ class BUHCapsNetTrainer():
                 local_scores = self.model(vinputs)
 
                 # Compute the loss and its gradients            
-                x = (local_scores,y_local_onehots,self.model)
-                vglobal_loss,vmargin_loss,vl2_loss = self.criterion(x)
+                x = (local_scores,y_local_onehots)
+                vmargin_loss = self.criterion(x)
             
+                current_margin_loss += vmargin_loss
                 
-                current_global_loss += vglobal_loss.item()
-                current_margin_loss += vmargin_loss.item()
-                
-                current_l2_loss += vl2_loss.item()
-                last_vglobal_loss = current_global_loss/(i+1)
                 last_vmargin_loss = current_margin_loss/(i+1)
-                last_vl2_loss = current_l2_loss/(i+1)    
+                
                    
-                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}], AVGMarginLoss: {last_vmargin_loss}, AVGL2Loss: {last_vl2_loss}"
+                progress_info = f"Validation: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_val_batches}]"
                 print(progress_info, end='\r')
                 
                 tb_x = epoch_index * num_of_val_batches + eval_counter + 1
-                self.tb_writer.add_scalar('Validation/GlobalLoss',last_vglobal_loss,tb_x)
                 self.tb_writer.add_scalar('Validation/MarginLoss',last_vmargin_loss,tb_x)
-                self.tb_writer.add_scalar('Validation/L2Loss',last_vl2_loss,tb_x)
+                
                 eval_counter+=1
                 global_scores = torch.cat(local_scores,dim=1)
                 for j in global_scores:
@@ -212,7 +207,7 @@ class BUHCapsNetTrainer():
             eval_macro_auprc_layer = macro_auprc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
             self.criterion.update_loss_weights(macro_aurpc_per_layer)
             print(f'Current Loss Weights: {self.criterion.current_loss_weights}')             
-            return eval_macro_auprc_layer
+            return last_vmargin_loss
         
     def test(self,epoch_index,data_loader):
         print(f"Evaluating best model of epoch {epoch_index}.")
@@ -264,12 +259,15 @@ class BUHCapsNetTrainer():
         first_backbone_params = int(0.2 * len(backbone_model_params))
 
         # Assign learning rates to each parameter group
-        base_lr = optimizer_dict['lr']
+        base_lr = self.args.learning_rate*1e-1
+        current_lr = param_groups[0]['lr']
         param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
         param_groups[0]['lr'] = base_lr * 1e-4
+        param_groups[0]['initial_lr'] = base_lr * 1e-4
         param_groups[1]['params'] = backbone_model_params[first_backbone_params:]
         param_groups[1]['lr'] = base_lr * 1e-2
-        param_groups[2]['params'] = self.model.secondary_capsules.parameters()
+        param_groups[1]['initial_lr'] = base_lr * 1e-2
+        param_groups[2]['params'] = list(self.model.secondary_capsules.parameters())
         param_groups[2]['lr'] = base_lr
         
         # Update the optimizer with the new parameter groups
