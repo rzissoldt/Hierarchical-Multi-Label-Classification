@@ -105,12 +105,10 @@ def train_hmcnet(args):
 
 
 def get_random_hyperparameter(base_args):
-    attention_dim = random.choice([200,400,800])
-    fc_dim = random.choice([256,512,1024])
-    highway_fc_dim = random.choice([256,512,1024])
-    highway_num_layers = random.choice([1,2])
-    backbone_fc_dim = random.choice([128,256,512])
-    batch_size = random.choice([128])
+    attention_dim = random.choice([400])
+    fc_dim = random.choice([1024])
+    highway_fc_dim = random.choice([512])
+    highway_num_layers = random.choice([2])
     learning_rate = random.choice([0.1])
     optimizer = random.choice(['sgd'])
     
@@ -118,16 +116,14 @@ def get_random_hyperparameter(base_args):
           f'FC-Dim: {fc_dim}\n'
           f'Highway-FC-Dim: {highway_fc_dim}\n'
           f'Highway-Num-Layers: {highway_num_layers}\n'
-          f'Backbone-FC-Dim: {backbone_fc_dim}\n'
-          f'Batch-Size: {batch_size}\n'
+          
           f'Learning Rate: {learning_rate}\n'
           f'Optimizer: {optimizer}\n')
     base_args.attention_dim = attention_dim
-    base_args.backbone_fc_dim = backbone_fc_dim
+    
     base_args.fc_dim = fc_dim
     base_args.highway_fc_dim = highway_fc_dim
     base_args.highway_num_layers = highway_num_layers
-    base_args.batch_size = batch_size
     base_args.learning_rate = learning_rate
     base_args.optimizer = optimizer
     return base_args

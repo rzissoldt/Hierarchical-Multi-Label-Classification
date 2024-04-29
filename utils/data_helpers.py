@@ -2,7 +2,7 @@
 __author__ = 'Randolph'
 import torch
 import os, sys
-from torchvision import transforms
+
 import time
 import heapq
 import gensim
@@ -520,59 +520,7 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
 
     return metric_dict
 
-def visualize_sample_images(images,true_labels,scores,threshold,hierarchy_dicts,output_file_path):
-    
-    os.makedirs(output_file_path, exist_ok=True)
-    for i in range(len(images)):
-        score = scores[i]
-        thresholded_score = score > threshold
-        reverse_transform = transforms.Compose([
-            transforms.Normalize(mean=[-0.485/0.229, -0.456/0.224, -0.406/0.225],
-                         std=[1/0.229, 1/0.224, 1/0.225]),
-         transforms.Normalize(mean=[-0.5, -0.5, -0.5],
-                         std=[1, 1, 1]),
-         transforms.ToPILImage()
-        ])
-        image = reverse_transform(images[i])
-        # Anzeigen des Bildes
-        #image_np = image.cpu().numpy()
-        #image_np = image_np.transpose(1,2,0)
-        true_label = true_labels[i]
-        # Festlegen der Größe des Ausgabebildes
-        plt.figure(figsize=(8, 6))  # Breite: 8 Zoll, Höhe: 6 Zoll
-        # Anzeigen des Bildes
-        plt.imshow(image)
-        image_np = np.array(image)
-        plt.axis('off')  # Achsen ausschalten
-        swapped_hierarchy_dict = [{v: k for k, v in hierarchy_dict.items()} for hierarchy_dict in hierarchy_dicts]
-        # Text für die richtigen Labels
-        base_text_anchor = image_np.shape[1] + 20
-        start_index = 0
-        for i in range(len(swapped_hierarchy_dict)):
-            plt.text(0,base_text_anchor,f'Hierarchy-Layer-{i+1}:',fontsize=9,weight='bold')
-            anchor_counter = 0
-            for j in swapped_hierarchy_dict[i].keys():
-                wk_id = swapped_hierarchy_dict[i][j].split('_')[-1]
-                if true_label[start_index+j] == 1 and true_label[start_index+j] == thresholded_score[start_index+j]:
-                    plt.text(35+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='green',fontsize=9)
-                    anchor_counter+=1
-                elif true_label[start_index+j] == 1 and true_label[start_index+j] != thresholded_score[start_index+j]:
-                    plt.text(35+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='red',fontsize=9)
-                    anchor_counter+=1
-                elif true_label[start_index+j] == 0 and true_label[start_index+j] != thresholded_score[start_index+j]:
-                    plt.text(35+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='orange',fontsize=9)
-                    anchor_counter+=1
-            base_text_anchor+=10
-            start_index+=len(swapped_hierarchy_dict[i])
 
-        legend_elements = [
-            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='green', markersize=10, label='True Positive'),
-            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='False Negative'),
-            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='False Positive')
-        ]
-        plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
-        plt.savefig(os.path.join(output_file_path,f'sample_image{i}'),bbox_inches='tight')
-        plt.clf()
     
 
 def eval_exact_match_ratio(true_labels_batch, predicted_labels_batch):
