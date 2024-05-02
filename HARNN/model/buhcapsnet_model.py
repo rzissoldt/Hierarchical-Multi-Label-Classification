@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from model.hcapsnet_model import squash, safe_norm, SecondaryCapsule, LengthLayer, MarginLoss, L2Loss
+from model.hcapsnet_model import squash, safe_norm, SecondaryCapsule, LengthLayer, MarginLoss
 from model.backbone import Backbone
 from scipy.stats import chi2
 class FeatureExtractor(nn.Module):
