@@ -328,6 +328,13 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
             for i in batch_predicted_pcp_onehot_labels_tk:
                 predicted_pcp_onehot_labels_tk[top_num].append(i)
         predicted_pcp_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_pcp_onehot_labels_ts],dim=0).to(device)
+        if eval_hierarchical_metrics:
+            pcp_scores_np = predicted_pcp_onehot_labels.numpy()
+            eval_hierarchical_pre, eval_hierarchical_rec, eval_hierarchical_F1 = hierarchical_precision_recall_f1_score(scores=pcp_scores_np,true_labels=true_onehot_labels,matrix=pcp_hierarchy,threshold=threshold,beta=1)
+            metric_dict['Validation/HierarchicalPrecision'] = eval_hierarchical_pre
+            metric_dict['Validation/HierarchicalRecall'] = eval_hierarchical_rec
+            metric_dict['Validation/HierarchicalF1'] = eval_hierarchical_F1
+            print("Predict by thresholding: Hierarchical Precision {0:g}, Hierarchical Recall {1:g}, Hierarchical F1 {2:g}".format(eval_hierarchical_pre, eval_hierarchical_rec, eval_hierarchical_F1))
         eval_micro_pre_pcp_ts,eval_micro_rec_pcp_ts,eval_micro_F1_pcp_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels, average='micro')
         eval_macro_pre_pcp_ts,eval_macro_rec_pcp_ts,eval_macro_F1_pcp_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_pcp_onehot_labels, average='macro')
         for top_num in range(topK):
@@ -409,20 +416,21 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
     predicted_onehot_labels = torch.cat([torch.unsqueeze(torch.tensor(tensor),0) for tensor in predicted_onehot_labels_ts],dim=0).to(device)
     if eval_hierarchical_metrics:
         eval_hierarchical_pre, eval_hierarchical_rec, eval_hierarchical_F1 = hierarchical_precision_recall_f1_score(scores=scores_np,true_labels=true_onehot_labels,matrix=pcp_hierarchy,threshold=threshold,beta=1)
-        for top_num in range(topK):
-            eval_hierarchical_pre_tk[top_num], eval_hierarchical_rec_tk[top_num], eval_hierarchical_F1_tk[top_num] = hierarchical_precision_recall_f1_score(scores=scores_np,true_labels=true_onehot_labels,matrix=pcp_hierarchy,threshold=threshold,beta=1)
         metric_dict['Validation/HierarchicalPrecision'] = eval_hierarchical_pre
         metric_dict['Validation/HierarchicalRecall'] = eval_hierarchical_rec
         metric_dict['Validation/HierarchicalF1'] = eval_hierarchical_F1
-        for i, precision in enumerate(eval_hierarchical_pre_tk):
-            metric_dict[f'Validation/HierarchicalPrecisionTopK/{i}'] = precision
-        for i, recall in enumerate(eval_hierarchical_rec_tk):
-            metric_dict[f'Validation/HierarchicalRecallTopK/{i}'] = recall
-        for i, f1 in enumerate(eval_hierarchical_F1_tk):
-            metric_dict[f'Validation/HierarchicalF1TopK/{i}'] = f1
         print("Predict by thresholding: Hierarchical Precision {0:g}, Hierarchical Recall {1:g}, Hierarchical F1 {2:g}".format(eval_hierarchical_pre, eval_hierarchical_rec, eval_hierarchical_F1))
-        for top_num in range(topK):
-            print("Top{0}: Hierarchical Precision {1:g}, Hierarchical Recall {2:g}, Hierarchical F1 {3:g}".format(top_num+1,eval_hierarchical_pre_tk[top_num], eval_hierarchical_rec_tk[top_num], eval_hierarchical_pre_tk[top_num]))
+        
+        #for top_num in range(topK):
+        #    eval_hierarchical_pre_tk[top_num], eval_hierarchical_rec_tk[top_num], eval_hierarchical_F1_tk[top_num] = hierarchical_precision_recall_f1_score(scores=scores_np,true_labels=true_onehot_labels,matrix=pcp_hierarchy,threshold=threshold,beta=1)
+        #for i, precision in enumerate(eval_hierarchical_pre_tk):
+        #    metric_dict[f'Validation/HierarchicalPrecisionTopK/{i}'] = precision
+        #for i, recall in enumerate(eval_hierarchical_rec_tk):
+        #    metric_dict[f'Validation/HierarchicalRecallTopK/{i}'] = recall
+        #for i, f1 in enumerate(eval_hierarchical_F1_tk):
+        #    metric_dict[f'Validation/HierarchicalF1TopK/{i}'] = f1
+        #for top_num in range(topK):
+        #    print("Top{0}: Hierarchical Precision {1:g}, Hierarchical Recall {2:g}, Hierarchical F1 {3:g}".format(top_num+1,eval_hierarchical_pre_tk[top_num], eval_hierarchical_rec_tk[top_num], eval_hierarchical_pre_tk[top_num]))
     eval_micro_pre_ts,eval_micro_rec_ts,eval_micro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='micro')
     eval_macro_pre_ts,eval_macro_rec_ts,eval_macro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='macro')
     
