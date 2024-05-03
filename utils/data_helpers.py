@@ -329,7 +329,7 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
                 predicted_pcp_onehot_labels_tk[top_num].append(i)
         predicted_pcp_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in predicted_pcp_onehot_labels_ts],dim=0).to(device)
         if eval_hierarchical_metrics:
-            pcp_scores_np = predicted_pcp_onehot_labels.numpy()
+            pcp_scores_np = predicted_pcp_onehot_labels.cpu().numpy()
             eval_hierarchical_pre, eval_hierarchical_rec, eval_hierarchical_F1 = hierarchical_precision_recall_f1_score(scores=pcp_scores_np,true_labels=true_onehot_labels,matrix=pcp_hierarchy,threshold=threshold,beta=1)
             metric_dict['Validation/HierarchicalPrecision'] = eval_hierarchical_pre
             metric_dict['Validation/HierarchicalRecall'] = eval_hierarchical_rec
