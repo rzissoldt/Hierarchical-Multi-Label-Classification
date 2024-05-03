@@ -314,6 +314,8 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
         batch_predicted_onehot_labels_tk = get_onehot_label_topk(scores=scores_np,top_num=top_num+1)
         for i in batch_predicted_onehot_labels_tk:
             predicted_onehot_labels_tk[top_num].append(i)
+    # Calculate PCP Precision & Recall & F1
+    true_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(device)
     if eval_pcp:
         # Predict by pcp-threshold
         batch_predicted_pcp_onehot_labels_ts = get_pcp_onehot_label_threshold(scores=scores,explicit_hierarchy=pcp_hierarchy,num_classes_list=num_classes_list, pcp_threshold=pcp_threshold)
@@ -402,8 +404,7 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
         for i in range(len(eval_pcp_metrics_per_layer)):
             print("Layer{0}: PCP-Micro-Precision {1:g}, PCP-Micro-Recall {2:g}, PCP-Micro-F1 {3:g}, PCP-Micro-AUC {4:g}, PCP-Micro-AUPRC {5:g}, PCP-EMR {6:g}".format(i+1, eval_pcp_metrics_per_layer[i]['micro_pre'], eval_pcp_metrics_per_layer[i]['micro_rec'], eval_pcp_metrics_per_layer[i]['micro_f1'],eval_pcp_metrics_per_layer[i]['micro_auc'],eval_pcp_metrics_per_layer[i]['micro_auprc'],eval_pcp_metrics_per_layer[i]['emr']))
             print("Layer{0}: PCP-Macro-Precision {1:g}, PCP-Macro-Recall {2:g}, PCP-Macro-F1 {3:g}, PCP-Macro-AUC {4:g}, PCP-Macro-AUPRC {5:g}".format(i+1, eval_pcp_metrics_per_layer[i]['macro_pre'], eval_pcp_metrics_per_layer[i]['macro_rec'], eval_pcp_metrics_per_layer[i]['macro_f1'],eval_pcp_metrics_per_layer[i]['macro_auc'],eval_pcp_metrics_per_layer[i]['macro_auprc']))
-    # Calculate PCP Precision & Recall & F1
-    true_onehot_labels = torch.cat([torch.unsqueeze(tensor,0) for tensor in labels_list],dim=0).to(device)
+    
     # Calculate Precision & Recall & F1
     predicted_onehot_labels = torch.cat([torch.unsqueeze(torch.tensor(tensor),0) for tensor in predicted_onehot_labels_ts],dim=0).to(device)
     if eval_hierarchical_metrics:
