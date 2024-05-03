@@ -259,7 +259,7 @@ class BUHCapsNetTrainer():
         first_backbone_params = int(0.2 * len(backbone_model_params))
 
         # Assign learning rates to each parameter group
-        base_lr = self.args.learning_rate*1e-1
+        base_lr = self.args.learning_rate
         current_lr = param_groups[0]['lr']
         param_groups[0]['params'] = backbone_model_params[:first_backbone_params]
         param_groups[0]['lr'] = base_lr * 1e-4
