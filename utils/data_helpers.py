@@ -368,7 +368,7 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
             metric_dict[f'Validation/PCPMacroF1TopK/{i}'] = pcp_f1
         for i, pcp_emr in enumerate(eval_emr_pcp_tk):
             metric_dict[f'Validation/PCPEMRTopK/{i}'] = pcp_emr
-        for i in range(len(eval_metrics_per_layer)):
+        for i in range(len(eval_pcp_metrics_per_layer)):
             eval_layer_pcp_macro_pre = eval_pcp_metrics_per_layer[i]['macro_pre']
             eval_layer_pcp_macro_rec = eval_pcp_metrics_per_layer[i]['macro_rec']
             eval_layer_pcp_macro_f1 = eval_pcp_metrics_per_layer[i]['macro_f1']
