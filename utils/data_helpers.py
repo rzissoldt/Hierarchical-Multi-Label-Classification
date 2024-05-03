@@ -247,6 +247,31 @@ def get_pcp_onehot_label_threshold(scores,explicit_hierarchy,num_classes_list, p
     pcp_onehot_labels = [torch.zeros(num_classes) if len(path_pruned_classes) == 0 else generate_one_hot(path_pruned_classes,num_classes) for path_pruned_classes in path_pruned_classes_list]
     return pcp_onehot_labels
 
+def get_pcp_scores(scores,explicit_hierarchy,num_classes_list, pcp_threshold=-1.0):
+    """
+    Get the predicted one-hot labels based on PCP.
+
+    Args:
+        scores: The all classes predicted scores provided by network.
+        explicit_hierarchy: The explicit hierarchy matrix.
+        num_classes_list: List of Classes per Hierarchy Layer.
+        pcp_threshold: The PCP-threshold (default: -1.0).
+    Returns:
+        predicted_onehot_labels: The predicted labels (one-hot).
+    """
+    path_pruned_classes_list = []
+    for score in scores:
+        path_pruned_classes = prune_based_coherent_prediction(score=score.tolist(),explicit_hierarchy=explicit_hierarchy,pcp_threshold=pcp_threshold,num_classes_list=num_classes_list)
+        
+        path_pruned_classes_list.append(path_pruned_classes)
+    num_classes=scores.shape[1]
+    #pcp_scores = [torch.zeros(num_classes) if len(path_pruned_classes) == 0 else generate_one_hot(path_pruned_classes,num_classes) for path_pruned_classes in path_pruned_classes_list]
+    pcp_scores = torch.zeros(num_classes)
+    for i in range(num_classes):
+        if i in path_pruned_classes_list:
+            pcp_scores[i] = scores[i]
+    return pcp_scores
+
 def get_pcp_onehot_label_topk(scores,explicit_hierarchy,num_classes_list,pcp_threshold=-1.0, top_num=1):
     """
     Get the predicted one-hot labels based on PCP and topK.
@@ -348,8 +373,8 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
         eval_pcp_metrics_per_layer = get_per_layer_metrics(scores=scores,labels=true_onehot_labels,num_classes_list=num_classes_list,device=device)
         eval_pcp_macro_auc = macro_auroc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
         eval_pcp_macro_auprc = macro_auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
-        eval_pcp_micro_auc = macro_auroc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
-        eval_pcp_micro_auprc = macro_auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
+        eval_pcp_micro_auc = micro_auroc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
+        eval_pcp_micro_auprc = micro_auprc(predicted_pcp_onehot_labels,true_onehot_labels.to(dtype=torch.long))
         metric_dict['Validation/PCPMacroAverageAUC'] = eval_pcp_macro_auc
         metric_dict['Validation/PCPMacroAveragePrecision'] = eval_pcp_macro_auprc
         metric_dict['Validation/PCPMicroAverageAUC'] = eval_pcp_micro_auc
