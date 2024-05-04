@@ -13,7 +13,7 @@ sys.path.append('../')
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
 from utils import param_parser as parser
-from HARNN.model.buhcapsnet_model import BUHCapsNet,BUHCapsNetLoss, LambdaUpdater
+from HARNN.model.buhcapsnet_model import BUHCapsNet,BUHCapsNetLoss
 from HARNN.dataset.buhcapsnet_dataset import BUHCapsNetDataset
 from HARNN.trainer.buhcapsnet_trainer import BUHCapsNetTrainer
 

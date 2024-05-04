@@ -53,12 +53,9 @@ class PrimaryCapsule(nn.Module):
         u = [capsule(x) for capsule in self.capsules]
         u = torch.stack(u, dim=1)
         u = u.view(x.size(0), self.num_routes, -1)
-        return self.squash(u)
+        return squash(u)
 
-    def squash(self, input_tensor):
-        squared_norm = (input_tensor ** 2).sum(-1, keepdim=True)
-        output_tensor = squared_norm * input_tensor / ((1. + squared_norm) * torch.sqrt(squared_norm))
-        return output_tensor
+
 
 
 class SecondaryCapsule(nn.Module):
@@ -90,7 +87,7 @@ class SecondaryCapsule(nn.Module):
             c_ij = torch.cat([c_ij] * batch_size, dim=0).unsqueeze(4)
 
             s_j = (c_ij * u_hat).sum(dim=1, keepdim=True)
-            v_j = self.squash(s_j)
+            v_j = squash(s_j)
 
             if iteration < self.routings - 1:
                 a_ij = torch.matmul(u_hat.transpose(3, 4), torch.cat([v_j] * self.num_routes, dim=1))
@@ -98,10 +95,7 @@ class SecondaryCapsule(nn.Module):
 
         return v_j.squeeze(1)
 
-    def squash(self, input_tensor):
-        squared_norm = (input_tensor ** 2).sum(-1, keepdim=True)
-        output_tensor = squared_norm * input_tensor / ((1. + squared_norm) * torch.sqrt(squared_norm))
-        return output_tensor
+    
 
 class BUHCapsNet(nn.Module):
     def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,routings,args,device=None):
@@ -158,26 +152,4 @@ class BUHCapsNetLoss(nn.Module):
             self.current_loss_weights[i] = taus[i]/sum(taus)
 
         
-class LambdaUpdater():
-    def __init__(self, num_layers, initial_k, final_k, num_epochs):
-        self.num_layers = num_layers
-        self.initial_k = initial_k
-        self.final_k = final_k
-        self.current_epoch = 0
-        self.k = initial_k
-        self.num_epochs = num_epochs
-        self.step_size = (self.final_k - self.initial_k) / num_epochs
-
-    def update_lambdas(self):
-        if self.current_epoch < self.num_epochs:
-            self.k = self.initial_k + self.step_size * self.current_epoch
-
-    def get_lambda_values(self):
-        x_values = np.linspace(10**-16, self.final_k, self.num_layers)  # Generate x values
-        density_values = chi2.pdf(x_values, self.k)  # Evaluate density function at x values
-        lambda_values = density_values / np.sum(density_values)  # Normalize density values
-        return lambda_values
-
-    def next_epoch(self):
-        self.current_epoch += 1
 
