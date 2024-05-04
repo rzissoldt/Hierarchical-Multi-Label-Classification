@@ -22,7 +22,7 @@ class PrimaryCapsule(nn.Module):
         # Reshape the tensor
         reshaped_output = x.view(-1,self.pcap_n_dims, second_dim_size)  # -1 lets PyTorch calculate the size automatically
 
-        squashed_output = squash(reshaped_output).permute(0,2,1)
+        squashed_output = squash(reshaped_output)#.permute(0,2,1)
 
             
         return squashed_output
