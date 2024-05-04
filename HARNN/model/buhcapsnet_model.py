@@ -106,12 +106,7 @@ class BUHCapsNet(nn.Module):
     def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,routings,args,device=None):
         super(BUHCapsNet, self).__init__()
         self.myresnet50 = MyResNet50()
-        
-        
-        
-        
-      
-        
+           
         if args.freeze_backbone:
             for param in self.myresnet50.parameters():
                 param.requires_grad = False
