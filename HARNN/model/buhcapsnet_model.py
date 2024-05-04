@@ -24,93 +24,95 @@ class MyResNet50(ResNet):
         x = self.layer1(x)
         return x
     
-#class PrimaryCapsule(nn.Module):
-#    def __init__(self,pcap_n_dims):
-#        super(PrimaryCapsule, self).__init__()
-#        self.pcap_n_dims = pcap_n_dims
-#    def forward(self,x):
-#        
-#           
-#        total_elements = np.prod(x.shape[1:])
-#        # Calculate the size of the second dimension
-#        second_dim_size = total_elements // self.pcap_n_dims
-#        # Reshape the tensor
-#        reshaped_output = x.view(-1,self.pcap_n_dims, second_dim_size)  # -1 lets PyTorch calculate the size automatically
-#
-#        squashed_output = squash(reshaped_output).permute(0,2,1)
-#
-#            
-#        return squashed_output
 class PrimaryCapsule(nn.Module):
-    def __init__(self, num_capsules=8, in_channels=512, out_channels=128, kernel_size=3, num_routes=32 * 6 * 6):
+    def __init__(self,pcap_n_dims):
         super(PrimaryCapsule, self).__init__()
-        self.num_routes = num_routes
-        self.capsules = nn.ModuleList([
-            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=2, padding=0)
-            for _ in range(num_capsules)])
-
-    def forward(self, x):
-        u = [capsule(x) for capsule in self.capsules]
-        u = torch.stack(u, dim=1)
-        u = u.view(x.size(0), self.num_routes, -1)
-        return squash(u)
-
-
-
-
-class SecondaryCapsule(nn.Module):
-    def __init__(self, num_capsules=10, num_routes=32 * 6 * 6, in_channels=8, out_channels=16,routings=3,device=None):
-        super(SecondaryCapsule, self).__init__()
-
-        self.in_channels = in_channels
-        self.num_routes = num_routes
-        self.num_capsules = num_capsules
-        self.routings = routings
-        self.device = device
-        self.W = nn.Parameter(torch.randn(1, num_routes, num_capsules, out_channels, in_channels))
-
-    def forward(self, x):
-        if len(x.shape) == 4:
-            x = x.squeeze()
-        batch_size = x.size(0)
-        x = torch.stack([x] * self.num_capsules, dim=2).unsqueeze(4)
-
-        W = torch.cat([self.W] * batch_size, dim=0)
+        self.pcap_n_dims = pcap_n_dims
+    def forward(self,x):
         
-        u_hat = torch.matmul(W, x)
+           
+        total_elements = np.prod(x.shape[1:])
+        # Calculate the size of the second dimension
+        second_dim_size = total_elements // self.pcap_n_dims
+        # Reshape the tensor
+        reshaped_output = x.view(-1,self.pcap_n_dims, second_dim_size)  # -1 lets PyTorch calculate the size automatically
 
-        b_ij = torch.autograd.Variable(torch.zeros(1, self.num_routes, self.num_capsules, 1)).to(self.device)
+        squashed_output = squash(reshaped_output).permute(0,2,1)
 
-        
-        for iteration in range(self.routings):
-            c_ij = F.softmax(b_ij, dim=1)
-            c_ij = torch.cat([c_ij] * batch_size, dim=0).unsqueeze(4)
-
-            s_j = (c_ij * u_hat).sum(dim=1, keepdim=True)
-            v_j = squash(s_j)
-
-            if iteration < self.routings - 1:
-                a_ij = torch.matmul(u_hat.transpose(3, 4), torch.cat([v_j] * self.num_routes, dim=1))
-                b_ij = b_ij + a_ij.squeeze(4).mean(dim=0, keepdim=True)
-
-        return v_j.squeeze(1)
-
+            
+        return squashed_output
+#class PrimaryCapsule(nn.Module):
+#    def __init__(self, num_capsules=8, in_channels=512, out_channels=128, kernel_size=3, num_routes=32 * 6 * 6):
+#        super(PrimaryCapsule, self).__init__()
+#        self.num_routes = num_routes
+#        self.capsules = nn.ModuleList([
+#            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=2, padding=0)
+#            for _ in range(num_capsules)])
+#
+#    def forward(self, x):
+#        u = [capsule(x) for capsule in self.capsules]
+#        u = torch.stack(u, dim=1)
+#        u = u.view(x.size(0), self.num_routes, -1)
+#        return squash(u)
+#
+#
+#
+#
+#class SecondaryCapsule(nn.Module):
+#    def __init__(self, num_capsules=10, num_routes=32 * 6 * 6, in_channels=8, out_channels=16,routings=3,device=None):
+#        super(SecondaryCapsule, self).__init__()
+#
+#        self.in_channels = in_channels
+#        self.num_routes = num_routes
+#        self.num_capsules = num_capsules
+#        self.routings = routings
+#        self.device = device
+#        self.W = nn.Parameter(torch.randn(1, num_routes, num_capsules, out_channels, in_channels))
+#
+#    def forward(self, x):
+#        if len(x.shape) == 4:
+#            x = x.squeeze()
+#        batch_size = x.size(0)
+#        x = torch.stack([x] * self.num_capsules, dim=2).unsqueeze(4)
+#
+#        W = torch.cat([self.W] * batch_size, dim=0)
+#        
+#        u_hat = torch.matmul(W, x)
+#
+#        b_ij = torch.autograd.Variable(torch.zeros(1, self.num_routes, self.num_capsules, 1)).to(self.device)
+#
+#        
+#        for iteration in range(self.routings):
+#            c_ij = F.softmax(b_ij, dim=1)
+#            c_ij = torch.cat([c_ij] * batch_size, dim=0).unsqueeze(4)
+#
+#            s_j = (c_ij * u_hat).sum(dim=1, keepdim=True)
+#            v_j = squash(s_j)
+#
+#            if iteration < self.routings - 1:
+#                a_ij = torch.matmul(u_hat.transpose(3, 4), torch.cat([v_j] * self.num_routes, dim=1))
+#                b_ij = b_ij + a_ij.squeeze(4).mean(dim=0, keepdim=True)
+#
+#        return v_j.squeeze(1)
+#
     
 
 class BUHCapsNet(nn.Module):
     def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,routings,args,device=None):
         super(BUHCapsNet, self).__init__()
-        self.resnet18 = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
-        self.backbone = nn.Sequential(*(list(self.resnet18.children())[:len(list(self.resnet18.children()))-2]))
+        self.resnet50 = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        self.backbone = nn.Sequential(*(list(self.resnet50.children())[:len(list(self.resnet50.children()))-2]))
         if args.freeze_backbone:
             for param in self.backbone.parameters():
                 param.requires_grad = False
             self.backbone.eval()
         
-        self.primary_capsule = PrimaryCapsule()
+        self.primary_capsule = PrimaryCapsule(pcap_n_dims=pcap_n_dims)
         secondary_capsules_list = []
-        secondary_capsules_list.append(SecondaryCapsule(in_channels=pcap_n_dims,num_capsules=num_classes_list[-1],routings=routings,out_channels=scap_n_dims,device=device))
-        secondary_capsules_list.extend([SecondaryCapsule(num_routes=num_classes_list[i+1],in_channels=scap_n_dims,num_capsules=num_classes_list[i],routings=routings,out_channels=scap_n_dims,device=device) for i in range(len(num_classes_list)-2,-1,-1)])
+        #secondary_capsules_list.append(SecondaryCapsule(in_channels=pcap_n_dims,num_capsules=num_classes_list[-1],routings=routings,out_channels=scap_n_dims,device=device))
+        #secondary_capsules_list.extend([SecondaryCapsule(num_routes=num_classes_list[i+1],in_channels=scap_n_dims,num_capsules=num_classes_list[i],routings=routings,out_channels=scap_n_dims,device=device) for i in range(len(num_classes_list)-2,-1,-1)])
+        secondary_capsules_list.append(SecondaryCapsule(in_channels=int(2048*7*7/8),pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[-1],routings=routings,n_dims=scap_n_dims,device=device))
+        secondary_capsules_list.extend([SecondaryCapsule(in_channels=num_classes_list[i+1],pcap_n_dims=scap_n_dims,n_caps=num_classes_list[i],n_dims=scap_n_dims,routings=routings,device=device) for i in range(len(num_classes_list)-2,-1,-1)])
         self.secondary_capsules = nn.ModuleList(secondary_capsules_list)
         self.length_layer = LengthLayer()
         

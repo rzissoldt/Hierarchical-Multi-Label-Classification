@@ -160,6 +160,7 @@ class SecondaryCapsule(nn.Module):
         self.device = device
         # Initialize transformation matrix
         self.W = nn.Parameter(torch.randn(1, in_channels, n_caps, n_dims, pcap_n_dims))
+        #self.W = nn.Parameter(torch.randn(1, num_routes, num_capsules, out_channels, in_channels))
         print(self.W.numel())
     def forward(self, x):
         #start = torch.cuda.Event(enable_timing=True)
