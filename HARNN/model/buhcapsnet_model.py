@@ -110,8 +110,20 @@ class BUHCapsNet(nn.Module):
         self.length_layer = LengthLayer()
         
     def forward(self,x):
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
         feature_output = self.backbone(x)
+        end.record()
+        torch.cuda.synchronize()
+        print('To Backbone Forward:',start.elapsed_time(end))
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
         primary_capsule_output = self.primary_capsule(feature_output)
+        end.record()
+        torch.cuda.synchronize()
+        print('To Primary Capsule:',start.elapsed_time(end))
         output_list = []
         for i in range(len(self.secondary_capsules)):
             if i == 0:
