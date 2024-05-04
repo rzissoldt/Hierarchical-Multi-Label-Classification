@@ -176,7 +176,7 @@ class SecondaryCapsule(nn.Module):
         W = torch.cat([self.W] * batch_size, dim=0)
         u_hat = torch.matmul(W, x)
 
-        b_ij = torch.Variable(torch.zeros(1, self.in_channels, self.num_capsules, 1)).to(self.device)
+        b_ij = torch.autograd.Variable(torch.zeros(1, self.in_channels, self.num_capsules, 1)).to(self.device)
         
 
         
