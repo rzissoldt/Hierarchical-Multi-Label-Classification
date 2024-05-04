@@ -156,13 +156,14 @@ class SecondaryCapsule(nn.Module):
     :param n_caps: number of capsules in this layer
     :param n_dims: dimension of the output vectors of the capsules in this layer
     """
-    def __init__(self, num_capsules, num_routes, in_channels, out_channels, routings=2):
+    def __init__(self, num_capsules, num_routes, in_channels, out_channels, routings=2, device=None):
         super(SecondaryCapsule, self).__init__()
 
         self.in_channels = in_channels
         self.num_routes = num_routes
         self.num_capsules = num_capsules
         self.routings = routings
+        self.device = device
         self.W = nn.Parameter(torch.randn(1, num_routes, num_capsules, out_channels, in_channels))
     
     def forward(self, x):
@@ -172,9 +173,8 @@ class SecondaryCapsule(nn.Module):
         W = torch.cat([self.W] * batch_size, dim=0)
         u_hat = torch.matmul(W, x)
 
-        b_ij = torch.Variable(torch.zeros(1, self.in_channels, self.n_caps, 1))
-        if self.device is not None:
-            b_ij = b_ij.cuda()
+        b_ij = torch.Variable(torch.zeros(1, self.in_channels, self.n_caps, 1)).to(self.device)
+        
 
         
         for iteration in range(self.routings):
