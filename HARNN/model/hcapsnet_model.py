@@ -167,6 +167,9 @@ class SecondaryCapsule(nn.Module):
         self.W = nn.Parameter(torch.randn(1, num_routes, num_capsules, out_channels, in_channels))
     
     def forward(self, x):
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
         batch_size = x.size(0)
         x = torch.stack([x] * self.num_capsules, dim=2).unsqueeze(4)
 
@@ -187,7 +190,9 @@ class SecondaryCapsule(nn.Module):
             if iteration < self.routings - 1:
                 a_ij = torch.matmul(u_hat.transpose(3, 4), torch.cat([v_j] * self.in_channels, dim=1))
                 b_ij = b_ij + a_ij.squeeze(4).mean(dim=0, keepdim=True)
-
+        end.record()
+        torch.cuda.synchronize()
+        print('To Secondary Cap Forward:',start.elapsed_time(end))
         return v_j.squeeze(1)
 
     def squash(self, input_tensor):
