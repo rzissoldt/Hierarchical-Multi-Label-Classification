@@ -266,6 +266,9 @@ class BUHCapsNetTrainer():
         param_groups[1]['initial_lr'] = base_lr * 1e-2
         param_groups[2]['params'] = list(self.model.secondary_capsules.parameters())
         param_groups[2]['lr'] = base_lr
-        
+        param_groups[2]['initial_lr'] = base_lr
+        param_groups[3]['params'] = list(self.model.primary_capsule.parameters())
+        param_groups[3]['lr'] = base_lr
+        param_groups[3]['initial_lr'] = base_lr
         # Update the optimizer with the new parameter groups
         self.optimizer.param_groups = param_groups
