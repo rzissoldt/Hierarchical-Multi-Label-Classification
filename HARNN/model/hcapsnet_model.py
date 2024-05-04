@@ -191,7 +191,7 @@ class SecondaryCapsule(nn.Module):
                 raw_weights = torch.add(raw_weights, agreement)
         end.record()
         torch.cuda.synchronize()
-        print('To GPU:',start.elapsed_time(end))
+        print('To Secondary Cap Forward:',start.elapsed_time(end))
         return caps2_output_squeezed
 
 
