@@ -5,75 +5,10 @@ import numpy as np
 from model.hcapsnet_model import squash, safe_norm, SecondaryCapsule, LengthLayer, MarginLoss
 from model.backbone import Backbone
 from scipy.stats import chi2
-class FeatureExtractor(nn.Module):
-    def __init__(self):
-        super(FeatureExtractor, self).__init__()
-        
-        # Sub-block 1
-        self.conv1_1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1)
-        self.bn1_1 = nn.BatchNorm2d(32)
-        self.conv1_2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, padding=1)
-        self.bn1_2 = nn.BatchNorm2d(32)
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
-        
-        # Sub-block 2
-        self.conv2_1 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
-        self.bn2_1 = nn.BatchNorm2d(64)
-        self.conv2_2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
-        self.bn2_2 = nn.BatchNorm2d(64)
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-        
-        # Sub-block 3
-        self.conv3_1 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
-        self.bn3_1 = nn.BatchNorm2d(128)
-        self.conv3_2 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, padding=1)
-        self.bn3_2 = nn.BatchNorm2d(128)
-        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
-        
-        # Sub-block 4
-        self.conv4_1 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1)
-        self.bn4_1 = nn.BatchNorm2d(256)
-        self.conv4_2 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, padding=1)
-        self.bn4_2 = nn.BatchNorm2d(256)
-        self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
-        
-        # Sub-block 5
-        self.conv5_1 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1)
-        self.bn5_1 = nn.BatchNorm2d(512)
-        self.conv5_2 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1)
-        self.bn5_2 = nn.BatchNorm2d(512)
-        self.pool5 = nn.MaxPool2d(kernel_size=2, stride=2)
-        
-        # Activation function
-        self.relu = nn.ReLU(inplace=True)
-        
-    def forward(self, x):
-        # Sub-block 1
-        x = self.relu(self.bn1_1(self.conv1_1(x)))
-        x = self.relu(self.bn1_2(self.conv1_2(x)))
-        x = self.pool1(x)
-        
-        # Sub-block 2
-        x = self.relu(self.bn2_1(self.conv2_1(x)))
-        x = self.relu(self.bn2_2(self.conv2_2(x)))
-        x = self.pool2(x)
-        
-        # Sub-block 3
-        x = self.relu(self.bn3_1(self.conv3_1(x)))
-        x = self.relu(self.bn3_2(self.conv3_2(x)))
-        x = self.pool3(x)
-        
-        # Sub-block 4
-        x = self.relu(self.bn4_1(self.conv4_1(x)))
-        x = self.relu(self.bn4_2(self.conv4_2(x)))
-        x = self.pool4(x)
-        
-        # Sub-block 5
-        x = self.relu(self.bn5_1(self.conv5_1(x)))
-        x = self.relu(self.bn5_2(self.conv5_2(x)))
-        x = self.pool5(x)
-        
-        return x
+
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters())
+
 class PrimaryCapsule(nn.Module):
     def __init__(self,pcap_n_dims):
         super(PrimaryCapsule, self).__init__()
@@ -104,8 +39,9 @@ class BUHCapsNet(nn.Module):
         self.primary_capsule = PrimaryCapsule(pcap_n_dims)  # Assuming 8 primary capsules
         secondary_capsules_list = []
         secondary_capsules_list.append(SecondaryCapsule(in_channels=12544,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[-1],routings=routings,n_dims=scap_n_dims,device=device))
+        print(count_parameters(secondary_capsules_list[0]))
         secondary_capsules_list.extend([SecondaryCapsule(in_channels=num_classes_list[i+1],pcap_n_dims=scap_n_dims,n_caps=num_classes_list[i],routings=routings,n_dims=scap_n_dims,device=device) for i in range(len(num_classes_list)-2,-1,-1)])
-        print(secondary_capsules_list)
+        print(count_parameters(secondary_capsule) for secondary_capsule in secondary_capsules_list)
         self.secondary_capsules = nn.ModuleList(secondary_capsules_list)
         self.length_layer = LengthLayer()
         
