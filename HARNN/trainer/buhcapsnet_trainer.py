@@ -106,9 +106,7 @@ class BUHCapsNetTrainer():
     
                       
     def train(self,epoch_index,data_loader):
-        current_global_loss = 0.
         current_margin_loss = 0.
-        last_loss = 0.
         self.model.train(True)
         
         num_of_train_batches = len(data_loader)
@@ -136,18 +134,17 @@ class BUHCapsNetTrainer():
             self.optimizer.step()
             # Gather data and report
             self.scheduler.step(epoch_index+i/num_of_train_batches)
-            current_margin_loss += margin_loss
+            current_margin_loss += margin_loss.detach()
             
-            last_margin_loss = current_margin_loss/(i+1)
-            
-            progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}]"
-            print(progress_info, end='\r')
-            tb_x = epoch_index * num_of_train_batches + i + 1
-            self.tb_writer.add_scalar('Training/MarginLoss', last_margin_loss, tb_x)
+            if i % 32 == 0:
+                progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}]"
+                print(progress_info, end='\r')
+        last_margin_loss = current_margin_loss/num_of_train_batches
             
             
-            
-        # Changed Lambda Weights            
+        #tb_x = epoch_index * num_of_train_batches + i + 1
+        self.tb_writer.add_scalar('Training/MarginLoss', last_margin_loss, epoch_index)
+                      
         print('\n')
         return  last_margin_loss
     
