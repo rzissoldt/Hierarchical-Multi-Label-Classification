@@ -43,7 +43,7 @@ class BUHCapsNet(nn.Module):
         secondary_capsules_list.extend([SecondaryCapsule(in_channels=num_classes_list[i+1],pcap_n_dims=scap_n_dims,n_caps=num_classes_list[i],routings=routings,n_dims=scap_n_dims,device=device) for i in range(len(num_classes_list)-2,-1,-1)])
         
         self.secondary_capsules = nn.ModuleList(secondary_capsules_list)
-        print(count_parameters(secondary_capsule) for secondary_capsule in self.secondary_capsules)
+        #print(count_parameters(secondary_capsule) for secondary_capsule in self.secondary_capsules)
         self.length_layer = LengthLayer()
         
     def forward(self,x):
