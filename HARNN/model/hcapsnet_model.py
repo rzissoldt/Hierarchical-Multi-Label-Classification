@@ -148,96 +148,45 @@ class PrimaryCapsule(nn.Module):
             squashed_outputs.append(squash_output.permute(0,2,1))
             
         return squashed_outputs           
-class SecondaryCapsule(nn.Module):
-    """
-    The Secondary Capsule layer With Dynamic Routing Algorithm. 
-    input shape = [None, input_num_capsule, input_dim_capsule] 
-    output shape = [None, num_capsule, dim_capsule]
-    :param n_caps: number of capsules in this layer
-    :param n_dims: dimension of the output vectors of the capsules in this layer
-    """
-    def __init__(self, num_capsules, num_routes, in_channels, out_channels, routings=2, device=None):
-        super(SecondaryCapsule, self).__init__()
 
-        self.in_channels = in_channels
-        self.num_routes = num_routes
-        self.num_capsules = num_capsules
+class SecondaryCapsule(nn.Module):    
+    def __init__(self, in_channels,pcap_n_dims, n_caps, n_dims, routings=2,device=None):
+        super(SecondaryCapsule, self).__init__()
+        self.n_caps = n_caps
+        self.n_dims = n_dims
         self.routings = routings
+        self.in_channels = in_channels
+        self.pcap_n_dims = pcap_n_dims
         self.device = device
-        self.W = nn.Parameter(torch.randn(1, num_routes, num_capsules, out_channels, in_channels))
-    
+        # Initialize transformation matrix
+        self.W = nn.Parameter(torch.randn(1, in_channels, n_caps, n_dims, pcap_n_dims))
+        print(self.W.numel())
     def forward(self, x):
         start = torch.cuda.Event(enable_timing=True)
         end = torch.cuda.Event(enable_timing=True)
         start.record()
         batch_size = x.size(0)
-        x = torch.stack([x] * self.num_capsules, dim=2).unsqueeze(4)
-
-        W = torch.cat([self.W] * batch_size, dim=0)
-        u_hat = torch.matmul(W, x)
-
-        b_ij = torch.autograd.Variable(torch.zeros(1, self.in_channels, self.num_capsules, 1)).to(self.device)
-        
-
-        
-        for iteration in range(self.routings):
-            c_ij = F.softmax(b_ij, dim=1)
-            c_ij = torch.cat([c_ij] * batch_size, dim=0).unsqueeze(4)
-
-            s_j = (c_ij * u_hat).sum(dim=1, keepdim=True)
-            v_j = self.squash(s_j)
-
-            if iteration < self.routings - 1:
-                a_ij = torch.matmul(u_hat.transpose(3, 4), torch.cat([v_j] * self.in_channels, dim=1))
-                b_ij = b_ij + a_ij.squeeze(4).mean(dim=0, keepdim=True)
+        caps1_n_caps = x.size(1)
+        W_tiled = self.W.repeat(batch_size, 1, 1, 1, 1)
+        caps1_output_expanded = x.unsqueeze(-1)
+        caps1_output_tile = caps1_output_expanded.unsqueeze(2)
+        caps1_output_tiled = caps1_output_tile.repeat(1, 1, self.n_caps, 1, 1)
+        caps2_predicted = torch.matmul(W_tiled, caps1_output_tiled)
+        raw_weights = torch.zeros(batch_size, caps1_n_caps, self.n_caps, 1, 1).to(self.device)
+        for i in range(self.routings):
+            routing_weights = F.softmax(raw_weights, dim=2)
+            weighted_predictions = routing_weights * caps2_predicted
+            weighted_sum = torch.sum(weighted_predictions, dim=1, keepdim=True)
+            caps2_output_round_1 = squash(weighted_sum,axis=-2)
+            caps2_output_squeezed = caps2_output_round_1.squeeze(dim=[1, 4])
+            if i < self.routings - 1:
+                caps2_output_round_1_tiled = caps2_output_round_1.repeat(1, caps1_n_caps, 1, 1, 1)
+                agreement = torch.matmul(caps2_predicted.transpose(3,4), caps2_output_round_1_tiled)
+                raw_weights = torch.add(raw_weights, agreement)
         end.record()
         torch.cuda.synchronize()
         print('To Secondary Cap Forward:',start.elapsed_time(end))
-        return v_j.squeeze(1)
-
-    def squash(self, input_tensor):
-        squared_norm = (input_tensor ** 2).sum(-1, keepdim=True)
-        output_tensor = squared_norm * input_tensor / ((1. + squared_norm) * torch.sqrt(squared_norm))
-        return output_tensor
-    
-    #def __init__(self, in_channels,pcap_n_dims, n_caps, n_dims, routings=2,device=None):
-    #    super(SecondaryCapsule, self).__init__()
-    #    self.n_caps = n_caps
-    #    self.n_dims = n_dims
-    #    self.routings = routings
-    #    self.in_channels = in_channels
-    #    self.pcap_n_dims = pcap_n_dims
-    #    self.device = device
-    #    # Initialize transformation matrix
-    #    self.W = nn.Parameter(torch.randn(1, in_channels, n_caps, n_dims, pcap_n_dims))
-    #    print(self.W.numel())
-    #def forward(self, x):
-    #    start = torch.cuda.Event(enable_timing=True)
-    #    end = torch.cuda.Event(enable_timing=True)
-    #    start.record()
-    #    batch_size = x.size(0)
-    #    caps1_n_caps = x.size(1)
-    #    W_tiled = self.W.repeat(batch_size, 1, 1, 1, 1)
-    #    caps1_output_expanded = x.unsqueeze(-1)
-    #    caps1_output_tile = caps1_output_expanded.unsqueeze(2)
-    #    caps1_output_tiled = caps1_output_tile.repeat(1, 1, self.n_caps, 1, 1)
-    #    caps2_predicted = torch.matmul(W_tiled, caps1_output_tiled)
-    #    raw_weights = torch.zeros(batch_size, caps1_n_caps, self.n_caps, 1, 1).to(self.device)
-    #    for i in range(self.routings):
-    #        routing_weights = F.softmax(raw_weights, dim=2)
-    #        weighted_predictions = routing_weights * caps2_predicted
-    #        weighted_sum = torch.sum(weighted_predictions, dim=1, keepdim=True)
-    #        caps2_output_round_1 = squash(weighted_sum,axis=-2)
-    #        caps2_output_squeezed = caps2_output_round_1.squeeze(dim=[1, 4])
-    #        if i < self.routings - 1:
-    #            caps2_output_round_1_tiled = caps2_output_round_1.repeat(1, caps1_n_caps, 1, 1, 1)
-    #            agreement = torch.matmul(caps2_predicted.transpose(3,4), caps2_output_round_1_tiled)
-    #            raw_weights = torch.add(raw_weights, agreement)
-    #    end.record()
-    #    torch.cuda.synchronize()
-    #    print('To Secondary Cap Forward:',start.elapsed_time(end))
-    #    return caps2_output_squeezed
-
+        return caps2_output_squeezed
 
 class LengthLayer(nn.Module):
     """
