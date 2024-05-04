@@ -168,6 +168,9 @@ class SecondaryCapsule(nn.Module):
         self.W = nn.Parameter(torch.randn(1, in_channels, self.n_caps, self.n_dims, pcap_n_dims))
 
     def forward(self, x):
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
         batch_size = x.size(0)
         caps1_n_caps = x.size(1)
         W_tiled = self.W.repeat(batch_size, 1, 1, 1, 1)
@@ -186,6 +189,9 @@ class SecondaryCapsule(nn.Module):
                 caps2_output_round_1_tiled = caps2_output_round_1.repeat(1, caps1_n_caps, 1, 1, 1)
                 agreement = torch.matmul(caps2_predicted.transpose(3,4), caps2_output_round_1_tiled)
                 raw_weights = torch.add(raw_weights, agreement)
+        end.record()
+        torch.cuda.synchronize()
+        print('To GPU:',start.elapsed_time(end))
         return caps2_output_squeezed
 
 
