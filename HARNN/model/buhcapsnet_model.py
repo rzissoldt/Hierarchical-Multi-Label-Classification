@@ -107,11 +107,11 @@ class BUHCapsNet(nn.Module):
     def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,routings,args,device=None):
         super(BUHCapsNet, self).__init__()
         self.resnet18 = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
-        self.backbone_feature_ext = nn.Sequential(*(list(self.resnet18.children())[:len(list(self.resnet18.children()))-2]))
+        self.backbone = nn.Sequential(*(list(self.resnet18.children())[:len(list(self.resnet18.children()))-2]))
         if args.freeze_backbone:
-            for param in self.backbone_feature_ext.parameters():
+            for param in self.backbone.parameters():
                 param.requires_grad = False
-            self.backbone_feature_ext.eval()
+            self.backbone.eval()
         
         self.primary_capsule = PrimaryCapsule()
         secondary_capsules_list = []
@@ -121,7 +121,7 @@ class BUHCapsNet(nn.Module):
         self.length_layer = LengthLayer()
         
     def forward(self,x):
-        feature_output = self.backbone_feature_ext(x)
+        feature_output = self.backbone(x)
         primary_capsule_output = self.primary_capsule(feature_output)
         output_list = []
         for i in range(len(self.secondary_capsules)):
