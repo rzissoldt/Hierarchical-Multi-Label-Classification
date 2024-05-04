@@ -137,7 +137,7 @@ class BUHCapsNetTrainer():
             current_margin_loss += margin_loss.detach()
             
             if i % 32 == 0:
-                progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}]"
+                progress_info = f"Training: Epoch [{epoch_index+1}], Batch [{i+1}/{num_of_train_batches}], Loss:{current_margin_loss/(i+1)}"
                 print(progress_info, end='\r')
         last_margin_loss = current_margin_loss/num_of_train_batches
             
