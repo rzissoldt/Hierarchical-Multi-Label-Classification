@@ -32,6 +32,11 @@ class BUHCapsNet(nn.Module):
     def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,routings,args,device=None):
         super(BUHCapsNet, self).__init__()
         self.backbone = Backbone(global_average_pooling_active=False)
+        # Print the structure
+        print(self.backbone)
+        for name, module in self.backbone.named_children():
+            print(name)
+            print(module)
         if args.freeze_backbone:
             for param in self.backbone.parameters():
                 param.requires_grad = False
