@@ -5,7 +5,7 @@ import numpy as np
 from model.hcapsnet_model import squash, safe_norm, SecondaryCapsule, LengthLayer, MarginLoss
 from model.backbone import Backbone
 from scipy.stats import chi2
-from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import resnet50, ResNet50_Weights, resnet18, ResNet18_Weights
 from torchvision.models.resnet import ResNet, BasicBlock, Bottleneck
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters())
@@ -23,6 +23,7 @@ class MyResNet50(ResNet):
 
         x = self.layer1(x)
         return x
+    
 #class PrimaryCapsule(nn.Module):
 #    def __init__(self,pcap_n_dims):
 #        super(PrimaryCapsule, self).__init__()
@@ -41,7 +42,7 @@ class MyResNet50(ResNet):
 #            
 #        return squashed_output
 class PrimaryCapsule(nn.Module):
-    def __init__(self, num_capsules=8, in_channels=256, out_channels=32, kernel_size=9, num_routes=32 * 6 * 6 * 16):
+    def __init__(self, num_capsules=8, in_channels=512, out_channels=128, kernel_size=3, num_routes=32 * 6 * 6):
         super(PrimaryCapsule, self).__init__()
         self.num_routes = num_routes
         self.capsules = nn.ModuleList([
@@ -61,7 +62,7 @@ class PrimaryCapsule(nn.Module):
 
 
 class SecondaryCapsule(nn.Module):
-    def __init__(self, num_capsules=10, num_routes=32 * 6 * 6 * 16, in_channels=8, out_channels=16,routings=3,device=None):
+    def __init__(self, num_capsules=10, num_routes=32 * 6 * 6, in_channels=8, out_channels=16,routings=3,device=None):
         super(SecondaryCapsule, self).__init__()
 
         self.in_channels = in_channels
@@ -105,42 +106,23 @@ class SecondaryCapsule(nn.Module):
 class BUHCapsNet(nn.Module):
     def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,routings,args,device=None):
         super(BUHCapsNet, self).__init__()
-        self.myresnet50 = MyResNet50()
-           
+        self.resnet18 = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
+        self.backbone_feature_ext = nn.Sequential(*(list(self.resnet18.children())[:len(list(self.resnet18.children()))-2]))
         if args.freeze_backbone:
-            for param in self.myresnet50.parameters():
+            for param in self.backbone_feature_ext.parameters():
                 param.requires_grad = False
-            self.myresnet50.eval()
-        #self.primary_capsule = PrimaryCapsule(pcap_n_dims)  # Assuming 8 primary capsules
-        secondary_capsules_list = []
-        self.primary_capsule = PrimaryCapsule()
-        pri_caps_num = sum(p.numel() for p in self.primary_capsule.parameters())
-        print(pri_caps_num)
-        #secondary_capsules_list.append(SecondaryCapsule(in_channels=12544,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[-1],routings=routings,n_dims=scap_n_dims,device=device))
+            self.backbone_feature_ext.eval()
         
-        #secondary_capsules_list.extend([SecondaryCapsule(in_channels=num_classes_list[i+1],pcap_n_dims=scap_n_dims,n_caps=num_classes_list[i],routings=routings,n_dims=scap_n_dims,device=device) for i in range(len(num_classes_list)-2,-1,-1)])
+        self.primary_capsule = PrimaryCapsule()
+        secondary_capsules_list = []
         secondary_capsules_list.append(SecondaryCapsule(in_channels=pcap_n_dims,num_capsules=num_classes_list[-1],routings=routings,out_channels=scap_n_dims,device=device))
         secondary_capsules_list.extend([SecondaryCapsule(num_routes=num_classes_list[i+1],in_channels=scap_n_dims,num_capsules=num_classes_list[i],routings=routings,out_channels=scap_n_dims,device=device) for i in range(len(num_classes_list)-2,-1,-1)])
         self.secondary_capsules = nn.ModuleList(secondary_capsules_list)
-        #print(count_parameters(secondary_capsule) for secondary_capsule in self.secondary_capsules)
         self.length_layer = LengthLayer()
         
     def forward(self,x):
-        #start = torch.cuda.Event(enable_timing=True)
-        #end = torch.cuda.Event(enable_timing=True)
-        #start.record()
-        feature_output = self.myresnet50(x)
-        
-        #end.record()
-        #torch.cuda.synchronize()
-        #print('To Backbone Forward:',start.elapsed_time(end))
-        #start = torch.cuda.Event(enable_timing=True)
-        #end = torch.cuda.Event(enable_timing=True)
-        #start.record()
+        feature_output = self.backbone_feature_ext(x)
         primary_capsule_output = self.primary_capsule(feature_output)
-        #end.record()
-        #torch.cuda.synchronize()
-        #print('To Primary Capsule:',start.elapsed_time(end))
         output_list = []
         for i in range(len(self.secondary_capsules)):
             if i == 0:
