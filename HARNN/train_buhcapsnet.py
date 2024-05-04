@@ -21,7 +21,7 @@ import warnings
 
 # Ignore specific warning types
 warnings.filterwarnings("ignore", category=UserWarning)
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "caching_allocator"
+
 
 
 def train_buhcapsnet(args):
