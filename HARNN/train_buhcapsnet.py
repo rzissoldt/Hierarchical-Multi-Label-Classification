@@ -62,7 +62,7 @@ def train_buhcapsnet(args):
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Trainable Model Parameter Count:{model_param_count}')
     untrainable_model_param_count = sum(p.numel() for p in model.parameters() if not p.requires_grad)
-    print(f'Untrainable Model Parameter Count:{model_param_count}')
+    print(f'Untrainable Model Parameter Count:{untrainable_model_param_count}')
     # Define Optimzer and Scheduler
     if args.optimizer == 'adam':    
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_lambda)
