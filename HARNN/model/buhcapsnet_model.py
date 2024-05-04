@@ -20,7 +20,7 @@ class PrimaryCapsule(nn.Module):
         # Calculate the size of the second dimension
         second_dim_size = total_elements // self.pcap_n_dims
         # Reshape the tensor
-        reshaped_output = x.view(-1,self.pcap_n_dims, second_dim_size)  # -1 lets PyTorch calculate the size automatically
+        reshaped_output = x.view(x.size(0), second_dim_size,-1)  # -1 lets PyTorch calculate the size automatically
 
         squashed_output = squash(reshaped_output)#.permute(0,2,1)
 
