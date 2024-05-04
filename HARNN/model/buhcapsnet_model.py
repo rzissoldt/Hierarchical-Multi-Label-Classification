@@ -119,6 +119,8 @@ class BUHCapsNet(nn.Module):
         #self.primary_capsule = PrimaryCapsule(pcap_n_dims)  # Assuming 8 primary capsules
         secondary_capsules_list = []
         self.primary_capsule = PrimaryCapsule()
+        pri_caps_num = sum(p.numel() for p in self.primary_capsule.parameters())
+        print(pri_caps_num)
         #secondary_capsules_list.append(SecondaryCapsule(in_channels=12544,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[-1],routings=routings,n_dims=scap_n_dims,device=device))
         
         #secondary_capsules_list.extend([SecondaryCapsule(in_channels=num_classes_list[i+1],pcap_n_dims=scap_n_dims,n_caps=num_classes_list[i],routings=routings,n_dims=scap_n_dims,device=device) for i in range(len(num_classes_list)-2,-1,-1)])
