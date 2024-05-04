@@ -112,21 +112,40 @@ class BUHCapsNetTrainer():
         num_of_train_batches = len(data_loader)
         for i, data in enumerate(data_loader):
             # Every data instance is an input + label pair
+            start = torch.cuda.Event(enable_timing=True)
+            end = torch.cuda.Event(enable_timing=True)
+            start.record()
             inputs, labels = data
             inputs= inputs.to(self.device)
             y_local_onehots = [label.to(self.device) for label in labels]
+            end.record()
+            torch.cuda.synchronize()
+
+            print('To GPU:',start.elapsed_time(end))
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
             
             # Make predictions for this batch
-            local_scores = self.model(inputs)
+            start.record()
             
+            local_scores = self.model(inputs)
+            end.record()
+            torch.cuda.synchronize()
+            
+
+            print('To Forward:',start.elapsed_time(end))
             # Compute the loss and its gradients            
             x = (local_scores,y_local_onehots)
+            start.record()
             margin_loss = self.criterion(x)
-            
+            end.record()
+            torch.cuda.synchronize()
+            print('To Loss:',start.elapsed_time(end))
+            start.record()
             margin_loss.backward()
-            
+            end.record()
+            torch.cuda.synchronize()
+            print('To Backwardpass:',start.elapsed_time(end))
             # Clip gradients by global norm
             # torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.norm_ratio)
             
