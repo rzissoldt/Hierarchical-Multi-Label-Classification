@@ -172,7 +172,7 @@ class SecondaryCapsule(nn.Module):
         caps1_output_tile = caps1_output_expanded.unsqueeze(2)
         caps1_output_tiled = caps1_output_tile.repeat(1, 1, self.n_caps, 1, 1)
         caps2_predicted = torch.matmul(W_tiled, caps1_output_tiled)
-        raw_weights = torch.zeros(batch_size, caps1_n_caps, self.n_caps, 1, 1).to(self.device)
+        raw_weights = torch.autograd.Variable(torch.zeros(batch_size, caps1_n_caps, self.n_caps, 1, 1)).to(self.device)
         for i in range(self.routings):
             routing_weights = F.softmax(raw_weights, dim=2)
             weighted_predictions = routing_weights * caps2_predicted

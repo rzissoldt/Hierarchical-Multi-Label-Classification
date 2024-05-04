@@ -31,10 +31,13 @@ class PrimaryCapsule(nn.Module):
 class BUHCapsNet(nn.Module):
     def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,routings,args,device=None):
         super(BUHCapsNet, self).__init__()
-        self.backbone = Backbone(global_average_pooling_active=True)
+        self.backbone = Backbone(global_average_pooling_active=False)
+        modules = list(self.encoder.children())
+        self.encoder = torch.nn.Sequential(*(list(modules)[:-4]))
+        
         # Print the structure
         #print(self.backbone.parameters[:2])
-        for name, module in self.backbone.named_children():
+        for name, module in self.encoder.named_children():
             print(name)
             print(module)
         if args.freeze_backbone:
