@@ -6,10 +6,23 @@ from model.hcapsnet_model import squash, safe_norm, SecondaryCapsule, LengthLaye
 from model.backbone import Backbone
 from scipy.stats import chi2
 from torchvision.models import resnet50, ResNet50_Weights
-
+from torchvision.models.resnet import ResNet, BasicBlock, Bottleneck
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters())
 
+class MyResNet50(ResNet):
+    def __init__(self):
+        super(MyResNet50, self).__init__(Bottleneck, [3, 4, 6, 3])
+        self.load_state_dict(resnet50(weights=ResNet50_Weights.IMAGENET1K_V2).state_dict())
+    def forward(self, x):
+        # See note [TorchScript super()]
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        return x
 #class PrimaryCapsule(nn.Module):
 #    def __init__(self,pcap_n_dims):
 #        super(PrimaryCapsule, self).__init__()
@@ -28,7 +41,7 @@ def count_parameters(model):
 #            
 #        return squashed_output
 class PrimaryCapsule(nn.Module):
-    def __init__(self, num_capsules=8, in_channels=256, out_channels=32, kernel_size=9, num_routes=32 * 6 * 6):
+    def __init__(self, num_capsules=8, in_channels=256, out_channels=32, kernel_size=9, num_routes=32 * 6 * 6 * 16):
         super(PrimaryCapsule, self).__init__()
         self.num_routes = num_routes
         self.capsules = nn.ModuleList([
@@ -48,20 +61,24 @@ class PrimaryCapsule(nn.Module):
 
 
 class SecondaryCapsule(nn.Module):
-    def __init__(self, num_capsules=10, num_routes=32 * 6 * 6, in_channels=8, out_channels=16,routings=3,device=None):
+    def __init__(self, num_capsules=10, num_routes=32 * 6 * 6 * 16, in_channels=8, out_channels=16,routings=3,device=None):
         super(SecondaryCapsule, self).__init__()
 
         self.in_channels = in_channels
         self.num_routes = num_routes
         self.num_capsules = num_capsules
         self.routings = routings
+        self.device = device
         self.W = nn.Parameter(torch.randn(1, num_routes, num_capsules, out_channels, in_channels))
 
     def forward(self, x):
+        if len(x.shape) == 4:
+            x = x.squeeze()
         batch_size = x.size(0)
         x = torch.stack([x] * self.num_capsules, dim=2).unsqueeze(4)
 
         W = torch.cat([self.W] * batch_size, dim=0)
+        
         u_hat = torch.matmul(W, x)
 
         b_ij = torch.autograd.Variable(torch.zeros(1, self.num_routes, self.num_capsules, 1)).to(self.device)
@@ -88,24 +105,17 @@ class SecondaryCapsule(nn.Module):
 class BUHCapsNet(nn.Module):
     def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,routings,args,device=None):
         super(BUHCapsNet, self).__init__()
-        self.resnet50 = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
-
-        self.activation = {}
-        def get_activation(name):
-            def hook(model, input, output):
-                self.activation[name] = output.detach()
-            return hook
-
-        self.resnet50.layer1.register_forward_hook(get_activation('layer1'))
+        self.myresnet50 = MyResNet50()
+        
         
         
         
       
         
         if args.freeze_backbone:
-            for param in self.resnet50.parameters():
+            for param in self.myresnet50.parameters():
                 param.requires_grad = False
-            self.resnet50.eval()
+            self.myresnet50.eval()
         #self.primary_capsule = PrimaryCapsule(pcap_n_dims)  # Assuming 8 primary capsules
         secondary_capsules_list = []
         self.primary_capsule = PrimaryCapsule()
@@ -122,8 +132,8 @@ class BUHCapsNet(nn.Module):
         #start = torch.cuda.Event(enable_timing=True)
         #end = torch.cuda.Event(enable_timing=True)
         #start.record()
-        output = self.resnet50(x)
-        feature_output = self.activation['layer1']
+        feature_output = self.myresnet50(x)
+        
         #end.record()
         #torch.cuda.synchronize()
         #print('To Backbone Forward:',start.elapsed_time(end))
@@ -140,7 +150,8 @@ class BUHCapsNet(nn.Module):
                 secondary_capsule_out = self.secondary_capsules[i](primary_capsule_output)
             else:
                 secondary_capsule_out = self.secondary_capsules[i](secondary_capsule_out)
-            output_list.append(self.length_layer(secondary_capsule_out))
+            
+            output_list.append(self.length_layer(secondary_capsule_out.squeeze()))
                 
         return output_list[::-1]
     
