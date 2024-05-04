@@ -31,9 +31,9 @@ class PrimaryCapsule(nn.Module):
 class BUHCapsNet(nn.Module):
     def __init__(self,pcap_n_dims, scap_n_dims, num_classes_list,routings,args,device=None):
         super(BUHCapsNet, self).__init__()
-        self.backbone = Backbone(global_average_pooling_active=False)
+        self.backbone = Backbone(global_average_pooling_active=True)
         # Print the structure
-        print(self.backbone)
+        #print(self.backbone.parameters[:2])
         for name, module in self.backbone.named_children():
             print(name)
             print(module)
@@ -43,7 +43,7 @@ class BUHCapsNet(nn.Module):
             self.backbone.eval()
         self.primary_capsule = PrimaryCapsule(pcap_n_dims)  # Assuming 8 primary capsules
         secondary_capsules_list = []
-        secondary_capsules_list.append(SecondaryCapsule(in_channels=12544,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[-1],routings=routings,n_dims=scap_n_dims,device=device))
+        secondary_capsules_list.append(SecondaryCapsule(in_channels=256,pcap_n_dims=pcap_n_dims,n_caps=num_classes_list[-1],routings=routings,n_dims=scap_n_dims,device=device))
         
         secondary_capsules_list.extend([SecondaryCapsule(in_channels=num_classes_list[i+1],pcap_n_dims=scap_n_dims,n_caps=num_classes_list[i],routings=routings,n_dims=scap_n_dims,device=device) for i in range(len(num_classes_list)-2,-1,-1)])
         #secondary_capsules_list.append(SecondaryCapsule(num_routes=12544,in_channels=pcap_n_dims,num_capsules=num_classes_list[-1],routings=routings,out_channels=scap_n_dims,device=device))
