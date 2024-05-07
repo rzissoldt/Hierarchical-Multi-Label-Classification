@@ -39,8 +39,7 @@ class BUHCapsNetTester():
                 vinputs= vinputs.to(self.device)
                 y_local_onehots = [label.to(self.device) for label in vlabels]
                 y_global_onehots = torch.cat(y_local_onehots,dim=1)
-                # Zero your gradients for every batch!
-                self.optimizer.zero_grad()
+                
                 # Make predictions for this batch
                 local_scores = self.model(vinputs)
                 global_scores = torch.cat(local_scores,dim=1)
@@ -48,9 +47,9 @@ class BUHCapsNetTester():
                     scores_list.append(j)
                 # Convert each tensor to a list of lists
                 for i in y_global_onehots:
-                    true_onehot_labels_list.append(i)
+                    labels_list.append(i)
                    
-        metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=true_onehot_labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device,eval_pcp=self.args.pcp_metrics_active,threshold=self.args.threshold,eval_hierarchical_metrics=True)
+        metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy,pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device,eval_pcp=self.args.pcp_metrics_active,threshold=self.args.threshold,eval_hierarchical_metrics=True)
         # Save Metrics in Summarywriter.
         for key,value in metrics_dict.items():
-            self.tb_writer.add_scalar(key,value,epoch_index)
+            self.tb_writer.add_scalar(key,value,0)
