@@ -56,7 +56,7 @@ def train_buhcapsnet(args):
     total_class_num = sum(num_classes_list)
     
     # Define Model
-    model = BUHCapsNet(pcap_n_dims=args.pcap_n_dims,scap_n_dims=args.scap_n_dims,num_classes_list=num_classes_list,routings=args.routing_iterations,args=args,device=device)
+    model = BUHCapsNet(pcap_n_dims=args.pcap_n_dims,scap_n_dims=args.scap_n_dims,num_classes_list=num_classes_list,routings=args.routing_iterations,args=args,device=device).to(device=device)
     
     
     model_param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
