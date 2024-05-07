@@ -55,23 +55,23 @@ class HmcNetTester():
             self.tb_writer.add_scalar(key,value,0)
         
          # Visualization of results
-        output_file_path = os.path.join(self.path_to_results,'sample_images')
-        os.makedirs(output_file_path, exist_ok=True)
-        image_list = []
-        label_list = []
-        score_list = []
-        with torch.no_grad():
-            for i, vdata in enumerate(self.subset_test_loader):
-                vinputs, vlabels = copy.deepcopy(vdata)
-                vinputs = vinputs.to(self.device)
-                y_total_onehot = vlabels[0].to(self.device)
-                y_local_onehots = [label.to(self.device) for label in vlabels[1:]]
-                # Make predictions for this batch
-                scores, local_scores_list, global_logits = self.best_model(vinputs)
-                for input in vinputs:
-                    image_list.append(input)
-                for label in vlabels:
-                    label_list.append(label)
-                for score in scores:
-                    score_list.append(score)
-        dh.visualize_sample_images(images=image_list,true_labels=label_list,scores=score_list,threshold=self.args.threshold,hierarchy_dicts=self.hierarchy_dicts,output_file_path=output_file_path)
+        #output_file_path = os.path.join(self.path_to_results,'sample_images')
+        #os.makedirs(output_file_path, exist_ok=True)
+        #image_list = []
+        #label_list = []
+        #score_list = []
+        #with torch.no_grad():
+        #    for i, vdata in enumerate(self.subset_test_loader):
+        #        vinputs, vlabels = copy.deepcopy(vdata)
+        #        vinputs = vinputs.to(self.device)
+        #        y_total_onehot = vlabels[0].to(self.device)
+        #        y_local_onehots = [label.to(self.device) for label in vlabels[1:]]
+        #        # Make predictions for this batch
+        #        scores, local_scores_list, global_logits = self.best_model(vinputs)
+        #        for input in vinputs:
+        #            image_list.append(input)
+        #        for label in vlabels:
+        #            label_list.append(label)
+        #        for score in scores:
+        #            score_list.append(score)
+        #dh.visualize_sample_images(images=image_list,true_labels=label_list,scores=score_list,threshold=self.args.threshold,hierarchy_dicts=self.hierarchy_dicts,output_file_path=output_file_path)

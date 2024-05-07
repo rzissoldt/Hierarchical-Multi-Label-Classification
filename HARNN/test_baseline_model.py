@@ -2,7 +2,7 @@
 __author__ = 'Ruben'
 import sys, os
 import torch
-
+import shutil
 # PyTorch TensorBoard support
 
 from datetime import datetime
@@ -40,8 +40,11 @@ def test_baseline_model(args):
     
     # Evaluate best model.
     best_model_file_path, best_model_config = analyze_summarywriter_dir(args.hyperparameter_dir)
+    best_model_result_file_path = os.path.join(args.path_to_results,'models')
+    os.makedirs(best_model_result_file_path,exist_ok=True)
+    shutil.copy(best_model_file_path,os.path.join(best_model_result_file_path,os.path.basename(best_model_file_path)))
+    # Save Best Model to result path
     
-    os.makedirs(args.path_to_results,exist_ok=True)
     # Split the path by "/"
     path_parts = best_model_file_path.split("/")
 
@@ -73,6 +76,9 @@ def test_baseline_model(args):
     best_checkpoint = torch.load(best_model_file_path)
     model.load_state_dict(best_checkpoint)
         
+    
+    
+    
     
     
         
