@@ -307,6 +307,7 @@ def buhcapsnet_parameter_parser():
     parser.add_argument("--hyperparameter-dir", nargs="?", default="../data/Train_sample.json", help="Hyperparameter directory.")
     parser.add_argument("--path-to-results", nargs="?", default="../data/Train_sample.json", help="Path to results of best model on testset metrics.")
     parser.add_argument("--sample-image-count", type=int, default=100, help="Sample Image count for visualization.")
+    parser.add_argument("--model-dir", nargs="?", default="./runs/model", help="Path to the model to be tested.")
     # Model Hyperparameter
     parser.add_argument("--input-size", type=tuple_argument, default=(224,224,3), help="Dimensionality of the Input.")
     parser.add_argument("--pcap-n-dims", type=int, default=8, help="Count of Primary Capsules")
