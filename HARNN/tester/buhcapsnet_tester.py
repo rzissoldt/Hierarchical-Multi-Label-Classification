@@ -9,14 +9,16 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 class BUHCapsNetTester():
-    def __init__(self,model,num_classes_list,test_dataset,explicit_hierarchy,path_to_results,args,device=None):
+    def __init__(self,model,num_classes_list,test_dataset,sample_images_size,explicit_hierarchy,path_to_results,hierarchy_dicts,args,device=None):
         self.model = model
         self.device = device
         self.best_model = copy.deepcopy(model)
+        self.hierarchy_dicts = hierarchy_dicts
         self.explicit_hierarchy = explicit_hierarchy
         self.args = args
         self.total_class_num = sum(num_classes_list)
         self.num_classes_list = num_classes_list   
+        self.path_to_results = path_to_results
         self.tb_writer = SummaryWriter(path_to_results)
         sharing_strategy = "file_system"
         def set_worker_sharing_strategy(worker_id: int):
@@ -24,6 +26,7 @@ class BUHCapsNetTester():
         # Create Dataloader for Training and Validation Dataset
         kwargs = {'num_workers': args.num_workers_dataloader, 'pin_memory': args.pin_memory} if self.args.gpu else {}
         self.test_loader = DataLoader(test_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs) 
+        
     
     def test(self,epoch_index,data_loader):
         print(f"Evaluating best model of epoch {epoch_index}.")
