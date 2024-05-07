@@ -16,8 +16,8 @@ from HARNN.model.buhcapsnet_model import BUHCapsNet
 from HARNN.dataset.buhcapsnet_dataset import BUHCapsNetDataset
 from HARNN.tester.buhcapsnet_tester import BUHCapsNetTester
 from HARNN.summarywriter_evaluator import analyze_summarywriter_dir
-import warnings
-
+import warnings, json
+from types import SimpleNamespace
 # Ignore specific warning types
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -40,7 +40,7 @@ def test_buhcapsnet(args):
     if args.hyperparameter_search:
         # Evaluate best model.
         best_model_file_path, best_model_config = analyze_summarywriter_dir(args.hyperparameter_dir)
-        os.makedirs(args.path_to_results,exist_ok=True)
+        
         # Split the path by "/"
         path_parts = best_model_file_path.split("/")
 
@@ -51,8 +51,10 @@ def test_buhcapsnet(args):
         path_to_model = args.model_dir
         best_model_dir = os.path.join(path_to_model,'models')
         best_model_file_path = os.path.join(best_model_dir,os.listdir(best_model_dir)[0])
-        best_model_config = os.path.join(path_to_model,'model_config.json')
-
+        best_model_config_path = os.path.join(path_to_model,'model_config.json')
+        with open(best_model_config_path) as infile:
+            best_model_config = SimpleNamespace(**json.load(infile))
+    os.makedirs(args.path_to_results,exist_ok=True)
     # Create Training and Validation Dataset
     test_dataset = BUHCapsNetDataset(annotation_file_path=args.test_file, path_to_model=path_to_model,hierarchy_file_path=args.hierarchy_file,image_dir=image_dir,hierarchy_dicts_file_path=args.hierarchy_dicts_file,hierarchy_depth=best_model_config.hierarchy_depth)
     test_dataset.is_training = False
