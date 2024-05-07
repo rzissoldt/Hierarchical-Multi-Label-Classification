@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 __author__ = 'Ruben'
-import sys, os
+import sys, os, shutil
 import torch
 
 # PyTorch TensorBoard support
@@ -54,7 +54,10 @@ def test_buhcapsnet(args):
         best_model_config_path = os.path.join(path_to_model,'model_config.json')
         with open(best_model_config_path) as infile:
             best_model_config = SimpleNamespace(**json.load(infile))
-    os.makedirs(args.path_to_results,exist_ok=True)
+        
+    best_model_result_file_path = os.path.join(args.path_to_results,'models')
+    os.makedirs(best_model_result_file_path,exist_ok=True)
+    shutil.copy(best_model_file_path,os.path.join(best_model_result_file_path,os.path.basename(best_model_file_path)))
     # Create Training and Validation Dataset
     test_dataset = BUHCapsNetDataset(annotation_file_path=args.test_file, path_to_model=path_to_model,hierarchy_file_path=args.hierarchy_file,image_dir=image_dir,hierarchy_dicts_file_path=args.hierarchy_dicts_file,hierarchy_depth=best_model_config.hierarchy_depth)
     test_dataset.is_training = False

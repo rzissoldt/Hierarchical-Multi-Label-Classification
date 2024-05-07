@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 __author__ = 'Ruben'
-import sys, os
+import sys, os, shutil
 import torch
 
 # PyTorch TensorBoard support
@@ -41,7 +41,9 @@ def test_hmcnet(args):
     # Evaluate best model.
     best_model_file_path, best_model_config = analyze_summarywriter_dir(args.hyperparameter_dir)
     best_model_file_name = os.path.basename(best_model_file_path)
-    os.makedirs(args.path_to_results,exist_ok=True)
+    best_model_result_file_path = os.path.join(args.path_to_results,'models')
+    os.makedirs(best_model_result_file_path,exist_ok=True)
+    shutil.copy(best_model_file_path,os.path.join(best_model_result_file_path,os.path.basename(best_model_file_path)))
     
     # Split the path by "/"
     path_parts = best_model_file_path.split("/")
