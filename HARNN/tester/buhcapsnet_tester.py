@@ -28,14 +28,13 @@ class BUHCapsNetTester():
         self.test_loader = DataLoader(test_dataset,batch_size=args.batch_size,shuffle=True,worker_init_fn=set_worker_sharing_strategy,**kwargs) 
         
     
-    def test(self,epoch_index,data_loader):
-        print(f"Evaluating best model of epoch {epoch_index}.")
+    def test(self):
+        print(f"Evaluating best model with test dataset.")
         scores_list = []
-        true_onehot_labels_list = []
+        labels_list = []
         self.best_model.eval()
-        self.best_model.set_training(False)
         with torch.no_grad():
-            for i, vdata in enumerate(data_loader):
+            for i, vdata in enumerate(self.test_loader):
                 vinputs, vlabels = copy.deepcopy(vdata)
                 vinputs= vinputs.to(self.device)
                 y_local_onehots = [label.to(self.device) for label in vlabels]
