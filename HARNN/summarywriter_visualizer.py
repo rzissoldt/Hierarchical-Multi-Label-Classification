@@ -250,12 +250,13 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     score_list = []
     for model_name in model_names:
         
-        best_model_config = os.path.join(best_model_dirs[counter],'model_config.json')
+        best_model_config_path = os.path.join(best_model_dirs[counter],'model_config.json')
+        best_model_config = json.load(best_model_config_path)
         best_model_file_name = os.listdir(os.path.join(best_model_dirs[counter],'models'))[0]
         best_model_file_path = os.path.join(best_model_dirs[counter],'models',best_model_file_name)
         if model_name == 'baseline':
             model = BaselineModel(output_dim=total_class_num, args=best_model_config).to(device=device)    
-            # Load Best Model Params
+            # Load Best Model Paramsbest_model_config
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
             score = model(transformed_image.float())
