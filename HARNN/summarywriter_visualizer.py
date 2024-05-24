@@ -411,7 +411,7 @@ if __name__ == '__main__':
     # Sample data (replace with your actual data)
     #visualize_test_results(args=args)
     print(args)
-    dataset = HierarchyDataset(annotation_file_path=args.test_file, hierarchy_file_path=args.hierarchy_file,image_dir=args.image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file,hierarchy_depth=args.hierarchy_depth)
+    dataset = HierarchyDataset(annotation_file_path=args.test_file,path_to_model=None,image_count_threshold=-1, hierarchy_file_path=args.hierarchy_file,image_dir=args.image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file,hierarchy_depth=args.hierarchy_depth)
     image_file_path = dataset[0][0]
     true_label = dataset[0][1]
     hierarchy_dicts = dataset.filtered_hierarchy_dicts
