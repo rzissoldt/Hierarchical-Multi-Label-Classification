@@ -245,7 +245,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
       # Initialize pil_image with the original image
     transformed_image = transform(image).to(device)
     total_class_num = true_label.shape[0]
-    
+    batch_tensor = transformed_image.unsqueeze(0)
     counter = 0
     score_list = []
     for model_name in model_names:
@@ -256,13 +256,12 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         best_model_file_name = os.listdir(os.path.join(best_model_dirs[counter],'models'))[0]
         best_model_file_path = os.path.join(best_model_dirs[counter],'models',best_model_file_name)
         if model_name == 'baseline':
-            print(best_model_config)
             model = BaselineModel(output_dim=total_class_num, args=best_model_config).to(device=device)    
             # Load Best Model Paramsbest_model_config
             
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
-            score = model(transformed_image.float())
+            score = model(batch_tensor.float())
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
         elif model_name == 'chmcnn':
@@ -270,7 +269,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             # Load Best Model Params
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
-            score = model(transformed_image.float())
+            score = model(batch_tensor.float())
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
             
@@ -279,14 +278,14 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             # Load Best Model Params
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
-            score, _, _ = model(transformed_image)
+            score, _, _ = model(batch_tensor)
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
         elif model_name == 'buhcapsnet':
             model = BUHCapsNet(pcap_n_dims=best_model_config.pcap_n_dims,scap_n_dims=best_model_config.scap_n_dims,num_classes_list=num_classes_list,routings=best_model_config.routing_iterations,args=args,device=device).to(device=device)    
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
-            score = model(transformed_image)
+            score = model(batch_tensor)
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
     
