@@ -252,7 +252,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         
         best_model_config_path = os.path.join(best_model_dirs[counter],'model_config.json')
         with open(best_model_config_path, 'r') as infile:
-            best_model_config = json.load(infile)
+            best_model_config = SimpleNamespace(**json.load(infile))
         best_model_file_name = os.listdir(os.path.join(best_model_dirs[counter],'models'))[0]
         best_model_file_path = os.path.join(best_model_dirs[counter],'models',best_model_file_name)
         if model_name == 'baseline':
