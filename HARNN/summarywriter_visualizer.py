@@ -5,12 +5,19 @@ import pandas as pd
 import sys
 from torchvision import transforms
 import os, json
+import torch
 from types import SimpleNamespace
+from HARNN.model.baseline_model import BaselineModel
+from HARNN.model.chmcnn_model import ConstrainedFFNNModel
+from HARNN.model.hmcnet_model import HmcNet
+from HARNN.model.buhcapsnet_model import BUHCapsNet
+from HARNN.dataset.hierarchy_dataset import HierarchyDataset
 # Add the parent directory to the Python path
 sys.path.append('../')
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
 from utils import param_parser as parser
+from PIL import Image
 def extract_file_with_prefix(directory, prefix):
     # Get the list of files in the directory
     files = os.listdir(directory)
@@ -217,7 +224,105 @@ def save_hierarchy_metric_plot(hierarchy_level_metrics, metric_key, hierarchy_de
 
     # Show the plot
     plt.close()
+
+
+def visualize_sample_image(image_file_path,true_label,model_names,best_model_dirs,threshold,hierarchy_dicts,output_file_path,explicit_hierarchy,num_classes_list,device):
     
+    os.makedirs(output_file_path, exist_ok=True)
+    transform = transforms.Compose([
+            transforms.Resize((256, 256)),                    
+            transforms.CenterCrop(224),                       
+            transforms.ToTensor(),                             
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],  
+                             std=[0.229, 0.224, 0.225])
+        ])
+    image = Image.open(image_file_path)
+
+    # Convert to RGB if it isn't already
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
+      # Initialize pil_image with the original image
+    transformed_image = transform(image)
+    total_class_num = true_label.shape[0]
+    
+    counter = 0
+    score_list = []
+    for model_name in model_names:
+        
+        best_model_config = os.path.join(best_model_dirs[counter],'model_config.json')
+        best_model_file_name = os.listdir(os.path.join(best_model_dirs[counter],'models'))[0]
+        best_model_file_path = os.path.join(best_model_dirs[counter],'models',best_model_file_name)
+        if model_name == 'baseline':
+            model = BaselineModel(output_dim=total_class_num, args=best_model_config).to(device=device)    
+            # Load Best Model Params
+            best_checkpoint = torch.load(best_model_file_path)
+            model.load_state_dict(best_checkpoint)
+            score = model(transformed_image.float())
+            thresholded_score = score > threshold
+            score_list.append(thresholded_score)
+        elif model_name == 'chmcnn':
+            model = ConstrainedFFNNModel(output_dim=total_class_num,R=explicit_hierarchy, args=best_model_config).to(device=device) 
+            # Load Best Model Params
+            best_checkpoint = torch.load(best_model_file_path)
+            model.load_state_dict(best_checkpoint)
+            score = model(transformed_image.float())
+            thresholded_score = score > threshold
+            score_list.append(thresholded_score)
+            
+        elif model_name == 'hmcnet':
+            model = HmcNet(global_average_pooling_active=best_model_config.is_backbone_global_average_pooling_active,feature_dim=best_model_config.feature_dim_backbone,attention_unit_size=best_model_config.attention_dim,backbone_fc_hidden_size=best_model_config.backbone_dim,fc_hidden_size=best_model_config.fc_dim,freeze_backbone=True,highway_fc_hidden_size=best_model_config.highway_fc_dim,highway_num_layers=best_model_config.highway_num_layers,num_classes_list=num_classes_list,total_classes=total_class_num,l2_reg_lambda=best_model_config.l2_lambda,dropout_keep_prob=best_model_config.dropout_rate,alpha=best_model_config.alpha,beta=best_model_config.beta,device=device,is_backbone_embedding_active=args.is_backbone_embedding_active).to(device=device)
+            # Load Best Model Params
+            best_checkpoint = torch.load(best_model_file_path)
+            model.load_state_dict(best_checkpoint)
+            score, _, _ = model(transformed_image)
+            thresholded_score = score > threshold
+            score_list.append(thresholded_score)
+        elif model_name == 'buhcapsnet':
+            model = BUHCapsNet(pcap_n_dims=best_model_config.pcap_n_dims,scap_n_dims=best_model_config.scap_n_dims,num_classes_list=num_classes_list,routings=best_model_config.routing_iterations,args=args,device=device).to(device=device)    
+            best_checkpoint = torch.load(best_model_file_path)
+            model.load_state_dict(best_checkpoint)
+            score = model(transformed_image)
+            thresholded_score = score > threshold
+            score_list.append(thresholded_score)
+    
+    
+    
+    
+    # Festlegen der Größe des Ausgabebildes
+    plt.figure(figsize=(8, 6))  # Breite: 8 Zoll, Höhe: 6 Zoll
+    # Anzeigen des Bildes
+    plt.imshow(image)
+    image_np = np.array(image)
+    plt.axis('off')  # Achsen ausschalten
+    swapped_hierarchy_dict = [{v: k for k, v in hierarchy_dict.items()} for hierarchy_dict in hierarchy_dicts]
+    # Text für die richtigen Labels
+    base_text_anchor = image_np.shape[1] + 20
+    start_index = 0
+    for i in range(len(swapped_hierarchy_dict)):
+        plt.text(0,base_text_anchor,f'Hierarchy-Layer-{i+1}:',fontsize=9,weight='bold')
+        anchor_counter = 0
+        for j in swapped_hierarchy_dict[i].keys():
+            wk_id = swapped_hierarchy_dict[i][j].split('_')[-1]
+            if true_label[start_index+j] == 1 and true_label[start_index+j] == thresholded_score[start_index+j]:
+                plt.text(35+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='green',fontsize=9)
+                anchor_counter+=1
+            elif true_label[start_index+j] == 1 and true_label[start_index+j] != thresholded_score[start_index+j]:
+                plt.text(35+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='red',fontsize=9)
+                anchor_counter+=1
+            elif true_label[start_index+j] == 0 and true_label[start_index+j] != thresholded_score[start_index+j]:
+                plt.text(35+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='orange',fontsize=9)
+                anchor_counter+=1
+        base_text_anchor+=10
+        start_index+=len(swapped_hierarchy_dict[i])
+    legend_elements = [
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='green', markersize=10, label='True Positive'),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='False Negative'),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='False Positive')
+    ]
+    plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.savefig(os.path.join(output_file_path,f'sample_image{i}'),bbox_inches='tight')
+    plt.clf()
+    image.close()
 def visualize_sample_images(images,true_labels,scores,threshold,hierarchy_dicts,output_file_path):
     
     os.makedirs(output_file_path, exist_ok=True)
@@ -298,7 +403,31 @@ def visualize_test_results(args):
     for level in range(args.hierarchy_depth):
         for metric_key in metric_keys:
             save_hierarchy_metric_plot(models_metric_dict,metric_key,args.hierarchy_depth,args.plot_name,args.output_dir)
+
+
 if __name__ == '__main__':
     args = parser.visualizer_parser()
     # Sample data (replace with your actual data)
-    visualize_test_results(args=args)
+    #visualize_test_results(args=args)
+    dataset = HierarchyDataset(annotation_file_path=args.test_file, hierarchy_file_path=args.hierarchy_file,image_dir=args.image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file,hierarchy_depth=args.hierarchy_depth)
+    image_file_path = dataset[0][0]
+    true_label = dataset[0][1]
+    hierarchy_dicts = dataset.filtered_hierarchy_dicts
+    if torch.cuda.is_available():
+        print("CUDA is available!")
+
+        # Check if PyTorch is using CUDA
+        if torch.cuda.current_device() != -1:
+            print("PyTorch is using CUDA!")
+        else:
+            print("PyTorch is not using CUDA.")
+    else:
+        print("CUDA is not available!")
+    
+    # Checks if GPU Support ist active
+    device = torch.device("cuda") if args.gpu else torch.device("cpu")
+    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
+    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
+    visualize_sample_image(image_file_path=image_file_path,true_label=true_label,model_names=args.model_names, best_model_dirs=args.model_dirs,threshold=0.5,hierarchy_dicts=hierarchy_dicts,output_file_path=args.output_dir,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,device=device)
+    
+    
