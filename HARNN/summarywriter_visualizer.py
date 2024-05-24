@@ -302,6 +302,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     plt.imshow(image)
     image_np = np.array(image)
     thresholded_score = score_list[0].to('cpu').numpy()
+    print(thresholded_score)
     plt.axis('off')  # Achsen ausschalten
     swapped_hierarchy_dict = [{v: k for k, v in hierarchy_dict.items()} for hierarchy_dict in hierarchy_dicts]
     # Text für die richtigen Labels
