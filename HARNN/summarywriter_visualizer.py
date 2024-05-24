@@ -243,7 +243,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     if image.mode != 'RGB':
         image = image.convert('RGB')
       # Initialize pil_image with the original image
-    transformed_image = transform(image)
+    transformed_image = transform(image).to(device)
     total_class_num = true_label.shape[0]
     
     counter = 0
