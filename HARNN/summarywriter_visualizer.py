@@ -256,6 +256,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         best_model_file_name = os.listdir(os.path.join(best_model_dirs[counter],'models'))[0]
         best_model_file_path = os.path.join(best_model_dirs[counter],'models',best_model_file_name)
         if model_name == 'baseline':
+            print(best_model_config)
             model = BaselineModel(output_dim=total_class_num, args=best_model_config).to(device=device)    
             # Load Best Model Paramsbest_model_config
             
