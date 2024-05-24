@@ -485,4 +485,5 @@ def visualizer_parser():
     parser.add_argument("--image-dir", nargs="?", default="../data/image_harnn/downloaded_images", help="Image Directory.")
     parser.add_argument("--hierarchy-file", nargs="?", default="../data/image_harnn/bauwerke", help="Hierarchy data.")
     parser.add_argument("--hierarchy-dicts-file", nargs="?", default=None, help="Hierarchy Dicts data.")
+    parser.add_argument("--gpu", type=bool, default=True, help="GPU-Support active or not")
     return parser.parse_args()
