@@ -292,7 +292,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             score = model(batch_tensor)
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
-    
+        counter +=1
     
     
     
