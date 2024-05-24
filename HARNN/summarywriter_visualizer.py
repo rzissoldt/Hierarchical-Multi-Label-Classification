@@ -7,13 +7,14 @@ from torchvision import transforms
 import os, json
 import torch
 from types import SimpleNamespace
+# Add the parent directory to the Python path
+sys.path.append('../')
 from HARNN.model.baseline_model import BaselineModel
 from HARNN.model.chmcnn_model import ConstrainedFFNNModel
 from HARNN.model.hmcnet_model import HmcNet
 from HARNN.model.buhcapsnet_model import BUHCapsNet
 from HARNN.dataset.hierarchy_dataset import HierarchyDataset
-# Add the parent directory to the Python path
-sys.path.append('../')
+
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
 from utils import param_parser as parser
