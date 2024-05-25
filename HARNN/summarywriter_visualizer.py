@@ -263,15 +263,18 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
+            model.eval()
             score = model(batch_tensor.float())
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
         elif model_name == 'chmcnn':
             model = ConstrainedFFNNModel(output_dim=total_class_num,R=explicit_hierarchy, args=best_model_config).to(device=device) 
-            model.training =False
+            
             # Load Best Model Params
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
+            model.training =False
+            model.eval()
             score = model(batch_tensor.float())
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
@@ -280,8 +283,10 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             
             model = HmcNet(global_average_pooling_active=best_model_config.is_backbone_global_average_pooling_active,feature_dim=best_model_config.feature_dim_backbone,attention_unit_size=best_model_config.attention_dim,backbone_fc_hidden_size=best_model_config.backbone_dim,fc_hidden_size=best_model_config.fc_dim,freeze_backbone=True,highway_fc_hidden_size=best_model_config.highway_fc_dim,highway_num_layers=best_model_config.highway_num_layers,num_classes_list=num_classes_list,total_classes=total_class_num,l2_reg_lambda=best_model_config.l2_lambda,dropout_keep_prob=best_model_config.dropout_rate,alpha=best_model_config.alpha,beta=best_model_config.beta,device=device,is_backbone_embedding_active=best_model_config.is_backbone_embedding_active).to(device=device)
             # Load Best Model Params
+            
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
+            model.eval()
             score, _, _ = model(batch_tensor)
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
@@ -289,6 +294,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             model = BUHCapsNet(pcap_n_dims=best_model_config.pcap_n_dims,scap_n_dims=best_model_config.scap_n_dims,num_classes_list=num_classes_list,routings=best_model_config.routing_iterations,args=best_model_config,device=device).to(device=device)    
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
+            model.eval()
             score = model(batch_tensor)
             score = torch.cat(score,dim=0).unsqueeze(0)
             thresholded_score = score > threshold
