@@ -289,7 +289,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
             score = model(batch_tensor)
-            print(score)
+            score = torch.cat(score,dim=1)
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
         counter +=1
