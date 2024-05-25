@@ -322,7 +322,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             elif true_label[start_index+j] == 0 and true_label[start_index+j] != thresholded_score[start_index+j]:
                 plt.text(35+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='orange',fontsize=9)
                 anchor_counter+=1
-        base_text_anchor+=15
+        base_text_anchor+=25
         start_index+=len(swapped_hierarchy_dict[i])
     legend_elements = [
         plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='green', markersize=10, label='True Positive'),
