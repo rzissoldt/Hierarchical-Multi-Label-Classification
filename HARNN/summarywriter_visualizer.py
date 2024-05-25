@@ -307,7 +307,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     swapped_hierarchy_dict = [{v: k for k, v in hierarchy_dict.items()} for hierarchy_dict in hierarchy_dicts]
    
     # Text für die richtigen Labels
-    base_text_anchor = image_np.shape[0] + 35
+    base_text_anchor = image_np.shape[0] + 15
     
     start_index = 0
     for i in range(len(swapped_hierarchy_dict)):
@@ -316,15 +316,15 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         for j in swapped_hierarchy_dict[i].keys():
             wk_id = swapped_hierarchy_dict[i][j].split('_')[-1]
             if true_label[start_index+j] == 1 and true_label[start_index+j] == thresholded_score[start_index+j]:
-                plt.text(180+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='green',fontsize=9)
+                plt.text(90+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='green',fontsize=9)
                 anchor_counter+=1
             elif true_label[start_index+j] == 1 and true_label[start_index+j] != thresholded_score[start_index+j]:
-                plt.text(180+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='red',fontsize=9)
+                plt.text(90+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='red',fontsize=9)
                 anchor_counter+=1
             elif true_label[start_index+j] == 0 and true_label[start_index+j] != thresholded_score[start_index+j]:
-                plt.text(180+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='orange',fontsize=9)
+                plt.text(90+(anchor_counter+1)*38,base_text_anchor,f'{wk_id}',color='orange',fontsize=9)
                 anchor_counter+=1
-        base_text_anchor+=35
+        base_text_anchor+=15
         start_index+=len(swapped_hierarchy_dict[i])
     legend_elements = [
         plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='green', markersize=10, label='True Positive'),
