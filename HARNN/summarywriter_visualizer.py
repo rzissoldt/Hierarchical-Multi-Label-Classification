@@ -309,8 +309,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     # Text für die richtigen Labels
     base_text_anchor = image_np.shape[0] + 20
     print(score_list)
-    start_index = 0
+    
     for k in range(len(model_names)):
+        start_index = 0
         plt.text(0,base_text_anchor,f'{model_names[k]}',fontsize=11,weight='bold')
         base_text_anchor = image_np.shape[0] + 15
         thresholded_score = score_list[k][0].to('cpu').numpy().astype(int)
