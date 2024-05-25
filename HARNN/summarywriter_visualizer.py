@@ -331,7 +331,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='False Positive')
     ]
     plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig(os.path.join(output_file_path,f'sample_image{i}'),bbox_inches='tight')
+    plt.savefig(output_file_path,bbox_inches='tight')
     plt.clf()
     image.close()
 def visualize_sample_images(images,true_labels,scores,threshold,hierarchy_dicts,output_file_path):
@@ -421,24 +421,15 @@ if __name__ == '__main__':
     # Sample data (replace with your actual data)
     #visualize_test_results(args=args)
     dataset = HierarchyDataset(annotation_file_path=args.test_file,path_to_model=None,image_count_threshold=-1, hierarchy_file_path=args.hierarchy_file,image_dir=args.image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file,hierarchy_depth=args.hierarchy_depth)
-    image_file_path = dataset.image_label_tuple_list[20][0]
-    true_label = dataset.image_label_tuple_list[20][1]
-    hierarchy_dicts = dataset.filtered_hierarchy_dicts
-    if torch.cuda.is_available():
-        print("CUDA is available!")
-
-        # Check if PyTorch is using CUDA
-        if torch.cuda.current_device() != -1:
-            print("PyTorch is using CUDA!")
-        else:
-            print("PyTorch is not using CUDA.")
-    else:
-        print("CUDA is not available!")
-    
-    # Checks if GPU Support ist active
-    device = torch.device("cuda") if args.gpu else torch.device("cpu")
-    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
-    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
-    visualize_sample_image(image_file_path=image_file_path,true_label=true_label,model_names=args.model_names, best_model_dirs=args.model_dirs,threshold=0.5,hierarchy_dicts=hierarchy_dicts,output_file_path=args.output_dir,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,device=device)
+    for i in [0,20]:
+        image_file_path = dataset.image_label_tuple_list[i][0]
+        true_label = dataset.image_label_tuple_list[i][1]
+        hierarchy_dicts = dataset.filtered_hierarchy_dicts
+        # Checks if GPU Support ist active
+        device = torch.device("cuda") if args.gpu else torch.device("cpu")
+        num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
+        explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
+        output_file_path = os.path.join(args.output_dir,f'sample_image{i}.png')
+        visualize_sample_image(image_file_path=image_file_path,true_label=true_label,model_names=args.model_names, best_model_dirs=args.model_dirs,threshold=0.5,hierarchy_dicts=hierarchy_dicts,output_file_path=output_file_path,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,device=device)
     
     
