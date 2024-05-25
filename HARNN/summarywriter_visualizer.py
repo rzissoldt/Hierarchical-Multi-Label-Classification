@@ -295,7 +295,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     
     
     # Festlegen der Größe des Ausgabebildes
-    plt.figure(figsize=(8, 6))  # Breite: 8 Zoll, Höhe: 6 Zoll
+    plt.figure(figsize=(8, 8))  # Breite: 8 Zoll, Höhe: 6 Zoll
     # Anzeigen des Bildes
     plt.imshow(image)
     image_np = np.array(image)
