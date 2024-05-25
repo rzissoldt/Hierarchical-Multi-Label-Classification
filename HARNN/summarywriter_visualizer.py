@@ -331,7 +331,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
                     anchor_counter+=1
             base_text_anchor+=15
             start_index+=len(swapped_hierarchy_dict[i])
-        #base_text_anchor += len(num_classes_list)*15 + 25
+        base_text_anchor += 15
     legend_elements = [
         plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='green', markersize=10, label='True Positive'),
         plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='False Negative'),
