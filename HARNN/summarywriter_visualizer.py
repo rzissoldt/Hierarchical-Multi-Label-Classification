@@ -297,44 +297,16 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     # Festlegen der Größe des Ausgabebildes
     plt.figure(figsize=(8, 8))  # Breite: 8 Zoll, Höhe: 6 Zoll
     # Anzeigen des Bildes
+    # Resize the image
+    image = image.resize((500, 500), Image.Resampling.LANCZOS)
     plt.imshow(image)
     image_np = np.array(image)
     thresholded_score = score_list[0][0].to('cpu').numpy().astype(int)
     print(thresholded_score)
     plt.axis('off')  # Achsen ausschalten
     swapped_hierarchy_dict = [{v: k for k, v in hierarchy_dict.items()} for hierarchy_dict in hierarchy_dicts]
-    
-    # Normalized text positions based on image height
-    base_text_anchor = image_np.shape[0] + 0.1 * image_np.shape[0]
-    text_spacing = 0.05 * image_np.shape[0]
-    
-    start_index = 0
-    for i in range(len(swapped_hierarchy_dict)):
-        plt.text(0, base_text_anchor, f'Hierarchy-Layer-{i+1}:', fontsize=9, weight='bold')
-        anchor_counter = 0
-        for j in swapped_hierarchy_dict[i].keys():
-            wk_id = swapped_hierarchy_dict[i][j].split('_')[-1]
-            text_x_position = 180 + (anchor_counter + 1) * 38 / 256 * image_np.shape[1]
-            if true_label[start_index + j] == 1 and true_label[start_index + j] == thresholded_score[start_index + j]:
-                plt.text(text_x_position, base_text_anchor, f'{wk_id}', color='green', fontsize=9)
-            elif true_label[start_index + j] == 1 and true_label[start_index + j] != thresholded_score[start_index + j]:
-                plt.text(text_x_position, base_text_anchor, f'{wk_id}', color='red', fontsize=9)
-            elif true_label[start_index + j] == 0 and true_label[start_index + j] != thresholded_score[start_index + j]:
-                plt.text(text_x_position, base_text_anchor, f'{wk_id}', color='orange', fontsize=9)
-            anchor_counter += 1
-        base_text_anchor += text_spacing
-        start_index += len(swapped_hierarchy_dict[i])
-    
-    legend_elements = [
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='green', markersize=10, label='True Positive'),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='False Negative'),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='False Positive')
-    ]
-    plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig(output_file_path, bbox_inches='tight')
-    plt.clf()
-    image.close()
-    """# Text für die richtigen Labels
+   
+    # Text für die richtigen Labels
     base_text_anchor = image_np.shape[0] + 35
     
     start_index = 0
@@ -362,7 +334,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
     plt.savefig(output_file_path,bbox_inches='tight')
     plt.clf()
-    image.close()"""
+    image.close()
 def visualize_sample_images(images,true_labels,scores,threshold,hierarchy_dicts,output_file_path):
     
     #os.makedirs(output_file_path, exist_ok=True)
