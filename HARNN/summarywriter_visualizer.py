@@ -285,7 +285,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
         elif model_name == 'buhcapsnet':
-            model = BUHCapsNet(pcap_n_dims=best_model_config.pcap_n_dims,scap_n_dims=best_model_config.scap_n_dims,num_classes_list=num_classes_list,routings=best_model_config.routing_iterations,args=args,device=device).to(device=device)    
+            model = BUHCapsNet(pcap_n_dims=best_model_config.pcap_n_dims,scap_n_dims=best_model_config.scap_n_dims,num_classes_list=num_classes_list,routings=best_model_config.routing_iterations,args=best_model_config,device=device).to(device=device)    
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
             score = model(batch_tensor)
