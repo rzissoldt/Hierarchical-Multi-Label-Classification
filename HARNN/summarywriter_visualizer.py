@@ -304,7 +304,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     plt.axis('off')  # Achsen ausschalten
     swapped_hierarchy_dict = [{v: k for k, v in hierarchy_dict.items()} for hierarchy_dict in hierarchy_dicts]
     # Text für die richtigen Labels
-    base_text_anchor = image_np.shape[1] + 20
+    base_text_anchor = image_np.shape[0] + 20
     print(image_np.shape)
     print(base_text_anchor)
     start_index = 0
@@ -419,7 +419,6 @@ if __name__ == '__main__':
     args = parser.visualizer_parser()
     # Sample data (replace with your actual data)
     #visualize_test_results(args=args)
-    print(args)
     dataset = HierarchyDataset(annotation_file_path=args.test_file,path_to_model=None,image_count_threshold=-1, hierarchy_file_path=args.hierarchy_file,image_dir=args.image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file,hierarchy_depth=args.hierarchy_depth)
     image_file_path = dataset.image_label_tuple_list[0][0]
     true_label = dataset.image_label_tuple_list[0][1]
