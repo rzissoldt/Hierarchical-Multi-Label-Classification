@@ -303,7 +303,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     target_height = int((float(image.size[1]) * float(width_percent)))
         
     # Resize the image
-    image = image.resize((1000, target_height), Image.ANTIALIAS)
+    image = image.resize((1000, target_height), Image.Resampling.LANCZOS)
     plt.imshow(image)
     image_np = np.array(image)
     thresholded_score = score_list[0][0].to('cpu').numpy().astype(int)
