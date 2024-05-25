@@ -268,6 +268,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             score_list.append(thresholded_score)
         elif model_name == 'chmcnn':
             model = ConstrainedFFNNModel(output_dim=total_class_num,R=explicit_hierarchy, args=best_model_config).to(device=device) 
+            model.training =False
             # Load Best Model Params
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
