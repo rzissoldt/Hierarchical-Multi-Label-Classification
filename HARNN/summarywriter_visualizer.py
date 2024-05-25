@@ -299,6 +299,11 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     # Festlegen der Größe des Ausgabebildes
     plt.figure(figsize=(8, 6))  # Breite: 8 Zoll, Höhe: 6 Zoll
     # Anzeigen des Bildes
+    width_percent = (1000 / float(img.size[0]))
+    target_height = int((float(img.size[1]) * float(width_percent)))
+        
+    # Resize the image
+    image = image.resize((1000, target_height), Image.ANTIALIAS)
     plt.imshow(image)
     image_np = np.array(image)
     thresholded_score = score_list[0][0].to('cpu').numpy().astype(int)
