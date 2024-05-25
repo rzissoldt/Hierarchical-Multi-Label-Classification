@@ -431,6 +431,7 @@ if __name__ == '__main__':
     #visualize_test_results(args=args)
     dataset = HierarchyDataset(annotation_file_path=args.test_file,path_to_model=None,image_count_threshold=-1, hierarchy_file_path=args.hierarchy_file,image_dir=args.image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file,hierarchy_depth=args.hierarchy_depth)
     random.seed(42)
+    os.makedirs(args.output_dir,exist_ok=True)
     random_indexes = random.sample(range(len(dataset.image_label_tuple_list)), 20)
     for i in random_indexes:
         image_file_path = dataset.image_label_tuple_list[i][0]
