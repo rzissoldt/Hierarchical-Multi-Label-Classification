@@ -429,7 +429,7 @@ if __name__ == '__main__':
         device = torch.device("cuda") if args.gpu else torch.device("cpu")
         num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
         explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
-        output_file_path = os.path.join(args.output_dir,f'sample_image{i}.png')
+        output_file_path = os.path.join(args.output_dir,f'sample_image{i}')
         visualize_sample_image(image_file_path=image_file_path,true_label=true_label,model_names=args.model_names, best_model_dirs=args.model_dirs,threshold=0.5,hierarchy_dicts=hierarchy_dicts,output_file_path=output_file_path,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,device=device)
     
     
