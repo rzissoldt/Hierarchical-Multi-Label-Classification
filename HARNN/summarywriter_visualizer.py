@@ -307,6 +307,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     swapped_hierarchy_dict = [{v: k for k, v in hierarchy_dict.items()} for hierarchy_dict in hierarchy_dicts]
     # Text für die richtigen Labels
     base_text_anchor = image_np.shape[1] + 20
+    print(base_text_anchor)
     start_index = 0
     for i in range(len(swapped_hierarchy_dict)):
         plt.text(0,base_text_anchor,f'Hierarchy-Layer-{i+1}:',fontsize=9,weight='bold')
