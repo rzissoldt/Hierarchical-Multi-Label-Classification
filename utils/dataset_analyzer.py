@@ -230,7 +230,7 @@ class DatasetAnalyzer():
             permutated_data = {key: [weight_counts[key][index] for index, _ in sorted_columns] for key in weight_counts.keys()}
             for key,value in permutated_data.items():
                 print(f'{key}:{value}')
-            print(f'Verteilung der Klassen für Schicht {0} des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
+            print(f'Verteilung der Klassen für Schicht {level+1} des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
             
             permutated_classes = [classes[index] for index, _ in sorted_columns]
             weight_counts = permutated_data
@@ -244,7 +244,7 @@ class DatasetAnalyzer():
                 bottom += weight_count
             plt.xlabel('Klassen')
             plt.ylabel('Anzahl')
-            plt.title(f'Verteilung der Klassen für Schicht {0} des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
+            plt.title(f'Verteilung der Klassen für Schicht {level+1} des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
             plt.xticks(rotation=90)  # Rotate class names for better readability if needed
             plt.grid(axis='y', linestyle='--', alpha=0.7)
             plt.tight_layout()
