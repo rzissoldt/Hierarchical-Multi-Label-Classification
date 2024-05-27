@@ -163,7 +163,7 @@ class DatasetAnalyzer():
             bars = plt.bar(classes, counts, color='skyblue')
             plt.xlabel('Klassen')
             plt.ylabel('Anzahl')
-            plt.title('Verteilung der Klassen für Schicht {0}'.format(level+1))
+            plt.title(f'Verteilung der Klassen für Schicht {level+1} des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
             plt.xticks(rotation=90)  # Rotate class names for better readability if needed
             plt.grid(axis='y', linestyle='--', alpha=0.7)
             plt.tight_layout()
@@ -172,7 +172,7 @@ class DatasetAnalyzer():
             for tick in plt.gca().xaxis.get_major_ticks():
                 tick.label.set_fontsize(scaling_factor)
             fig_path = os.path.join(self.path_to_results,self.dataset_name+'_'+str(self.image_count_threshold))
-            fig_file_name='distribution_layer_{0}_plot.png'.format(level+1)
+            fig_file_name=f'{self.dataset_name}_distribution_layer_{level+1}_{self.image_count_threshold}_plot.png'
             fig_file_path = os.path.join(fig_path,fig_file_name)
             os.makedirs(fig_path, exist_ok=True)
             plt.savefig(fig_file_path)
@@ -230,7 +230,7 @@ class DatasetAnalyzer():
             permutated_data = {key: [weight_counts[key][index] for index, _ in sorted_columns] for key in weight_counts.keys()}
             for key,value in permutated_data.items():
                 print(f'{key}:{value}')
-            print('Verteilung der Klassen für Schicht {0}'.format(level+1))
+            print(f'Verteilung der Klassen für Schicht {0} des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
             
             permutated_classes = [classes[index] for index, _ in sorted_columns]
             weight_counts = permutated_data
@@ -244,7 +244,7 @@ class DatasetAnalyzer():
                 bottom += weight_count
             plt.xlabel('Klassen')
             plt.ylabel('Anzahl')
-            plt.title('Verteilung der Klassen für Schicht {0}'.format(level+1))
+            plt.title(f'Verteilung der Klassen für Schicht {0} des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
             plt.xticks(rotation=90)  # Rotate class names for better readability if needed
             plt.grid(axis='y', linestyle='--', alpha=0.7)
             plt.tight_layout()
@@ -253,7 +253,7 @@ class DatasetAnalyzer():
             for tick in plt.gca().xaxis.get_major_ticks():
                 tick.label.set_fontsize(scaling_factor)
             fig_path = os.path.join(self.path_to_results,self.dataset_name+'_'+str(self.image_count_threshold))
-            fig_file_name='explicit_distribution_layer_{0}_plot.png'.format(level+1)
+            fig_file_name=f'{self.dataset_name}_explicit_distribution_layer_{level+1}_{self.image_count_threshold}_plot.png'
             fig_file_path = os.path.join(fig_path,fig_file_name)
             os.makedirs(fig_path, exist_ok=True)
             plt.savefig(fig_file_path)
@@ -292,14 +292,14 @@ class DatasetAnalyzer():
 
         plt.xlabel('Klassen')
         plt.ylabel('Anzahl')
-        plt.title('Globale Verteilung der Klassen')
+        plt.title(f'Globale Verteilung der Klassen des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
         plt.xticks([])  # Rotate class names for better readability if needed
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
 
         # Save the plot
         fig_path = os.path.join(self.path_to_results, self.dataset_name + '_' + str(self.image_count_threshold))
-        fig_file_name = 'global_distribution_plot.png'
+        fig_file_name = f'{self.dataset_name}_global_distribution_{self.image_count_threshold}plot.png'
         fig_file_path = os.path.join(fig_path, fig_file_name)
         os.makedirs(fig_path, exist_ok=True)
         plt.savefig(fig_file_path)
