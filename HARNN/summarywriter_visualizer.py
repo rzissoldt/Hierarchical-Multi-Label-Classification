@@ -313,6 +313,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         counter +=1
 
     if hmcnet_recall > chmcnn_recall:
+        print('Recall is less')
         return
     
     
@@ -368,6 +369,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
     plt.savefig(output_file_path,bbox_inches='tight')
     plt.clf()
+    print('Image saved')
     image.close()
 def visualize_sample_images(images,true_labels,scores,threshold,hierarchy_dicts,output_file_path):
     
