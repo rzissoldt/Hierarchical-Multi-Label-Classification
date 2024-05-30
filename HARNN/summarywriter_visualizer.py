@@ -445,15 +445,18 @@ if __name__ == '__main__':
     dataset = HierarchyDataset(annotation_file_path=args.test_file,path_to_model=None,image_count_threshold=-1, hierarchy_file_path=args.hierarchy_file,image_dir=args.image_dir, hierarchy_dicts_file_path =args.hierarchy_dicts_file,hierarchy_depth=args.hierarchy_depth)
     random.seed(42)
     os.makedirs(args.output_dir,exist_ok=True)
+    # Checks if GPU Support ist active
+    device = torch.device("cuda") if args.gpu else torch.device("cpu")
+    hierarchy_dicts = dataset.filtered_hierarchy_dicts
+    num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
+    explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
     random_indexes = random.sample(range(len(dataset.image_label_tuple_list)), args.image_count)
     for i in random_indexes:
         image_file_path = dataset.image_label_tuple_list[i][0]
         true_label = dataset.image_label_tuple_list[i][1]
-        hierarchy_dicts = dataset.filtered_hierarchy_dicts
-        # Checks if GPU Support ist active
-        device = torch.device("cuda") if args.gpu else torch.device("cpu")
-        num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
-        explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
+        
+       
+        
         output_file_path = os.path.join(args.output_dir,f'sample_image{i}.png')
         visualize_sample_image(image_file_path=image_file_path,true_label=true_label,model_names=args.model_names, best_model_dirs=args.model_dirs,threshold=0.5,hierarchy_dicts=hierarchy_dicts,output_file_path=output_file_path,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,device=device)
     

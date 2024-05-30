@@ -66,6 +66,7 @@ class ConstrainedFFNNModel(nn.Module):
             constrained_out = x
         else:
             constrained_out = get_constr_out(x, self.R)
+            print('test')
         return constrained_out
         
     
