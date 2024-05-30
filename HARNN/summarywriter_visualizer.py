@@ -313,7 +313,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         counter +=1
 
     if hmcnet_recall > chmcnn_recall or abs(hmcnet_recall - chmcnn_recall) < 1e-16 :
-        print('Recall is higher')
+        print('Recall is lower')
         return
     
     
