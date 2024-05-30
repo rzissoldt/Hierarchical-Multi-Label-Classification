@@ -330,7 +330,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
    
     # Text für die richtigen Labels
     base_text_anchor = image_np.shape[0] + 15
-    print(score_list)
+    
     
     for k in range(len(model_names)):
         start_index = 0
