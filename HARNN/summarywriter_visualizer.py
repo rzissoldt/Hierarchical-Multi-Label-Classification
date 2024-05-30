@@ -312,7 +312,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             score_list.append(thresholded_score)
         counter +=1
 
-    if chmcnn_recall - hmcnet_recall > 1e-16:
+    if hmcnet_recall - chmcnn_recall > 1e-16:
         print('Recall is higher')
         return
     
