@@ -343,8 +343,8 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         base_text_anchor += 15
         thresholded_score_tensor = torch.tensor(thresholded_score)
         true_label_tensor = torch.tensor(true_label)
-        pre_micro, rec_micro, f1_micro = precision_recall_f1_score(binary_predictions=thresholded_score_tensor,true_label=true_label, average='micro')
-        pre_macro, rec_macro, f1_macro = precision_recall_f1_score(binary_predictions=thresholded_score_tensor,true_label=true_label, average='micro')
+        pre_micro, rec_micro, f1_micro = precision_recall_f1_score(binary_predictions=thresholded_score_tensor,labels=true_label_tensor, average='micro')
+        pre_macro, rec_macro, f1_macro = precision_recall_f1_score(binary_predictions=thresholded_score_tensor,labels=true_label_tensor, average='micro')
         plt.text(k*200,200,f'Precision: {pre_micro}, {pre_macro}',fontsize=9,weight='bold')
         plt.text(k*250,200,f'Recall: {rec_micro}, {rec_macro}',fontsize=9,weight='bold')
     legend_elements = [
