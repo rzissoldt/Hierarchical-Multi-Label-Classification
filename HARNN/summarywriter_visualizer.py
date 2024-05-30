@@ -15,6 +15,7 @@ from HARNN.model.chmcnn_model import ConstrainedFFNNModel
 from HARNN.model.hmcnet_model import HmcNet
 from HARNN.model.buhcapsnet_model import BUHCapsNet
 from HARNN.dataset.hierarchy_dataset import HierarchyDataset
+from torchmetrics.classification import Precision, Recall, F1Score
 from utils.data_helpers import precision_recall_f1_score
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
@@ -249,6 +250,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     batch_tensor = transformed_image.unsqueeze(0)
     counter = 0
     score_list = []
+    hmcnet_recall = 0
+    chmcnn_recall = 0
+    micro_recall = Recall(task="multilabel", average='micro', num_labels=total_class_num, threshold=0.5)
     for model_name in model_names:
         
         best_model_config_path = os.path.join(best_model_dirs[counter],'model_config.json')
@@ -267,6 +271,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             score = model(batch_tensor.float())
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
+            
         elif model_name == 'chmcnn':
             model = ConstrainedFFNNModel(output_dim=total_class_num,R=explicit_hierarchy, args=best_model_config).to(device=device) 
             
@@ -278,6 +283,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             score = model(batch_tensor.float())
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
+            thresholded_score = score_list[k][0].to('cpu').numpy().astype(int)
+            thresholded_score_tensor_chmcnn = torch.tensor(thresholded_score)
+            chmcnn_recall = micro_recall(thresholded_score_tensor_chmcnn, torch.tensor(true_label))
             
         elif model_name == 'hmcnet':
             
@@ -290,6 +298,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             score, _, _ = model(batch_tensor)
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
+            thresholded_score = score_list[k][0].to('cpu').numpy().astype(int)
+            thresholded_score_tensor_hmcnet = torch.tensor(thresholded_score)
+            hmcnet_recall = micro_recall(thresholded_score_tensor_hmcnet, torch.tensor(true_label))
         elif model_name == 'buhcapsnet':
             model = BUHCapsNet(pcap_n_dims=best_model_config.pcap_n_dims,scap_n_dims=best_model_config.scap_n_dims,num_classes_list=num_classes_list,routings=best_model_config.routing_iterations,args=best_model_config,device=device).to(device=device)    
             best_checkpoint = torch.load(best_model_file_path)
@@ -300,7 +311,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
         counter +=1
-    
+
+    if hmcnet_recall > chmcnn_recall:
+        return
     
     
     # Festlegen der Größe des Ausgabebildes
