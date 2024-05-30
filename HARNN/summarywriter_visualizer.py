@@ -283,9 +283,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             score = model(batch_tensor.float())
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
-            thresholded_score = thresholded_score[0].to('cpu').numpy().astype(int)
+            thresholded_score = thresholded_score.to('cpu').numpy().astype(int)
             thresholded_score_tensor_chmcnn = torch.tensor(thresholded_score)
-            chmcnn_recall = micro_recall(thresholded_score_tensor_chmcnn, torch.tensor(true_label))
+            chmcnn_recall = micro_recall(thresholded_score_tensor_chmcnn, torch.tensor(true_label).unsqueeze(0))
             
         elif model_name == 'hmcnet':
             
@@ -298,9 +298,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             score, _, _ = model(batch_tensor)
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
-            thresholded_score = thresholded_score[0].to('cpu').numpy().astype(int)
+            thresholded_score = thresholded_score.to('cpu').numpy().astype(int)
             thresholded_score_tensor_hmcnet = torch.tensor(thresholded_score)
-            hmcnet_recall = micro_recall(thresholded_score_tensor_hmcnet, torch.tensor(true_label))
+            hmcnet_recall = micro_recall(thresholded_score_tensor_hmcnet, torch.tensor(true_label).unsqueeze(0))
         elif model_name == 'buhcapsnet':
             model = BUHCapsNet(pcap_n_dims=best_model_config.pcap_n_dims,scap_n_dims=best_model_config.scap_n_dims,num_classes_list=num_classes_list,routings=best_model_config.routing_iterations,args=best_model_config,device=device).to(device=device)    
             best_checkpoint = torch.load(best_model_file_path)
