@@ -15,7 +15,7 @@ from HARNN.model.chmcnn_model import ConstrainedFFNNModel
 from HARNN.model.hmcnet_model import HmcNet
 from HARNN.model.buhcapsnet_model import BUHCapsNet
 from HARNN.dataset.hierarchy_dataset import HierarchyDataset
-
+from utils.data_helpers import precision_recall_f1_score
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
 from utils import param_parser as parser
@@ -329,18 +329,24 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             anchor_counter = 0
             for j in swapped_hierarchy_dict[i].keys():
                 wk_id = swapped_hierarchy_dict[i][j].split('_')[-1]
-                if true_label[start_index+j] == 1 and true_label[start_index+j] == thresholded_score[start_index+j]:
+                if true_label[start_index+j] == 1 and thresholded_score[start_index+j] == 1:
                     plt.text(120+(anchor_counter)*60,base_text_anchor,f'{wk_id}',color='green',fontsize=9)
                     anchor_counter+=1
-                elif true_label[start_index+j] == 1 and true_label[start_index+j] != thresholded_score[start_index+j]:
+                elif true_label[start_index+j] == 1 and thresholded_score[start_index+j] == 0:
                     plt.text(120+(anchor_counter)*60,base_text_anchor,f'{wk_id}',color='red',fontsize=9)
                     anchor_counter+=1
-                elif true_label[start_index+j] == 0 and true_label[start_index+j] != thresholded_score[start_index+j]:
+                elif true_label[start_index+j] == 0 and thresholded_score[start_index+j] == 1:
                     plt.text(120+(anchor_counter)*60,base_text_anchor,f'{wk_id}',color='orange',fontsize=9)
                     anchor_counter+=1
             base_text_anchor+=15
             start_index+=len(swapped_hierarchy_dict[i])
         base_text_anchor += 15
+        thresholded_score_tensor = torch.tensor(thresholded_score)
+        true_label_tensor = torch.tensor(true_label)
+        pre_micro, rec_micro, f1_micro = precision_recall_f1_score(binary_predictions=thresholded_score_tensor,true_label=true_label, average='micro')
+        pre_macro, rec_macro, f1_macro = precision_recall_f1_score(binary_predictions=thresholded_score_tensor,true_label=true_label, average='micro')
+        plt.text(k*200,200,f'Precision: {pre_micro}, {pre_macro}',fontsize=9,weight='bold')
+        plt.text(k*250,200,f'Recall: {rec_micro}, {rec_macro}',fontsize=9,weight='bold')
     legend_elements = [
         plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='green', markersize=10, label='True Positive'),
         plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='False Negative'),
