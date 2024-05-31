@@ -477,7 +477,8 @@ if __name__ == '__main__':
     for i in random_indexes:
         image_file_path = dataset.image_label_tuple_list[i][0]
         true_label = dataset.image_label_tuple_list[i][1]
-        
+        if torch.all(true_label == 0)
+            print('all zeros')
        
         
         output_file_path = os.path.join(args.output_dir,f'sample_image{i}.png')
