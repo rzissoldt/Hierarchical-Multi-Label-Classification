@@ -473,8 +473,8 @@ if __name__ == '__main__':
     hierarchy_dicts = dataset.filtered_hierarchy_dicts
     num_classes_list = dh.get_num_classes_from_hierarchy(hierarchy_dicts)
     explicit_hierarchy = torch.tensor(dh.generate_hierarchy_matrix_from_tree(hierarchy_dicts)).to(device=device)
-    random_indexes = random.sample(range(len(dataset.image_label_tuple_list)), args.image_count)
-    for i in random_indexes:
+    #random_indexes = random.sample(range(len(dataset.image_label_tuple_list)), args.image_count)
+    for i in len(dataset.image_label_tuple_list):
         image_file_path = dataset.image_label_tuple_list[i][0]
         true_label = dataset.image_label_tuple_list[i][1]
         if torch.all(true_label == 0):
