@@ -272,7 +272,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
                 score = model(batch_tensor.float())
             print('Baseline',score)
             thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=0.5)
-            print('Baseline Thresholded, threh')
+            print('Baseline Thresholded',thresholded_score)
             score_list.append(thresholded_score)
             
         elif model_name == 'chmcnn':
