@@ -479,9 +479,10 @@ if __name__ == '__main__':
         true_label = dataset.image_label_tuple_list[i][1]
         if torch.all(true_label == 0):
             print('all zeros')
-       
+        if i % 1000 == 0:
+            print(i)
         
-        output_file_path = os.path.join(args.output_dir,f'sample_image{i}.png')
-        visualize_sample_image(image_file_path=image_file_path,true_label=true_label,model_names=args.model_names, best_model_dirs=args.model_dirs,threshold=0.5,hierarchy_dicts=hierarchy_dicts,output_file_path=output_file_path,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,device=device)
+        #output_file_path = os.path.join(args.output_dir,f'sample_image{i}.png')
+        #visualize_sample_image(image_file_path=image_file_path,true_label=true_label,model_names=args.model_names, best_model_dirs=args.model_dirs,threshold=0.5,hierarchy_dicts=hierarchy_dicts,output_file_path=output_file_path,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,device=device)
     
     
