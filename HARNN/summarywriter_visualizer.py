@@ -250,9 +250,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
     batch_tensor = transformed_image.unsqueeze(0)
     counter = 0
     score_list = []
-    hmcnet_recall = 0
-    chmcnn_recall = 0
-    micro_recall = Recall(task="multilabel", average='micro', num_labels=total_class_num, threshold=0.5)
+    
     for model_name in model_names:
         
         best_model_config_path = os.path.join(best_model_dirs[counter],'model_config.json')
@@ -269,9 +267,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             model.load_state_dict(best_checkpoint)
             model.eval()
             with torch.no_grad():
-                score = model(batch_tensor.float())
+                score = model(batch_tensor)
             print('Baseline',score)
-            thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=0.5)[0]
+            thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=threshold)[0]
             print('Baseline Thresholded',thresholded_score)
             score_list.append(thresholded_score)
             
@@ -284,9 +282,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             model.training =False
             model.eval()
             with torch.no_grad():
-                score = model(batch_tensor.float())
+                score = model(batch_tensor)
             print('CHMCNN',score)
-            thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=0.5)[0]
+            thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=threshold)[0]
             print('CHMCNN Thresholded',thresholded_score)
             score_list.append(thresholded_score)
             
@@ -302,7 +300,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             with torch.no_grad():
                 score, _, _ = model(batch_tensor)
             print('HmcNet',score)
-            thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=0.5)[0]
+            thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=threshold)[0]
             print('HmcNet Thresholded',thresholded_score)
             score_list.append(thresholded_score)
             
@@ -316,7 +314,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             print('BUHCapsNet',score)
             score = torch.cat(score,dim=0).unsqueeze(0)
             print(score)
-            thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=0.5)[0]
+            thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=threshold)[0]
             score_list.append(thresholded_score)
         counter +=1
 
