@@ -269,7 +269,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             model.load_state_dict(best_checkpoint)
             model.eval()
             score = model(batch_tensor.float())
+            print('Baseline',score)
             thresholded_score = score > threshold
+            
             score_list.append(thresholded_score)
             
         elif model_name == 'chmcnn':
@@ -281,6 +283,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             model.training =False
             model.eval()
             score = model(batch_tensor.float())
+            print('CHMCNN',score)
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
             thresholded_score = thresholded_score.to('cpu').numpy().astype(int)
@@ -296,6 +299,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             model.load_state_dict(best_checkpoint)
             model.eval()
             score, _, _ = model(batch_tensor)
+            print('HmcNet',score)
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
             thresholded_score = thresholded_score.to('cpu').numpy().astype(int)
@@ -307,6 +311,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             model.load_state_dict(best_checkpoint)
             model.eval()
             score = model(batch_tensor)
+            print('CHMCNN',score)
             score = torch.cat(score,dim=0).unsqueeze(0)
             thresholded_score = score > threshold
             score_list.append(thresholded_score)
