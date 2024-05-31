@@ -311,7 +311,8 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
             model.eval()
-            score = model(batch_tensor)
+            with torch.no_grad():
+                score = model(batch_tensor)
             print('BUHCapsNet',score)
             score = torch.cat(score,dim=0).unsqueeze(0)
             thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=0.5)
