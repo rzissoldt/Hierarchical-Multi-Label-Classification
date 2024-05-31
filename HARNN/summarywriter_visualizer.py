@@ -16,7 +16,7 @@ from HARNN.model.hmcnet_model import HmcNet
 from HARNN.model.buhcapsnet_model import BUHCapsNet
 from HARNN.dataset.hierarchy_dataset import HierarchyDataset
 from torchmetrics.classification import Precision, Recall, F1Score
-from utils.data_helpers import precision_recall_f1_score
+from utils.data_helpers import precision_recall_f1_score, get_onehot_label_threshold
 from utils import xtree_utils as xtree
 from utils import data_helpers as dh
 from utils import param_parser as parser
@@ -270,8 +270,8 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             model.eval()
             score = model(batch_tensor.float())
             print('Baseline',score)
-            thresholded_score = score > threshold
-            
+            thresholded_score = get_onehot_label_threshold(scores=score.to('cpu').numpy(),threshold=0.5)
+            print('Baseline Thresholded, threh')
             score_list.append(thresholded_score)
             
         elif model_name == 'chmcnn':
@@ -342,7 +342,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         plt.text(0,base_text_anchor,f'{model_names[k]}',fontsize=11,weight='bold')
         base_text_anchor = base_text_anchor + 15
         print(score_list[k])
-        thresholded_score = score_list[k][0].to('cpu').numpy().astype(int)
+        #thresholded_score = score_list[k][0].to('cpu').numpy().astype(int)
         print(thresholded_score)
         for i in range(len(swapped_hierarchy_dict)):
             plt.text(0,base_text_anchor,f'Hierarchy-Layer-{i+1}:',fontsize=9,weight='bold')
