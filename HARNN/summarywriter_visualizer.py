@@ -315,6 +315,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
                 score = model(batch_tensor)
             print('BUHCapsNet',score)
             score = torch.cat(score,dim=0).unsqueeze(0)
+            print(score)
             thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=0.5)
             score_list.append(thresholded_score)
         counter +=1
