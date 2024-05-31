@@ -337,6 +337,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         plt.text(0,base_text_anchor,f'{model_names[k]}',fontsize=11,weight='bold')
         base_text_anchor = base_text_anchor + 15
         thresholded_score = score_list[k][0].to('cpu').numpy().astype(int)
+        print(thresholded_score)
         for i in range(len(swapped_hierarchy_dict)):
             plt.text(0,base_text_anchor,f'Hierarchy-Layer-{i+1}:',fontsize=9,weight='bold')
             anchor_counter = 0
