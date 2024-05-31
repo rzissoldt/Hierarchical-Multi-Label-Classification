@@ -481,7 +481,7 @@ if __name__ == '__main__':
         if i % 1000 == 0:
             print(i)
         
-        #output_file_path = os.path.join(args.output_dir,f'sample_image{i}.png')
-        #visualize_sample_image(image_file_path=image_file_path,true_label=true_label,model_names=args.model_names, best_model_dirs=args.model_dirs,threshold=0.5,hierarchy_dicts=hierarchy_dicts,output_file_path=output_file_path,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,device=device)
+        output_file_path = os.path.join(args.output_dir,f'sample_image{i}.png')
+        visualize_sample_image(image_file_path=image_file_path,true_label=true_label,model_names=args.model_names, best_model_dirs=args.model_dirs,threshold=0.5,hierarchy_dicts=hierarchy_dicts,output_file_path=output_file_path,explicit_hierarchy=explicit_hierarchy,num_classes_list=num_classes_list,device=device)
     
     
