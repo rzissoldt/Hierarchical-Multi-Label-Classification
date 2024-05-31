@@ -477,6 +477,7 @@ if __name__ == '__main__':
     for i in range(len(dataset.image_label_tuple_list)):
         image_file_path = dataset.image_label_tuple_list[i][0]
         true_label = dataset.image_label_tuple_list[i][1]
+        print(true_label)
         if torch.all(true_label == 0):
             print('all zeros')
         if i % 1000 == 0:
