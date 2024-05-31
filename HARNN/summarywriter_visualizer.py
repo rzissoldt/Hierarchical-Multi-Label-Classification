@@ -286,11 +286,10 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             with torch.no_grad():
                 score = model(batch_tensor.float())
             print('CHMCNN',score)
-            thresholded_score = score > threshold
+            thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=0.5)
+            print('CHMCNN Thresholded',thresholded_score)
             score_list.append(thresholded_score)
-            thresholded_score = thresholded_score.to('cpu').numpy().astype(int)
-            thresholded_score_tensor_chmcnn = torch.tensor(thresholded_score)
-            chmcnn_recall = micro_recall(thresholded_score_tensor_chmcnn, torch.tensor(true_label).unsqueeze(0))
+            
             
         elif model_name == 'hmcnet':
             
@@ -303,20 +302,19 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             with torch.no_grad():
                 score, _, _ = model(batch_tensor)
             print('HmcNet',score)
-            thresholded_score = score > threshold
+            thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=0.5)
+            print('HmcNet Thresholded',thresholded_score)
             score_list.append(thresholded_score)
-            thresholded_score = thresholded_score.to('cpu').numpy().astype(int)
-            thresholded_score_tensor_hmcnet = torch.tensor(thresholded_score)
-            hmcnet_recall = micro_recall(thresholded_score_tensor_hmcnet, torch.tensor(true_label).unsqueeze(0))
+            
         elif model_name == 'buhcapsnet':
             model = BUHCapsNet(pcap_n_dims=best_model_config.pcap_n_dims,scap_n_dims=best_model_config.scap_n_dims,num_classes_list=num_classes_list,routings=best_model_config.routing_iterations,args=best_model_config,device=device).to(device=device)    
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
             model.eval()
             score = model(batch_tensor)
-            print('CHMCNN',score)
+            print('BUHCapsNet',score)
             score = torch.cat(score,dim=0).unsqueeze(0)
-            thresholded_score = score > threshold
+            thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=0.5)
             score_list.append(thresholded_score)
         counter +=1
 
@@ -344,9 +342,8 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         start_index = 0
         plt.text(0,base_text_anchor,f'{model_names[k]}',fontsize=11,weight='bold')
         base_text_anchor = base_text_anchor + 15
-        print(score_list[k])
-        #thresholded_score = score_list[k][0].to('cpu').numpy().astype(int)
-        print(thresholded_score)
+        
+        thresholded_score = score_list[k]
         for i in range(len(swapped_hierarchy_dict)):
             plt.text(0,base_text_anchor,f'Hierarchy-Layer-{i+1}:',fontsize=9,weight='bold')
             anchor_counter = 0
