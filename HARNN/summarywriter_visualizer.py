@@ -336,6 +336,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
         start_index = 0
         plt.text(0,base_text_anchor,f'{model_names[k]}',fontsize=11,weight='bold')
         base_text_anchor = base_text_anchor + 15
+        print(score_list[k])
         thresholded_score = score_list[k][0].to('cpu').numpy().astype(int)
         print(thresholded_score)
         for i in range(len(swapped_hierarchy_dict)):
