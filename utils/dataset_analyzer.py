@@ -290,7 +290,7 @@ class DatasetAnalyzer():
         fig, ax = plt.subplots()
         bars = ax.bar(classes, counts, color=[colors[level] for level in hierarchy_levels])
         legend_elements = [plt.Line2D([0],[0], marker='o',color='w', markerfacecolor=colors[i], label=f'Hierarchy-Level-{i+1}') for i in range(num_levels)]
-        plt.legend(handles=legend_elements, loc='center right', bbox_to_anchor=(1, 0.5))
+        plt.legend(handles=legend_elements, loc='center left')
         plt.xlabel('Klassen')
         plt.ylabel('Anzahl')
         plt.title(f'Globale Verteilung der Klassen des {self.dataset_name}\n für den Schwellwert {self.image_count_threshold}')
