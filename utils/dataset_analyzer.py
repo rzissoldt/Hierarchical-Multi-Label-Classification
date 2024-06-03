@@ -163,7 +163,7 @@ class DatasetAnalyzer():
             bars = plt.bar(classes, counts, color='skyblue')
             plt.xlabel('Klassen')
             plt.ylabel('Anzahl an Bildern pro Klasse')
-            plt.title(f'Verteilung der Klassen für Schicht {level+1}\n des {self.dataset_name} für den Schwellwert {self.image_count_threshold}',fontsize=9)
+            plt.title(f'Verteilung der Klassen für Schicht {level+1}\n des {self.dataset_name} für den Schwellwert {self.image_count_threshold}',fontsize=11)
             plt.xticks(rotation=90)  # Rotate class names for better readability if needed
             plt.grid(axis='y', linestyle='--', alpha=0.7)
             plt.tight_layout()
@@ -244,7 +244,7 @@ class DatasetAnalyzer():
                 bottom += weight_count
             plt.xlabel('Klassen')
             plt.ylabel('Anzahl an Bildern pro Klasse')
-            plt.title(f'Verteilung der Klassen für Schicht {level+1}\n des {self.dataset_name} für den Schwellwert {self.image_count_threshold}',fontsize=9)
+            plt.title(f'Verteilung der Klassen für Schicht {level+1}\n des {self.dataset_name} für den Schwellwert {self.image_count_threshold}',fontsize=11)
             plt.xticks(rotation=90)  # Rotate class names for better readability if needed
             plt.grid(axis='y', linestyle='--', alpha=0.7)
             plt.tight_layout()
@@ -293,7 +293,7 @@ class DatasetAnalyzer():
         plt.legend(handles=legend_elements, loc='upper right')
         plt.xlabel('Klassen')
         plt.ylabel('Anzahl an Bildern pro Klasse')
-        plt.title(f'Globale Verteilung der Klassen des {self.dataset_name}\n für den Schwellwert {self.image_count_threshold}',fontsize=9)
+        plt.title(f'Globale Verteilung der Klassen des {self.dataset_name}\n für den Schwellwert {self.image_count_threshold}',fontsize=11)
         plt.xticks([])  # Rotate class names for better readability if needed
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
