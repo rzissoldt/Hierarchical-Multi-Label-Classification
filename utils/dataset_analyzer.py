@@ -163,7 +163,7 @@ class DatasetAnalyzer():
             bars = plt.bar(classes, counts, color='skyblue')
             plt.xlabel('Klassen')
             plt.ylabel('Anzahl')
-            plt.title(f'Verteilung der Klassen für Schicht {level+1} des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
+            plt.title(f'Verteilung der Klassen für Schicht {level+1} des {self.dataset_name}\n für den Schwellwert {self.image_count_threshold}')
             plt.xticks(rotation=90)  # Rotate class names for better readability if needed
             plt.grid(axis='y', linestyle='--', alpha=0.7)
             plt.tight_layout()
@@ -230,7 +230,7 @@ class DatasetAnalyzer():
             permutated_data = {key: [weight_counts[key][index] for index, _ in sorted_columns] for key in weight_counts.keys()}
             for key,value in permutated_data.items():
                 print(f'{key}:{value}')
-            print(f'Verteilung der Klassen für Schicht {level+1} des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
+            print(f'Verteilung der Klassen für Schicht {level+1} des {self.dataset_name}\n für den Schwellwert {self.image_count_threshold}')
             
             permutated_classes = [classes[index] for index, _ in sorted_columns]
             weight_counts = permutated_data
@@ -244,7 +244,7 @@ class DatasetAnalyzer():
                 bottom += weight_count
             plt.xlabel('Klassen')
             plt.ylabel('Anzahl')
-            plt.title(f'Verteilung der Klassen für Schicht {level+1} des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
+            plt.title(f'Verteilung der Klassen für Schicht {level+1} des {self.dataset_name}\n für den Schwellwert {self.image_count_threshold}')
             plt.xticks(rotation=90)  # Rotate class names for better readability if needed
             plt.grid(axis='y', linestyle='--', alpha=0.7)
             plt.tight_layout()
@@ -289,10 +289,11 @@ class DatasetAnalyzer():
         # Create bars with different colors for each hierarchy level
         fig, ax = plt.subplots()
         bars = ax.bar(classes, counts, color=[colors[level] for level in hierarchy_levels])
-
+        legend_elements = [plt.Line2D([0],[0], marker='o',color='w', markerfacecolor=colors[i], label=f'Hierarchy-Level-{i+1}') for i in range(num_levels)]
+        plt.legend(handles=legend_elements, loc='center right', bbox_to_anchor=(1, 0.5))
         plt.xlabel('Klassen')
         plt.ylabel('Anzahl')
-        plt.title(f'Globale Verteilung der Klassen des {self.dataset_name} für den Schwellwert {self.image_count_threshold}')
+        plt.title(f'Globale Verteilung der Klassen des {self.dataset_name}\n für den Schwellwert {self.image_count_threshold}')
         plt.xticks([])  # Rotate class names for better readability if needed
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
