@@ -266,6 +266,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             best_checkpoint = torch.load(best_model_file_path)
             model.load_state_dict(best_checkpoint)
             model.eval()
+            print(batch_tensor.size())
             with torch.no_grad():
                 score = model(batch_tensor.float())
             print('Baselines',score)
