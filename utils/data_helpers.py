@@ -337,7 +337,7 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
     scores = torch.cat([torch.unsqueeze(tensor,0) for tensor in scores_list],dim=0).to('cpu')
     scores_np = scores.numpy()
     # Predict by threshold
-    batch_predicted_onehot_labels = get_onehot_label_threshold(scores=scores_np,threshold=0.5)
+    batch_predicted_onehot_labels = get_onehot_label_threshold(scores=scores_np,threshold=threshold)
     for k in batch_predicted_onehot_labels:
         predicted_onehot_labels_ts.append(k)
     

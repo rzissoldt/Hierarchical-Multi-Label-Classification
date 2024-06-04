@@ -48,7 +48,9 @@ class HmcNetTester():
                 # Make predictions for this batch
                 scores, local_scores_list, global_logits = self.best_model(vinputs)
                 scores_list.extend(scores)
-                labels_list.extend(y_total_onehot)              
+                labels_list.extend(y_total_onehot)
+                print(scores)
+                print(y_total_onehot)              
         metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy.to('cpu').numpy(),pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device,eval_pcp=self.args.pcp_metrics_active,threshold=self.args.threshold,eval_hierarchical_metrics=True)
         # Save Metrics in Summarywriter.
         for key,value in metrics_dict.items():
