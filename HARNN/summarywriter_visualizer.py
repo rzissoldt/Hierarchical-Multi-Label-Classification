@@ -269,6 +269,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             print(batch_tensor.size())
             with torch.no_grad():
                 score = model(batch_tensor.float())
+            print(score.size())
             print('Baselines',score)
             thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=threshold)[0]
             print('Baseline Thresholded',thresholded_score)
