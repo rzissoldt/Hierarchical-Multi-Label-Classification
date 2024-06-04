@@ -349,6 +349,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             anchor_counter = 0
             for j in swapped_hierarchy_dict[i].keys():
                 wk_id = swapped_hierarchy_dict[i][j].split('_')[-1]
+                print(thresholded_score,true_label)
                 if true_label[start_index+j] == 1 and thresholded_score[start_index+j] == 1:
                     plt.text(120+(anchor_counter)*60,base_text_anchor,f'{wk_id}',color='green',fontsize=9)
                     anchor_counter+=1
