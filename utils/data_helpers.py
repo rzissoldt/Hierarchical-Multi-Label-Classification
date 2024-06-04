@@ -465,12 +465,7 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
         #    print("Top{0}: Hierarchical Precision {1:g}, Hierarchical Recall {2:g}, Hierarchical F1 {3:g}".format(top_num+1,eval_hierarchical_pre_tk[top_num], eval_hierarchical_rec_tk[top_num], eval_hierarchical_pre_tk[top_num]))
     #eval_micro_pre_ts,eval_micro_rec_ts,eval_micro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='micro')
     #eval_macro_pre_ts,eval_macro_rec_ts,eval_macro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='macro')
-    eval_micro_pre_ts = micro_precision(predicted_onehot_labels,true_onehot_labels)
-    eval_micro_rec_ts = micro_recall(predicted_onehot_labels,true_onehot_labels)
-    eval_micro_F1_ts = micro_f1_score(predicted_onehot_labels,true_onehot_labels)
-    eval_macro_pre_ts = micro_precision(predicted_onehot_labels,true_onehot_labels)
-    eval_macro_rec_ts = micro_recall(predicted_onehot_labels,true_onehot_labels)
-    eval_macro_F1_ts = micro_f1_score(predicted_onehot_labels,true_onehot_labels)
+    
     for top_num in range(topK):
         predicted_onehot_labels_topk = torch.cat([torch.unsqueeze(torch.tensor(tensor),0) for tensor in predicted_onehot_labels_tk[top_num]],dim=0).to(device)
         eval_micro_pre_tk[top_num], eval_micro_rec_tk[top_num],eval_micro_F1_tk[top_num] = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels_topk, average='micro')
@@ -482,7 +477,14 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
         
     # Calculate Precision & Recall & F1 per Hierarchy-Layer
     eval_metrics_per_layer = get_per_layer_metrics(scores=scores,labels=true_onehot_labels,num_classes_list=num_classes_list,device=device)
-    scores = scores.to(device=device)  
+    scores = scores.to(device=device)
+    predicted_onehot_labels = predicted_onehot_labels.to(device=device)
+    eval_micro_pre_ts = micro_precision(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+    eval_micro_rec_ts = micro_recall(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+    eval_micro_F1_ts = micro_f1_score(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+    eval_macro_pre_ts = micro_precision(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
+    eval_macro_rec_ts = micro_recall(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels)
+    eval_macro_F1_ts = micro_f1_score(predicted_onehot_labels.to(dtype=torch.float32),true_onehot_labels)  
     eval_macro_auc = macro_auroc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
     eval_macro_auprc = macro_auprc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
     eval_micro_auc = micro_auroc(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
