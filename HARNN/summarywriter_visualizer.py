@@ -268,9 +268,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             model.eval()
             with torch.no_grad():
                 score = model(batch_tensor)
-            #print('Baseline',score)
+            print('Baseline',score)
             thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=threshold)[0]
-            #print('Baseline Thresholded',thresholded_score)
+            print('Baseline Thresholded',thresholded_score)
             score_list.append(thresholded_score)
             
         elif model_name == 'chmcnn':
