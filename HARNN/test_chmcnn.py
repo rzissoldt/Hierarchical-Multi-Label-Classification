@@ -56,8 +56,8 @@ def test_chmcnn(args):
     test_dataset = CHMCNNDataset(annotation_file_path=args.test_file, path_to_model=path_to_model,hierarchy_file_path=args.hierarchy_file,image_dir=image_dir,hierarchy_dicts_file_path=args.hierarchy_dicts_file,hierarchy_depth=best_model_config.hierarchy_depth)
     test_dataset.is_training = False
     
-    print('HmcNet-Sample',hmcnet_dataset[0])
-    print('CHMCNN(h)-Sample',test_dataset[0])
+    print('HmcNet-Sample',hmcnet_dataset[0][1])
+    print('CHMCNN(h)-Sample',test_dataset[0][1])
     
 
      
