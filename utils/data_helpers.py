@@ -479,6 +479,7 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
     eval_metrics_per_layer = get_per_layer_metrics(scores=scores,labels=true_onehot_labels,num_classes_list=num_classes_list,device=device)
     scores = scores.to(device=device)
     predicted_onehot_labels = predicted_onehot_labels.to(device=device)
+    true_onehot_labels = true_onehot_labels.to(device=device)
     eval_micro_pre_ts = micro_precision(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
     eval_micro_rec_ts = micro_recall(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
     eval_micro_F1_ts = micro_f1_score(scores.to(dtype=torch.float32),true_onehot_labels.to(dtype=torch.long))
