@@ -19,6 +19,7 @@ from torch.nn.functional import one_hot
 from solt.core import DataContainer
 sys.path.append('../')
 from utils import xtree_utils as xtree 
+from torchmetrics.classification import Precision, Recall, F1Score
 from torchmetrics.classification import MultilabelAUROC, MultilabelAveragePrecision, BinaryAUROC, BinaryAveragePrecision,MultilabelAccuracy
 import matplotlib.pyplot as plt
 def _option(pattern):
@@ -323,6 +324,12 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
     macro_auprc = MultilabelAveragePrecision(num_labels=total_class_num,average='macro')
     micro_auroc = MultilabelAUROC(num_labels=total_class_num,average='micro')
     micro_auprc = MultilabelAveragePrecision(num_labels=total_class_num,average='micro')
+    micro_precision = Precision(task="multilabel", average='micro', num_labels=total_class_num, threshold=threshold)
+    micro_recall = Recall(task="multilabel", average='micro', num_labels=total_class_num, threshold=threshold)
+    micro_f1_score = F1Score(task="multilabel", average ='micro', num_labels=total_class_num, threshold=threshold)
+    macro_precision = Precision(task="multilabel", average='macro', num_labels=total_class_num, threshold=threshold)
+    macro_recall = Recall(task="multilabel", average='macro', num_labels=total_class_num, threshold=threshold)
+    macro_f1_score = F1Score(task="multilabel", average ='macro', num_labels=total_class_num, threshold= threshold)
     predicted_onehot_labels_ts = []
     predicted_pcp_onehot_labels_ts = []
     predicted_onehot_labels_tk = [[] for _ in range(topK)]
@@ -456,9 +463,14 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
         #    metric_dict[f'Validation/HierarchicalF1TopK/{i}'] = f1
         #for top_num in range(topK):
         #    print("Top{0}: Hierarchical Precision {1:g}, Hierarchical Recall {2:g}, Hierarchical F1 {3:g}".format(top_num+1,eval_hierarchical_pre_tk[top_num], eval_hierarchical_rec_tk[top_num], eval_hierarchical_pre_tk[top_num]))
-    eval_micro_pre_ts,eval_micro_rec_ts,eval_micro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='micro')
-    eval_macro_pre_ts,eval_macro_rec_ts,eval_macro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='macro')
-    
+    #eval_micro_pre_ts,eval_micro_rec_ts,eval_micro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='micro')
+    #eval_macro_pre_ts,eval_macro_rec_ts,eval_macro_F1_ts = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels, average='macro')
+    eval_micro_pre_ts = micro_precision(predicted_onehot_labels,true_onehot_labels)
+    eval_micro_rec_ts = micro_recall(predicted_onehot_labels,true_onehot_labels)
+    eval_micro_F1_ts = micro_f1_score(predicted_onehot_labels,true_onehot_labels)
+    eval_macro_pre_ts = micro_precision(predicted_onehot_labels,true_onehot_labels)
+    eval_macro_rec_ts = micro_recall(predicted_onehot_labels,true_onehot_labels)
+    eval_macro_F1_ts = micro_f1_score(predicted_onehot_labels,true_onehot_labels)
     for top_num in range(topK):
         predicted_onehot_labels_topk = torch.cat([torch.unsqueeze(torch.tensor(tensor),0) for tensor in predicted_onehot_labels_tk[top_num]],dim=0).to(device)
         eval_micro_pre_tk[top_num], eval_micro_rec_tk[top_num],eval_micro_F1_tk[top_num] = precision_recall_f1_score(labels=true_onehot_labels,binary_predictions=predicted_onehot_labels_topk, average='micro')
