@@ -268,7 +268,7 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             model.eval()
             with torch.no_grad():
                 score = model(batch_tensor)
-            print('Baseline',score)
+            print('Baselines',score)
             thresholded_score = get_onehot_label_threshold(scores=score.detach().to('cpu').numpy(),threshold=threshold)[0]
             print('Baseline Thresholded',thresholded_score)
             score_list.append(thresholded_score)
@@ -348,9 +348,9 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             plt.text(0,base_text_anchor,f'Hierarchy-Layer-{i+1}:',fontsize=9,weight='bold')
             anchor_counter = 0
             for j in swapped_hierarchy_dict[i].keys():
-                print(j)
+                #print(j)
                 wk_id = swapped_hierarchy_dict[i][j].split('_')[-1]
-                print(thresholded_score,true_label)
+                #print(thresholded_score,true_label)
                 if true_label[start_index+j] == 1 and thresholded_score[start_index+j] == 1.0:
                     plt.text(120+(anchor_counter)*60,base_text_anchor,f'{wk_id}',color='green',fontsize=9)
                     anchor_counter+=1
