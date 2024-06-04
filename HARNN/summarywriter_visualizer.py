@@ -348,15 +348,16 @@ def visualize_sample_image(image_file_path,true_label,model_names,best_model_dir
             plt.text(0,base_text_anchor,f'Hierarchy-Layer-{i+1}:',fontsize=9,weight='bold')
             anchor_counter = 0
             for j in swapped_hierarchy_dict[i].keys():
+                print(j)
                 wk_id = swapped_hierarchy_dict[i][j].split('_')[-1]
                 print(thresholded_score,true_label)
-                if true_label[start_index+j] == 1 and thresholded_score[start_index+j] == 1:
+                if true_label[start_index+j] == 1 and thresholded_score[start_index+j] == 1.0:
                     plt.text(120+(anchor_counter)*60,base_text_anchor,f'{wk_id}',color='green',fontsize=9)
                     anchor_counter+=1
-                elif true_label[start_index+j] == 1 and thresholded_score[start_index+j] == 0:
+                elif true_label[start_index+j] == 1 and thresholded_score[start_index+j] == 0.0:
                     plt.text(120+(anchor_counter)*60,base_text_anchor,f'{wk_id}',color='red',fontsize=9)
                     anchor_counter+=1
-                elif true_label[start_index+j] == 0 and thresholded_score[start_index+j] == 1:
+                elif true_label[start_index+j] == 0 and thresholded_score[start_index+j] == 1.0:
                     plt.text(120+(anchor_counter)*60,base_text_anchor,f'{wk_id}',color='orange',fontsize=9)
                     anchor_counter+=1
             base_text_anchor+=15
