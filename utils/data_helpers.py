@@ -477,7 +477,7 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
         
     # Calculate Precision & Recall & F1 per Hierarchy-Layer
     eval_metrics_per_layer = get_per_layer_metrics(scores=scores,labels=true_onehot_labels,num_classes_list=num_classes_list,device=device)
-    scores = scores.to(device=device)
+    scores = scores.to(device='cpu')
     predicted_onehot_labels = predicted_onehot_labels.to(device='cpu')
     true_onehot_labels = true_onehot_labels.to(device='cpu')
     eval_micro_pre_ts = micro_precision(predicted_onehot_labels.to(dtype=torch.long),true_onehot_labels.to(dtype=torch.long))
