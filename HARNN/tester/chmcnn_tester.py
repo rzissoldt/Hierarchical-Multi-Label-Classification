@@ -49,6 +49,7 @@ class CHMCNNTester():
 
                # Make predictions for this batch
                 constr_output = self.best_model(inputs.float())
+                print(constr_output)
                 scores_list.extend(constr_output)
                 labels_list.extend(labels) 
         metrics_dict = dh.calc_metrics(scores_list=scores_list,labels_list=labels_list,topK=self.args.topK,pcp_hierarchy=self.explicit_hierarchy.to('cpu').numpy(),pcp_threshold=self.args.pcp_threshold,num_classes_list=self.num_classes_list,device=self.device,eval_pcp=self.args.pcp_metrics_active,threshold=self.args.threshold,eval_hierarchical_metrics=True)
