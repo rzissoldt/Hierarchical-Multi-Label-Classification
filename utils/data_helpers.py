@@ -340,7 +340,7 @@ def calc_metrics(scores_list,labels_list,topK,pcp_hierarchy,pcp_threshold,thresh
     batch_predicted_onehot_labels = get_onehot_label_threshold(scores=scores_np,threshold=threshold)
     for k in batch_predicted_onehot_labels:
         predicted_onehot_labels_ts.append(k)
-    
+    print(predicted_onehot_labels_ts[0:10])
     # Predict by topK
     for top_num in range(topK):
         batch_predicted_onehot_labels_tk = get_onehot_label_topk(scores=scores_np,top_num=top_num+1)
